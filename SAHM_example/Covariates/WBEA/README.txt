@@ -1,1 +1,0 @@
-All data obtained from:  http://sagemap.wr.usgs.gov/wbea.aspx#CAdata

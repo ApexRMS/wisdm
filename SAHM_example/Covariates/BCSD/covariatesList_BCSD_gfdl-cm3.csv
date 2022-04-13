@@ -1,6 +1,0 @@
-CovariateFile,Categorical,Resampling,Aggregation
-Covariates/BCSD/gfdl-cm3_rcp85_2060_2079/bio1.tif,0,Bilinear,Mean
-Covariates/BCSD/gfdl-cm3_rcp85_2060_2079/bio5.tif,0,Bilinear,Mean
-Covariates/BCSD/gfdl-cm3_rcp85_2060_2079/bio6.tif,0,Bilinear,Mean
-Covariates/BCSD/gfdl-cm3_rcp85_2060_2079/bio12.tif,0,Bilinear,Mean
-Covariates/BCSD/gfdl-cm3_rcp85_2060_2079/bio13.tif,0,Bilinear,Mean
