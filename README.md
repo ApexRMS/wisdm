@@ -1,2 +1,2 @@
 # sdsim
- SAHM package for Syncrosim 
+ SAHM package for SyncroSim 
