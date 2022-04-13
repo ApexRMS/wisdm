@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package name="sdsim" displayName="Simulates species distributions" version="1.0.0">
+	<transformers>
+		<!--Primary Transformer-->
+		<transformer 
+			name="Primary" 
+			isPrimary="True" 
+			isPipelineBased="True">
+		<include>
+			<transformer name="Global"/>
+			<transformer name="DataPreparation"/>
+			<transformer name="VariableReduction"/>
+			<transformer name="GLM"/>
+			<transformer name="RandomForest"/>
+			<transformer name="ApplyModel"/>
+		</include>
+		</transformer>
+	   <!--Global Transformer-->
+		<transformer name="Global">
+			<datafeeds>
+				<datafeed name="Covariates" dataScope="Project">
+				  <datasheets>
+					<datasheet name="Covariates" valueMember="CovariatesID" displayMember="CovariateName">
+					  <columns>
+						<column name="CovariatesID" dataType="Integer" isPrimary="True"/>
+						<column name="ProjectID" dataType="Integer"/>
+						<column name="CovariateName" displayName="Covariate Name" dataType="String"/>
+						<column name="Description" dataType="String" isOptional="True"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+				<datafeed name="FieldData" displayName="Field Data" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="FieldData" displayName="Field Data">
+					  <columns>
+						<column name="FieldDataID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="SiteID" displayName="Site" dataType="Integer"/>
+						<column name="X" dataType="Double"/>
+						<column name="Y" dataType="Double"/>
+						<column name="Response" dataType="Integer"/>
+						<column name="UseInModelEvaluation" displayName="Use In Model Evaluation" dataType="Boolean" default="False" isOptional="True"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+				<datafeed name="CovariateData" displayName="Covariate Data" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="CovariateData" displayName="Covariate Data">
+					  <columns>
+						<column name="CovariateDataID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="CovariatesID" displayName="Covariate" dataType="Integer" validationType="Datasheet" formula1="Covariates"/>
+						<column name="RasterFilePath" displayName="Raster File" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="IsCategorical" displayName="Is Categorical" dataType="Boolean" isOptional="True"/>
+						<column name="UseInModelSelection" displayName="Use In Model Selection" dataType="Boolean" default="True" isOptional="True"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+				<datafeed name="SiteData" displayName="Site Data" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="SiteData" displayName="Site Data">
+					  <columns>
+						<column name="SiteDataID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="SiteID" displayName="Site" dataType="Integer"/>
+						<column name="CovariatesID" displayName="Covariate" dataType="Integer" validationType="Datasheet" formula1="Covariates"/>
+						<column name="Value" dataType="Double"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+				<datafeed name="CovariateSelectionOptions" displayName="Covariate Selection Options" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="CovariateSelectionOptions" displayName="Covariate Selection Options" isSingleRow="True">
+					  <columns>
+						<column name="CovariateSelectionOptionsID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="DisplayHighestCorrelations" displayName="Display Highest Correlations" dataType="Boolean" default="True"/>
+						<column name="CorrelationThreshold" displayName="Correlation Threshold" dataType="Double" defaultValue="0.7" validationType="Decimal" validationCondition="Between" formula1="0"  formula2="1"/>
+						<column name="NumberOfPlots" displayName="Number of Plots" dataType="Integer" defaultValue="10"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+				<datafeed name="ValidationOptions" displayName="Validation Options" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="ValidationOptions" displayName="Validation Options" isSingleRow="True">
+					  <columns>
+						<column name="ValidationOptionsID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="SplitData" displayName="Split data for model training and testing" dataType="Boolean"/>
+						<column name="ProportionTrainingData" displayName="Proportion of data used for model training" dataType="Double" validationType="Decimal" validationCondition="Between" formula1="0"  formula2="1"/>
+						<column name="CrossValidate" displayName="Use cross validation for model selection" dataType="Boolean"/>
+						<column name="StratifyFolds" displayName="Stratify cross-validation folds by the response" dataType="Boolean"/>
+						<column name="NumberOfFolds" displayName="Number of cross-validation folds" dataType="Integer"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>		
+				<datafeed name="OutputOptions" displayName="Output Options" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="OutputOptions" displayName="Output Options" isSingleRow="True">
+					  <columns>
+						<column name="OutputOptionsID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="MakeProbabilityMap" displayName="Make Probability Map" dataType="Boolean"/>
+						<column name="MakeMessMap" displayName="Make Mess Map" dataType="Boolean"/>
+						<column name="MakeModMap" displayName="Make Mod Map" dataType="Boolean"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+				<datafeed name="ModelOutputs" dataScope="Scenario" isOutput="True">
+				  <datasheets>
+					<datasheet name="ModelOutputs">
+					  <columns>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="ModelType" dataType= "String"/>
+						<column name="ModelRDS" dataType="String" isExternalFile="True"/>
+						<column name="ResponseCurves" dataType="String" isExternalFile="True"/>
+						<column name="TextOutput" dataType="String" isExternalFile="True"/>
+						<column name="CalibrationPlot" dataType="String" isExternalFile="True"/>
+						<column name="ROCAUCPlot" dataType="String" isExternalFile="True"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>	
+			</datafeeds>
+		</transformer>
+		<!--Data Preparation Transformer-->
+		<transformer
+		  name="DataPreparation"
+		  displayName ="1 - Data Preparation"
+		  isRunnable="True"
+		  programName="RScript"
+		  programArguments="1-data-preparation.R"
+		  transformerSpecificOutput="False">
+		  <pipeline>
+			<datafeed name="FeildData" type="Input"/>
+			<datafeed name="CovariateData" type="Input"/>
+			<datafeed name="SiteData" type="Output"/>
+		  </pipeline>
+		</transformer>
+		<!--Variable Reduction Transformer-->
+		<transformer
+		  name="VariableReduction"
+		  displayName ="2 - Variable Reduction"
+		  isRunnable="True"
+		  programName="RScript"
+		  programArguments="2-variable-reduction.R"
+		  transformerSpecificOutput="False">
+			<pipeline>
+				<datafeed name="FeildData" type="Input"/>
+				<datafeed name="CovariateData" type="Input"/>
+				<datafeed name="SiteData" type="Input"/>
+				<datafeed name="CovariateCorrelationMatrix" type="Output"/>
+			</pipeline>
+			<datafeeds>
+				<datafeed name="CovariateCorrelationMatrix" dataScope="Scenario" isOutput="True">
+				  <datasheets>
+					<datasheet name="CovariateCorrelationMatrix">
+					  <columns>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="Filename" displayName="Covariate Correlation Matrix" dataType="String" isExternalFile="True"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+			</datafeeds>
+		</transformer>
+		<!--GLM Transformer-->
+		<transformer
+		  name="GLM"
+		  displayName ="3 - Generalized Linear Model"
+		  isRunnable="True"
+		  programName="RScript"
+		  programArguments="3-run-glm.R"
+		  transformerSpecificOutput="False">
+			<pipeline>
+				<datafeed name="FeildData" type="Input"/>
+				<datafeed name="CovariateData" type="Input"/>
+				<datafeed name="SiteData" type="Input"/>
+				<datafeed name="ModelOutputs" type="Output"/>
+			</pipeline>	
+			<datafeeds>
+				<datafeed name="GLM" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="GLM" isSingleRow="True">
+					  <columns>
+						<column name="GLMID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="SelectBestPredictors" displayName="Select Best Predictors" dataType="Boolean"/>
+						<column name="SimplificationMethod" displayName="Simplification Method" dataType="Integer" defaultValue="0" validationType="List" formula1="0:AIC|1:BIC"/>
+						<column name="ConsiderSquaredTerms" displayName="Consider Interactions and Squared Terms" dataType="Boolean"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>		
+			</datafeeds>
+		</transformer>
+		<!--Random Forest Transformer-->
+		<transformer
+		  name="RandomForest"
+		  displayName ="3 - Random Forest"
+		  isRunnable="True"
+		  programName="RScript"
+		  programArguments="3-run-random-forest.R"
+		  transformerSpecificOutput="False">
+			<pipeline>
+				<datafeed name="FeildData" type="Input"/>
+				<datafeed name="CovariateData" type="Input"/>
+				<datafeed name="SiteData" type="Input"/>
+				<datafeed name="ModelOutputs" type="Output"/>
+			</pipeline>
+			<datafeeds>
+				<datafeed name="RandomForest" displayName="Random Forest" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="RandomForest" displayName="Random Forest" isSingleRow="True">
+					  <columns>
+						<column name="RandomForestID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="EvaluateCovariateImportance" displayName="Evaluate Covariate Importance" dataType="Boolean"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+			</datafeeds>
+		</transformer>
+		<!--Apply Model Transformer-->
+		<transformer
+		  name="ApplyModel"
+		  displayName ="4 - Apply Model"
+		  isRunnable="True"
+		  programName="RScript"
+		  programArguments="4-apply-model.R"
+		  transformerSpecificOutput="False">
+			<pipeline>
+				<datafeed name="ModelOutputs" type="Input"/>
+				<datafeed name="SpatialOutputs" type="Output"/>
+			</pipeline>
+			<datafeeds>
+				<datafeed name="SpatialOutputs" dataScope="Scenario" isOutput="True">
+				  <datasheets>
+					<datasheet  name="SpatialOutputs">
+					  <columns>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="ModelType" dataType= "String"/>
+						<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+			</datafeeds>
+		</transformer>
+		 <!--Export Transformers-->
+		<transformer
+		  name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation" dataSheet="CovariateCorrelationMatrix" column="Filename" isFolderExport="True" >
+		</transformer>
+		<transformer
+		  name="ModelExportRDS" displayName="Model" dataSheet="ModelOutputs" column="ModelRDS" isFolderExport="True" >
+		</transformer>
+	</transformers>
+	<layouts>
+		<!--Library Datafeeds Layout-->
+		<layout name="coreforms_LibraryDatafeeds">
+		  <item name="core_Rconfig"/>
+		</layout>  
+		<!--Project Datafeeds Layout-->
+		<layout name="coreforms_ProjectDatafeeds">
+		  <item name="Covariates"/>
+		</layout> 
+		<!--Scenario Datafeeds Layout-->
+		<layout name="coreforms_ScenarioDatafeeds">
+		  <group name="DataPreparation" displayName="Data Preparation">
+			<item name="FieldData"/>
+			<item name="CovariateData"/>
+		  </group>
+		  <group name="VariableReduction" displayName="Variable Reduction">
+			<item name="SiteData"/>
+			<item name="CovariateSelectionOptions"/>
+			<item name="ValidationOptions"/>
+		  </group>
+		  <group name="Models">
+			<item name="GLM"/>
+			<item name="RandomForest"/>
+		  </group>
+		<item name="OutputOptions"/>
+		</layout> 
+		<!--Result Transformers Layout-->
+		<layout name="coreforms_ResultTransformers">
+			<item name="corestime_ChartTransformer"/>
+			<item name="corestime_MapTransformer"/>
+			<group name="Export">
+				<item name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation Matrix"/>
+				<item name="ModelExportRDS" displayName="Model"/>
+			</group>
+        </layout>
+		<!--Charts Layout-->
+		<layout name="corestimeforms_Charts">
+		<!--Maps Layout-->
+		<layout name="corestimeforms_Maps">
+			<item
+        name="ProbabilityMap"
+        displayName="Probability Map"
+        dataSheet="SpatialOutputs"
+        column="ProbabilityRaster"/>
+</layout>
+		
+	</layouts>	
+</package>

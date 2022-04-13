@@ -1,0 +1,6 @@
+CovariateFile,Categorical,Resampling,Aggregation
+Covariates\BCSD\gfdl-cm3\bio1.tif,0,Bilinear,Mean
+Covariates\BCSD\gfdl-cm3\bio5.tif,0,Bilinear,Mean
+Covariates\BCSD\gfdl-cm3\bio6.tif,0,Bilinear,Mean
+Covariates\BCSD\gfdl-cm3\bio12.tif,0,Bilinear,Mean
+Covariates\BCSD\gfdl-cm3\bio13.tif,0,Bilinear,Mean

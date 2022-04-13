@@ -1,0 +1,11 @@
+Generalized Linear Model Results
+
+Settings:
+
+	 model family:  binomial
+	 simplification method:  AIC
+
+
+Results:
+	 number covariates in final model:  3
+NULL

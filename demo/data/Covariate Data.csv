@@ -1,0 +1,12 @@
+CovariatesID,RasterFilePath
+asage_1km,"""C:/GitHub/sdsim/demo/data/covariates/asage_1km.tif"""
+bio1,"""C:/GitHub/sdsim/demo/data/covariates/bio1.tif"""
+bio12,"""C:/GitHub/sdsim/demo/data/covariates/bio12.tif"""
+bio13,"""C:/GitHub/sdsim/demo/data/covariates/bio13.tif"""
+bio5,"""C:/GitHub/sdsim/demo/data/covariates/bio5.tif"""
+bio6,"""C:/GitHub/sdsim/demo/data/covariates/bio6.tif"""
+cfrst_18km,"""C:/GitHub/sdsim/demo/data/covariates/cfrst_18km.tif"""
+mix_18km,"""C:/GitHub/sdsim/demo/data/covariates/mix_18km.tif"""
+ndvi_270,"""C:/GitHub/sdsim/demo/data/covariates/ndvi_270.tif"""
+rddens_18km,"""C:/GitHub/sdsim/demo/data/covariates/rddens_18km.tif"""
+tri_18km,"""C:/GitHub/sdsim/demo/data/covariates/tri_18km.tif"""
