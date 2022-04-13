@@ -26,6 +26,7 @@
 						<column name="CovariatesID" dataType="Integer" isPrimary="True"/>
 						<column name="ProjectID" dataType="Integer"/>
 						<column name="CovariateName" displayName="Covariate Name" dataType="String"/>
+						<column name="IsCategorical" displayName="Is Categorical" dataType="Boolean" defaultValue="0" isOptional="True"/>
 						<column name="Description" dataType="String" isOptional="True"/>
 					  </columns>
 					</datasheet>
@@ -41,7 +42,8 @@
 						<column name="X" dataType="Double"/>
 						<column name="Y" dataType="Double"/>
 						<column name="Response" dataType="Integer"/>
-						<column name="UseInModelEvaluation" displayName="Use In Model Evaluation" dataType="Boolean" default="False" isOptional="True"/>
+						<column name="UseInModelEvaluation" displayName="Use In Model Evaluation" dataType="Boolean" defaultValue="0" isOptional="True"/>
+						<column name="ModelSelectionSplit" displayName="Model Selection Split" dataType="Integer" isOptional="True"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -54,8 +56,17 @@
 						<column name="ScenarioID" dataType="Integer"/>
 						<column name="CovariatesID" displayName="Covariate" dataType="Integer" validationType="Datasheet" formula1="Covariates"/>
 						<column name="RasterFilePath" displayName="Raster File" dataType="String" isExternalFile="True" isRaster="True"/>
-						<column name="IsCategorical" displayName="Is Categorical" dataType="Boolean" isOptional="True"/>
-						<column name="UseInModelSelection" displayName="Use In Model Selection" dataType="Boolean" default="True" isOptional="True"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+				<datafeed name="ReducedCovariates" displayName="Reduced Covariate List" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="ReducedCovariates" displayName="Reduced Covariate List">
+					  <columns>
+						<column name="ReducedCovariatesID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="CovariatesID" displayName="Covariate" dataType="Integer" validationType="Datasheet" formula1="Covariates"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -79,7 +90,7 @@
 					  <columns>
 						<column name="CovariateSelectionOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="DisplayHighestCorrelations" displayName="Display Highest Correlations" dataType="Boolean" default="True"/>
+						<column name="DisplayHighestCorrelations" displayName="Display Highest Correlations" dataType="Boolean" defaultValue="-1"/>
 						<column name="CorrelationThreshold" displayName="Correlation Threshold" dataType="Double" defaultValue="0.7" validationType="Decimal" validationCondition="Between" formula1="0"  formula2="1"/>
 						<column name="NumberOfPlots" displayName="Number of Plots" dataType="Integer" defaultValue="10"/>
 					  </columns>
@@ -92,9 +103,9 @@
 					  <columns>
 						<column name="ValidationOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="SplitData" displayName="Split data for model training and testing" dataType="Boolean"/>
-						<column name="ProportionTrainingData" displayName="Proportion of data used for model training" dataType="Double" validationType="Decimal" validationCondition="Between" formula1="0"  formula2="1"/>
-						<column name="CrossValidate" displayName="Use cross validation for model selection" dataType="Boolean"/>
+						<column name="SplitData" displayName="Split data for model training and testing" dataType="Boolean" defaultValue="0"/>
+						<column name="ProportionTrainingData" displayName="Proportion of data used for model training" dataType="Double" validationType="Decimal" validationCondition="Between" formula1="0" formula2="1"/>
+						<column name="CrossValidate" displayName="Use cross validation for model selection" dataType="Boolean" defaultValue="0"/>
 						<column name="StratifyFolds" displayName="Stratify cross-validation folds by the response" dataType="Boolean"/>
 						<column name="NumberOfFolds" displayName="Number of cross-validation folds" dataType="Integer"/>
 					  </columns>
@@ -140,8 +151,9 @@
 		  programArguments="1-data-preparation.R"
 		  transformerSpecificOutput="False">
 		  <pipeline>
-			<datafeed name="FeildData" type="Input"/>
+			<datafeed name="FieldData" type="Input"/>
 			<datafeed name="CovariateData" type="Input"/>
+			<datafeed name="ValidationOptions" type="Input"/>
 			<datafeed name="SiteData" type="Output"/>
 		  </pipeline>
 		</transformer>
@@ -154,10 +166,11 @@
 		  programArguments="2-variable-reduction.R"
 		  transformerSpecificOutput="False">
 			<pipeline>
-				<datafeed name="FeildData" type="Input"/>
+				<datafeed name="FieldData" type="Input"/>
 				<datafeed name="CovariateData" type="Input"/>
 				<datafeed name="SiteData" type="Input"/>
 				<datafeed name="CovariateCorrelationMatrix" type="Output"/>
+				<datafeed name="ReducedCovariates" type="Output"/>
 			</pipeline>
 			<datafeeds>
 				<datafeed name="CovariateCorrelationMatrix" dataScope="Scenario" isOutput="True">
@@ -178,12 +191,14 @@
 		  displayName ="3 - Generalized Linear Model"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="3-run-glm.R"
+		  programArguments="3-fit-glm.R"
 		  transformerSpecificOutput="False">
 			<pipeline>
-				<datafeed name="FeildData" type="Input"/>
-				<datafeed name="CovariateData" type="Input"/>
+				<datafeed name="FieldData" type="Input"/>
+				<datafeed name="ValidationOptions" type="Input"/>
+				<datafeed name="ReducedCovariates" type="Input"/>
 				<datafeed name="SiteData" type="Input"/>
+				<datafeed name="GLM" dataScope="Input"/>
 				<datafeed name="ModelOutputs" type="Output"/>
 			</pipeline>	
 			<datafeeds>
@@ -193,9 +208,9 @@
 					  <columns>
 						<column name="GLMID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="SelectBestPredictors" displayName="Select Best Predictors" dataType="Boolean"/>
+						<column name="SelectBestPredictors" displayName="Select Best Predictors" dataType="Boolean" defaultValue="-1"/>
 						<column name="SimplificationMethod" displayName="Simplification Method" dataType="Integer" defaultValue="0" validationType="List" formula1="0:AIC|1:BIC"/>
-						<column name="ConsiderSquaredTerms" displayName="Consider Interactions and Squared Terms" dataType="Boolean"/>
+						<column name="ConsiderSquaredTerms" displayName="Consider Interactions and Squared Terms" dataType="Boolean" defaultValue="0" />
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -208,11 +223,12 @@
 		  displayName ="3 - Random Forest"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="3-run-random-forest.R"
+		  programArguments="3-fit-random-forest.R"
 		  transformerSpecificOutput="False">
 			<pipeline>
-				<datafeed name="FeildData" type="Input"/>
-				<datafeed name="CovariateData" type="Input"/>
+				<datafeed name="FieldData" type="Input"/>
+				<datafeed name="ValidationOptions" type="Input"/>
+				<datafeed name="ReducedCovariates" type="Input"/>
 				<datafeed name="SiteData" type="Input"/>
 				<datafeed name="ModelOutputs" type="Output"/>
 			</pipeline>
@@ -278,11 +294,12 @@
 		  <group name="DataPreparation" displayName="Data Preparation">
 			<item name="FieldData"/>
 			<item name="CovariateData"/>
+			<item name="ValidationOptions"/>
 		  </group>
 		  <group name="VariableReduction" displayName="Variable Reduction">
-			<item name="SiteData"/>
 			<item name="CovariateSelectionOptions"/>
-			<item name="ValidationOptions"/>
+			<item name="SiteData"/>
+			<item name="ReducedCovariates"/>
 		  </group>
 		  <group name="Models">
 			<item name="GLM"/>
@@ -295,7 +312,9 @@
 			<item name="corestime_MapTransformer"/>
 			<group name="Export">
 				<item name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation Matrix"/>
-				<item name="ModelExportRDS" displayName="Model"/>
+				<group name="ModelOutputs" displayName="Model Outputs">
+					<item name="ModelExportRDS" displayName="Model RDS"/>
+				</group>
 			</group>
         </layout>
 		<!--Maps Layout-->

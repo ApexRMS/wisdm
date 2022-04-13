@@ -16,8 +16,36 @@ myProject <- project()
 myScenario <- scenario()
 
 # Read in datasheets
-fieldDataSheet <- datasheet()
-CovariateDataSheet <- datasheet()
+covariatesSheet <- datasheet(myProject, "sdsim_Covariates", optional = T)
+fieldDataSheet <- datasheet(myScenario, "sdsim_FieldData", optional = T)
+CovariateDataSheet <- datasheet(myScenario, "sdsim_CovariateData")
+ValidationDataSheet <- datasheet(myScenario, "sdsim_ValidationOptions")
+# siteDataSheet <- datasheet(myScenario, "sdsim_SiteData", lookupsAsFactors = F)
 
+
+# Prep Field Data --------------------------------------------------------------
+
+# update x coordinates to match template CRS
+
+# Define Train/Test Split (if specified)
+# siteSplits <- TestTrainSplit()
+# fieldDataSheet$UseInModelEvaluation <- 
+
+
+# convert 
+siteDataWide <- spread(siteDataSheet, key = CovariatesID, value = "Value")
+
+# merge field and site data
+siteDataWide <- merge(fieldDataSheet, siteDataWide, by = "SiteID")
+
+
+# Define Cross Validation folds (if specified) 
+siteSplits <- CrossValidationSplit(data = siteDataWide, # site data
+                                   covData = covariatesSheet,
+                                   n.folds = ValidationDataSheet$NumberOfFolds,
+                                   stratify = ValidationDataSheet$StratifyFolds)
+
+
+# fieldDataSheet$ModelSelectionSplit <-  
 
 
