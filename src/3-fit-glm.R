@@ -56,7 +56,14 @@
   
   # identify cross validation folds for model selection (if specified)
   if(ValidationDataSheet$CrossValidate == TRUE){ # TO Do: build out assigns nfold number to each training row
-      trainingDataCVSplits <- split(trainingData, f = trainingData$ModelSelectionSplit, drop = T)
+    CVSplitsTrain <- list()
+    CVSplitsTest <- list()
+    for (i in 1:(ValidationDataSheet$NumberOfFolds)){
+      folds <- 1:ValidationDataSheet$NumberOfFolds
+      tfolds <- folds[-i]
+      CVSplitsTrain[[i]] <- trainingData[trainingData$ModelSelectionSplit %in% tfolds,]
+      CVSplitsTest[[i]] <- trainingData[trainingData$ModelSelectionSplit == i,]
+    }
   }
   
   # identify cross validation folds for evaluation
@@ -86,12 +93,15 @@
   
   ## training data
   out$data$train <- trainingData
-  if(ValidationDataSheet$CrossValidate == TRUE){
-    out$data$cvTrainSplits <- trainingDataCVSplits
-  }
   
   ## testing data
   out$data$test <- testingData
+  
+  # CV splits
+  if(ValidationDataSheet$CrossValidate == TRUE){
+    out$data$cvSplits$train <- CVSplitsTrain
+    out$data$cvSplits$test <- CVSplitsTest
+  }
   
   ## pseudo absence  
   out$pseudoAbs <- FALSE # To Do: build out call to pseudo absence 
@@ -189,8 +199,8 @@
   out$data$test$predicted <- pred.fct(x=testingData, mod=finalMod, modType=modType)
   
   if(ValidationDataSheet$CrossValidate == TRUE){
-     for(i in 1:length(out$data$cvTrainSplits)){
-       out$data$cvTrainSplits[[i]]$predicted <- pred.fct(x=out$data$cvTrainSplits[[i]], mod=finalMod, modType=modType)
+     for(i in 1:length(out$data$cvSplits$test)){
+       out$data$cvSplits$test[[i]]$predicted <- pred.fct(x=out$data$cvSplits$test[[i]], mod=finalMod, modType=modType)
      }
   }
  

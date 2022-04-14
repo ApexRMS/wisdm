@@ -229,7 +229,7 @@ cv.fct <- function(out,         # out list
     }
     
     # set up for results storage
-    nk <- nfolds-1
+    nk <- nfolds # -1
     subset.test <- rep(0,nk)
     subset.calib <- as.data.frame(matrix(0,ncol=5,nrow=nk))
     names(subset.calib) <- c("intercept","slope","test1","test2","test3")
@@ -487,7 +487,13 @@ permute.predict <- function(inputVars, # input variables for model fitting
 
 make.auc.plot.jpg <- function(out = out){
   
-  calib.plot <- paste(out$modType, "_CalibrationPlot.png", sep="")
+  standResidualFile <- paste0(out$tempDir, out$modType, "_StandardResidualPlots.png")
+  variableImportanceFile <- paste0(out$tempDir, out$modType, "_VariableImportance.png")
+  confusionMatrixFile <- paste0(out$tempDir, out$modType, "_ConfusionMatrix.png")
+  ROCAUCFile <- paste0(out$tempDir, out$modType, "_ROCAUCPlot.png")  
+  AUCPRFile <- paste0(out$tempDir, out$modType, "_AUCPRPlot.png")
+  calibrationFile <- paste0(out$tempDir, out$modType, "_CalibrationPlot.png")
+  residualPlotFile <- paste0(out$tempDir, out$modType, "_PoissonResidulePlot.png")
   
   if(!out$validationOptions$SplitData & !out$validationOptions$CrossValidate){ splitType <- "none" }
   if(out$validationOptions$SplitData & !out$validationOptions$CrossValidate){ splitType <- "train/test" }
@@ -520,7 +526,7 @@ make.auc.plot.jpg <- function(out = out){
   
   if(out$modType %in% c("glm","mars") & is.null(out$data$test) & !(out$modType == "mars" & out$pseudoAbs)){
     
-    png(paste(out$modType, "_StandardResidualPlots.png", sep=""), height = 1000, width = 1000)
+    png(standResidualFile, height = 1000, width = 1000)
     par(mfrow = c(2, 2))
     if(out$modType == "glm"){ plot(out$finalMod, cex = 1.5, lwd = 1.5, cex.main = 1.5, cex.lab = 1.5) }
     # if(out$input$script.name == "mars") plot(out$finalMod$glm.list[[1]], cex = 1.5, lwd = 1.5, cex.main = 1.5, cex.lab = 1.5)
@@ -531,9 +537,9 @@ make.auc.plot.jpg <- function(out = out){
   
   ### Calculate all statistics on test\train or train\cv splits  ###
   
-  hasSplit <- (out$pseudoAbs & !out$modType %in% c("glm", "maxent"))
+  out$hasSplit <- hasSplit <- (out$pseudoAbs & !out$modType %in% c("glm", "maxent"))
   if(out$validationOptions$CrossValidate){
-    Stats <- lapply(out$data$cvTrainSplits, calcStat, family = out$modelFamily, has.split = hasSplit)
+    Stats <- lapply(out$data$cvSplits$test, calcStat, family = out$modelFamily, has.split = hasSplit)
   } else { Stats <- list() }
   Stats$train <- calcStat(x = out$data$train, family = out$modelFamily, has.split = hasSplit)
   if(out$validationOptions$SplitData){
@@ -544,9 +550,9 @@ make.auc.plot.jpg <- function(out = out){
   
   ### Variable Importance Plot ###
   
-  if(out$inputVars > 1 & out$modelFamily != "poisson"){
+  if(length(out$inputVars) > 1 & out$modelFamily != "poisson"){
     
-    png(paste0(out$tempDir, out$modType, "_VariableImportance.png"), height = 1000, width = 1000, pointsize = 13)
+    png(variableImportanceFile, height = 1000, width = 1000, pointsize = 13)
     VariableImportance(out = out, auc = lapply(Stats, "[",9)) 
     graphics.off()
     
@@ -557,7 +563,7 @@ make.auc.plot.jpg <- function(out = out){
   
   if(out$modelFamily != "poisson"){
     
-    png(file = paste0(out$tempDir, out$modType, "_ConfusionMatrix.png"), width = 1000, height = 1000, pointsize = 13)
+    png(file = confusionMatrixFile, width = 1000, height = 1000, pointsize = 13)
     confusion.matrix(Stats, out)
     graphics.off()
     
@@ -582,40 +588,44 @@ make.auc.plot.jpg <- function(out = out){
   #   
   # }
   
-  ### AUC and Calibration plot for binomial data ### STOPPED HERE ---------------------------------------------------------
+  ### AUC and Calibration plot for binomial data ### 
   
-  plotname <- paste(out$modType, "_ROCAUCPlot.png", sep="")  
   
   if(out$modelFamily %in% c("binomial", "bernoulli")){
     
-    png(file = plotname, height = 1000, width = 1000, pointsize = 20)
+    png(file = ROCAUCFile , height = 1000, width = 1000, pointsize = 20)
     
-    ## ROC AUC plots
+    #### ROC AUC Plots ####
+    
     TestTrainRocPlot(dat = Stats$train$auc.data, 
                      opt.thresholds = out$trainThresh, 
                      add.legend = FALSE, lwd = 2)
     
     if(splitType == "none"){
-      legend(x = .8, y = .15, paste("AUC=", round(Stats$train$auc.fit, digits = 3), sep = ""))
-    } 
-    
-    if(splitType != "none") {
       
-      #so here we have to extract a sublist and apply a function to the sublist but if it has length 2 the structure of the list changes when the sublist is extracted
+      legend(x = .8, y = .15, paste("AUC=", round(Stats$train$auc.fit, digits = 3), sep = ""))
+    
+      } else {
+      
       if(splitType == "train/test"){ 
         
-        TestTrainRocPlot(do.call("rbind", lapply(lst, function(lst){lst$auc.data})), add.roc = TRUE, line.type = 2, color = "red", add.legend = FALSE)
+        lst <- Stats[c("train","test")]
+        
+        TestTrainRocPlot(do.call("rbind", lapply(lst, function(lst){lst$auc.data})), 
+                         add.roc = TRUE, line.type = 2, color = "red", add.legend = FALSE)
         
         legend(x = .46, y = .24, 
                c(paste("Training Split (AUC=", round(Stats$train$auc.fit, digits = 3), ")", sep = ""),
                  paste("Testing Split  (AUC=", round(Stats$test$auc.fit, digits = 3), ")", sep = "")),
                lty = 2, col = c("black", "red"), lwd = 2, cex = 1.3)
-        
       }
       
-      if(out$dat$split.type == "crossValidation"){
+      if(splitType %in% c("cv", "cv/train/test")){
         
-        ROC.list <- list(predictions = lapply(lst, function(lst){lst$auc.data$pred}), labels = lapply(lst, function(lst){lst$auc.data$pres.abs}))
+        lst <- Stats[1:out$validationOptions$NumberOfFolds]
+        
+        ROC.list <- list(predictions = lapply(lst, function(lst){lst$auc.data$pred}), 
+                         labels = lapply(lst, function(lst){lst$auc.data$pres.abs}))
         pred <- prediction(ROC.list$predictions, ROC.list$labels)
         perf <- performance(pred, "tpr", "fpr")
         
@@ -624,8 +634,10 @@ make.auc.plot.jpg <- function(out = out){
         
         plot(perf, lwd = 1, avg = "vertical", spread.estimate = "boxplot", add = TRUE)
         
-        TestTrainRocPlot(DATA = Stats$train$auc.data, opt.thresholds = inlst$train$thresh,
-                         add.legend = FALSE, lwd = 1.5, add.roc = TRUE, line.type = 1, col = "red", legend.cex = 2)
+        TestTrainRocPlot(dat = Stats$train$auc.data, 
+                         opt.thresholds = out$trainThresh,
+                         add.legend = FALSE, lwd = 1.5, add.roc = TRUE, 
+                         line.type = 1, col = "red", legend.cex = 2)
         
         points(1-Stats$train$Specf, Stats$train$Sens, pch = 21, cex = 2.5, bg = "red")
         segments(x0 = 0, y0 = 0, x1 = 1, y1 = 1, col = "blue")
@@ -640,14 +652,16 @@ make.auc.plot.jpg <- function(out = out){
     
     graphics.off()
     
-    ## AUCPR Plots - still in loop
+    #### AUCPR Plots #### 
+    
     aucpr.lst <- list()
     mean.vec <- c()
     df <- data.frame()
     
     pl <- ggplot(df) + 
-      theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "bottom",
-            panel.border = element_rect(fill = 'transparent', color = 'black'), panel.background = element_blank(), 
+      theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+            legend.position = "bottom", panel.border = element_rect(fill = 'transparent', color = 'black'), 
+            panel.background = element_blank(), 
             axis.line = element_line(colour = "black"), 
             axis.title = element_text(size = 15),
             axis.title.x = element_text(vjust = -2),
@@ -659,85 +673,96 @@ make.auc.plot.jpg <- function(out = out){
       scale_y_continuous(breaks = seq(0, 1, by = 0.2)) +
       expand_limits(x = 0, y = 0) 
     
-    for(n in 1:(length(Stats)-1)){
-      
-      tmp <- pr.curve(scores.class0 = Stats[[n]]$auc.data$pred, weights.class0 = Stats[[n]]$auc.data$pres.abs, curve = T)
+    for(n in 1:(length(lst))){
+      tmp <- pr.curve(scores.class0 = lst[[n]]$auc.data$pred, 
+                      weights.class0 = lst[[n]]$auc.data$pres.abs, curve = T)
       tmp$curve <- as.data.frame(tmp$curve)
       colnames(tmp$curve) <- c('recall', 'precision', 'thresh')
       aucpr.lst[[paste0(n)]] <- tmp
       mean.vec <- c(mean.vec, tmp$auc.davis.goadrich)
-      pl <- pl + geom_line(data = tmp$curve, aes(x = recall, y = precision), color = 'grey', linetype = 'dashed', alpha = 0.3)
-      
+      pl <- pl + geom_line(data = tmp$curve, aes(x = recall, y = precision), 
+                           color = 'grey', linetype = 'dashed', alpha = 0.3)
     }
     
-    # Generate CV mean
+    # Generate CV mean #
     cv.df <- data.frame()
-    
     for(i in 1:length(aucpr.lst)){
-      
       tmp <- aucpr.lst[[i]]$curve %>%
-        summarise_all(.funs = mean)
+      summarise_all(.funs = mean)
       cv.df <- bind_rows(cv.df, tmp)
-      
     }
     
-    # Add training
-    pr <- pr.curve(scores.class0 = Stats$train$auc.data$pred, weights.class0 = Stats$train$auc.data$pres.abs, curve = TRUE)
+    # Add training data # 
+    pr <- pr.curve(scores.class0 = Stats$train$auc.data$pred, 
+                   weights.class0 = Stats$train$auc.data$pres.abs, curve = TRUE)
     pr$curve <- as.data.frame(pr$curve)
     colnames(pr$curve) <- c('recall', 'precision', 'thresh')
     
-    pl <- pl + suppressWarnings(geom_line(data = as.data.frame(spline(pr$curve$recall, pr$curve$precision)), aes(x = x, y = y, color = 'train'), size = 1)) +
-      suppressWarnings(geom_line(data = as.data.frame(spline(pr$curve$recall, pr$curve$precision)), aes(x = x, y = y, color = 'test'), size = 1)) +
+    pl <- pl + suppressWarnings(geom_line(data = as.data.frame(spline(pr$curve$recall, pr$curve$precision)),
+                                          aes(x = x, y = y, color = 'train'), size = 1)) +
+      suppressWarnings(geom_line(data = as.data.frame(spline(pr$curve$recall, pr$curve$precision)), 
+                                 aes(x = x, y = y, color = 'test'), size = 1)) +
       scale_color_manual(labels = c(paste0("Training Split (AUC=", round(Stats$train$auc.pr,3),")"),
                                     paste0("Cross Validation Mean (AUC=", mean(round(mean.vec, digits = 3)), ")", sep='')), 
                          values=c('red', 'grey')) +
       theme(legend.title = element_blank(), legend.box.background = element_rect(colour = "black"),
             legend.position = c(0.6, 0.15), legend.key = element_rect(fill = NA))
     
-    ggsave(filename = paste(out$dat$bname, "_AUCPR_Plot.png", sep=""), plot = pl, width = 12.5, height = 12.5, units = 'cm', dpi = 300)
+    ggsave(filename = AUCPRFile, 
+           plot = pl, width = 12.5, height = 12.5, units = 'cm', dpi = 300)
     
+   # TO DO: should above code should only be created if CV ^^^ put into if statement??
     
-    ## Prep the calibration data.
-    png(file = calib.plot, height = 1000, width = 1000, pointsize = 20)
-    cal.results <- switch(out$dat$split.type, 
-                          none = Stats$train$calibration.stats, 
-                          test = Stats$test$calibration.stats, 
-                          eval = Stats$test$calibration.stats,
-                          crossValidation =  apply(do.call("rbind", lapply(lst, function(lst){lst$calibration.stats})), 2, mean))
+    #### Calibration Plot #### 
     
-    ## Calibration plot (this often gives warnings about probabilities numerically 0 or 1)
+    png(file = calibrationFile, height = 1000, width = 1000, pointsize = 20)
+    cal.results <- switch(splitType, 
+                          "none" = Stats$train$calibration.stats, 
+                          "train/test" = Stats$test$calibration.stats, 
+                          "cv" = apply(do.call("rbind", lapply(lst, function(lst){lst$calibration.stats})), 2, mean),
+                          "cv/train/test" = apply(do.call("rbind", lapply(lst, function(lst){lst$calibration.stats})), 2, mean))
+    
+    # Calibration plot (this often gives warnings about probabilities numerically 0 or 1)
     a <- do.call("rbind", lapply(lst, function(lst){lst$auc.data}))
-    if(out$input$PsdoAbs == TRUE){
-      
-      if(!(out$input$script.name %in% c("glm"))){
-        
+    if(out$pseudoAbs){
+      if(!(out$modType %in% c("glm"))){
         absn <- which(a$pres.abs == 0, arr.ind = TRUE)
         samp <- sample(absn, size = min(table(a$pres.abs)), replace = FALSE) 
       }
       
       p.plt <- try(pocplot(a$pred[a$pres.abs == 1], a$pred[a$pres.abs == 0],
-                           title = paste("Presence Only Calibration Plot for \n", switch(out$dat$split.type, none = "Training Data", test = "Test Split",
-                                                                                         eval = "Test Split", crossValidation = "Cross Validation Split"), sep="")), silent = TRUE)
-      
+                           title = paste0("Presence Only Calibration Plot for \n", 
+                                         switch(splitType, 
+                                                "none" = "Training Data", 
+                                                "train/test" = "Test Split",
+                                                "cv" = "Cross Validation Split",
+                                                "cv/train/test" = "Cross Validation Split"))), silent = TRUE)
       if(class(p.plt) == "try-error"){
         
         par(mfrow = c(2, 1))
-        hist(a$pred[a$pres.abs == 1], freq = TRUE, col = "red", xlim = range(a$pred), xlab = "Predicted Probability", main = "Presence")
-        hist(a$pred[a$pres.abs == 0], freq = TRUE, col = "blue", xlim = range(a$pred), xlab = "Predicted Probability", main = "Available")
+        hist(a$pred[a$pres.abs == 1], freq = TRUE, col = "red", 
+             xlim = range(a$pred), xlab = "Predicted Probability", main = "Presence")
+        hist(a$pred[a$pres.abs == 0], freq = TRUE, col = "blue", 
+             xlim = range(a$pred), xlab = "Predicted Probability", main = "Available")
       }
     } else {
       
-      pacplot(a$pred,a$pres.abs, title = paste("Calibration Plot for ",
-                                               switch(out$dat$split.type, none = "Training Data", test = "Test Split", eval = "Test Split", crossValidation = "Cross Validation Split"), sep=""))
+      pacplot(pred = a$pred, pa = a$pres.abs, 
+              title = paste0("Calibration Plot for ",
+                             switch(splitType, 
+                                    "none" = "Training Data", 
+                                    "train/test" = "Test Split",
+                                    "cv" = "Cross Validation Split",
+                                    "cv/train/test" = "Cross Validation Split")))
     }
-    
-    dev.off()
+  dev.off()
   }
   
-  #Some residual plots for poisson data
-  if(out$input$model.family %in% c("poisson")){
+  ### Residual plots for poisson data ###
+  
+  if(out$modelFamily %in% c("poisson")){
     
-    png(file = plotname)
+    png(file = residualPlotFile)
     par(mfrow = c(2, 2))
     
     plot(log(Stats$train$auc.data$pred[Stats$train$auc.data$pred != 0]),
@@ -748,52 +773,49 @@ make.auc.plot.jpg <- function(out = out){
     panel.smooth(log(Stats$train$auc.data$pred[Stats$train$auc.data$pred != 0]),
                  (Stats$train$auc.data$pres.abs[Stats$train$auc.data$pred!=0]-Stats$train$auc.data$pred[Stats$train$auc.data$pred!=0]))
     
-    if(out$input$script.name != "rf"){
+    if(out$modType != "rf"){
       
-      #this is the residual plot from glm but I don't think it will work for anything else
-      qqnorm(residuals(out$mods$final.mod[[1]]), ylab = "Std. deviance residuals")
-      qqline(residuals(out$mods$final.mod[[1]]))
+      # this is the residual plot from glm but I don't think it will work for anything else
+      qqnorm(residuals(out$finalMod), ylab = "Std. deviance residuals")
+      qqline(residuals(out$finalMod))
       yl <- as.expression(substitute(sqrt(abs(YL)), list(YL = as.name("Std. Deviance Resid"))))
       
       plot(log(Stats$train$auc.data$pred[Stats$train$auc.data$pred != 0]),
-           sqrt((abs(residuals(out$mods$final.mod[[1]], type = "deviance")[Stats$train$auc.data$pred != 0]))),
+           sqrt((abs(residuals(out$finalMod, 
+                               type = "deviance")[Stats$train$auc.data$pred != 0]))),
            xlab = "Predicted Values (log Scale)", ylab = yl)
     }
-    
     graphics.off()
-    
   }
   
-  ##################### CAPTURING TEXT OUTPUT #######################
+  ### Text Output ###
   
-  capture.output(cat("\n\n============================================================",
-                     "\n\nEvaluation Statistics"), file = paste(out$dat$bname, "_output.txt", sep=""), append = TRUE)
-  
-  #this is kind of a pain but I have to keep everything in the same list format
-  train.stats = list()
-  
-  if(out$dat$split.type == "none"){
-    
-    train.stats <- Stats
-    
-  } else {
-    
-    train.stats$train=Stats[[train.mask]]
-    
-  }
-  
-  capture.stats(train.stats, file.name = paste(out$dat$bname, "_output.txt", sep=""), label = "train", family = out$input$model.family, opt.methods = out$input$opt.methods,out)
-  
-  if(out$dat$split.type != "none"){
-    
+  # capture.output(cat("\n\n============================================================",
+  #                    "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
+  # 
+  # train.stats = list()
+  # 
+  # if(splitType == "none"){ train.stats <- Stats
+  # } else {
+  #   train.stats$train=Stats$train
+  # }
+  # 
+  # capture.stats(train.stats, file.name =paste0(out$tempDir, out$modType, "_output.txt"), 
+  #               label = "train", family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
+  # 
+  # if(out$dat$split.type != "none"){
+  #   
     capture.output(cat("\n\n============================================================",
-                       "\n\nEvaluation Statistics"), file = paste(out$dat$bname, "_output.txt", sep=""), append = TRUE)
+                       "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
     
-    capture.stats(lst, file.name = paste(out$dat$bname, "_output.txt", sep=""), label = out$dat$split.label, family = out$input$model.family, opt.methods = out$input$opt.methods,out)
+    capture.stats(Stats, file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
+                  label = splitType, family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
     
-  }
+  # }
   
-  ############ getting statistics along with appropriate names into a data frame for creating the appended output
+    
+    ## STOPPED HERE ------------------------------------------------------------
+  ### getting statistics along with appropriate names into a data frame for creating the appended output
   parent <- dirname(out$input$output.dir)
   
   if(out$input$model.family %in% c("binomial", "bernoulli")){
@@ -907,7 +929,8 @@ calcStat <- function(x,       # x <- out$data[[i]]
 ### Variable Importance function -----------------------------------------------
 
 VariableImportance <- function(out,  # out list
-                               auc){
+                               auc)  # list of auc.fit values output by calcStat function
+  { 
   
   # this relatively complicated structure is used for cross validation variable importance plots
   # This function can produce some strange results for random Forest if it is seriously overparameterized
@@ -949,7 +972,7 @@ VariableImportance <- function(out,  # out list
   if(out$validationOptions$CrossValidate){
     cor.mat[,(length(cnames)+1):(ncol(cor.mat))] <- -t(apply(out$cvResults$cor.mat,1,"-",as.vector(unlist(auc)[1:out$validationOptions$NumberOfFolds])))
     cnames <- c(cnames,1:out$validationOptions$NumberOfFolds)
-    }
+  }
     
   
   colnames(cor.mat) <- cnames
@@ -972,7 +995,7 @@ VariableImportance <- function(out,  # out list
   par(mar=c(6,17,6,0))
   
   if(!out$validationOptions$SplitData & !out$validationOptions$CrossValidate){
-    plot(x = c(min(0,min(cor.mat[,"train"])),(max(cor.mat[,"train"])+0.1)),
+    plot(x = c(min(0,min(xright[,"train"])),(max(xright[,"train"])+0.1)),
          y = c(-0.5,(length(out$inputVars)+0.5)),
          type="n",xlab="Importance", ylab="", yaxt="n",
          main="Importance using the change in AUC\nwhen each predictor is permuted",
@@ -981,8 +1004,9 @@ VariableImportance <- function(out,  # out list
     rect(xleft=0, ybottom=ymiddle, xright=xright[,"train"], ytop=ymiddle+offSet, col="blue", lwd=2)
     legend("bottomright", legend="Train", fill="blue", bg="white", cex=2.5)
   } 
+  
   if(out$validationOptions$SplitData & !out$validationOptions$CrossValidate){
-    plot(x = c(min(0,min(cor.mat[,"train"])),(max(cor.mat[,"train"])+0.1)),
+    plot(x = c(min(0,min(xright[,"train"])),(max(xright[,"train"])+0.1)),
          y = c(-0.5,(length(out$inputVars)+0.5)),
          type="n",xlab="Importance", ylab="", yaxt="n",
          main="Importance using the change in AUC\nwhen each predictor is permuted",
@@ -992,36 +1016,32 @@ VariableImportance <- function(out,  # out list
     rect(xleft=0, ybottom=ymiddle-offSet, xright=xright[,"test"], ytop=ymiddle, col="lightblue", lwd=2)
     legend("bottomright", legend=c("Train", "Test"), fill=c("blue","lightblue"), bg="white", cex=2.5)
   } 
+  
   if(!out$validationOptions$SplitData & out$validationOptions$CrossValidate){ 
-    plot(x = c(min(0,min(cor.mat)),(max(cor.mat)+0.1)),
+    plot(x = c(min(0,min(xright)),(max(xright)+0.1)),
        y = c(-0.5,(length(out$inputVars)+0.5)),
        type="n",xlab="Importance", ylab="", yaxt="n",
        main="Importance using the change in AUC\nwhen each predictor is permuted",
        cex.lab=3, cex.main=3, cex.axis=2)
     grid()  
-    cor.mat.df <- data.frame(cor.mat)
-    cor.mat.df <- subset(cor.mat.df, select = -c(test, train))
-    cor.mat.df <- cor.mat.df[order(cor.mat.df[,ncol(cor.mat.df)], decreasing=FALSE),]
-    boxplot(t(as.matrix(cor.mat.df)), horizontal=TRUE, add=TRUE, at=ymiddle, yaxt="n", col="lightblue", xaxt="n")
-    points(y=ymiddle, x=cor.mat[,"train"], cex=3, pch=8, lwd=3, col="darkslateblue")
+    boxplot(t(xright[,-1]), horizontal=TRUE, add=TRUE, at=ymiddle, yaxt="n", col="lightblue", xaxt="n")
+    points(y=ymiddle, x=xright[,"train"], cex=3, pch=8, lwd=3, col="darkslateblue")
     legend(x="bottomright", legend=c("CV","Train"),pch=c(22,8),pt.cex=c(3,3.5),pt.lwd=c(2,3),pt.bg=c("lightblue","darkslateblue"),col=c("black","darkslateblue"),cex=2.5)
   }
+  
   if(out$validationOptions$SplitData & out$validationOptions$CrossValidate){ 
-    plot(x = c(min(0,min(cor.mat)),(max(cor.mat)+0.1)),
+    plot(x = c(min(0,min(xright)),(max(xright)+0.1)),
          y = c(-0.5,(length(out$inputVars)+0.5)),
          type="n",xlab="Importance", ylab="", yaxt="n",
          main="Importance using the change in AUC\nwhen each predictor is permuted",
          cex.lab=3, cex.main=3, cex.axis=2)
     grid()  
-    cor.mat.df <- data.frame(cor.mat)
-    cor.mat.df <- subset(cor.mat.df, select = -c(test, train))
-    cor.mat.df <- cor.mat.df[order(cor.mat.df[,ncol(cor.mat.df)], decreasing=FALSE),]
-    boxplot(t(as.matrix(cor.mat.df)), horizontal=TRUE, add=TRUE, at=ymiddle, yaxt="n", col="lightblue", xaxt="n")
-    points(y=ymiddle, x=cor.mat[,"train"], cex=3, pch=8, lwd=3, col="darkslateblue")
-    points(y=ymiddle, x=cor.mat[,"test"], cex=3, pch=5, lwd=3, col="blue")
+    boxplot(t(xright[,-c(1:2)]), horizontal=TRUE, add=TRUE, at=ymiddle, yaxt="n", col="lightblue", xaxt="n")
+    points(y=ymiddle, x=xright[,"train"], cex=3, pch=8, lwd=3, col="darkslateblue")
+    points(y=ymiddle, x=xright[,"test"], cex=2.5, pch=5, lwd=3, col="royalblue")
     legend(x="bottomright", legend=c("CV","Train", "Test"),
-           pch=c(22,8,5), pt.cex=c(3,3,3), pt.lwd=c(2,3,3),
-           pt.bg=c("lightblue","darkslateblue", "blue"), col=c("black","darkslateblue", "blue"), cex=2.5)
+           pch=c(22,8,5), pt.cex=c(3.5,2.75,2.5), pt.lwd=c(2,3,3),
+           pt.bg=c("lightblue","darkslateblue", "royalblue"), col=c("black","darkslateblue", "royalblue"), cex=2.5)
   }
   
   Offset <- ifelse(!out$validationOptions$SplitData & !out$validationOptions$CrossValidate, 0.25, 0)
@@ -1035,7 +1055,7 @@ VariableImportance <- function(out,  # out list
 
 ### Confusion Matrix function --------------------------------------------------
 
-confusion.matrix <- function(Stats,    # output from calcStats function 
+confusion.matrix <- function(Stats,    # output from calcStat function 
                              out)      # out list
   {
   
@@ -1442,4 +1462,196 @@ TestTrainRocPlot <- function(dat,    # Stats$train$auc.data
            lwd = lwd, bg = "white")
   }
   par(op)
+}
+
+### Presence-Only Smoothed Calibration Plot function ---------------------------
+
+pocplot <- function(pred, back, linearize=TRUE, ...){
+  
+  ispresence <- c(rep(1,length(pred)), rep(0, length(back)))
+  predd <- smoothdist(c(pred,back), ispresence)
+  c <- mean(back)*length(back)/length(pred)
+  if (linearize) {
+    fun <- function(x,y) c*y / (1-y)
+    predd$y <- mapply(fun, predd$x, predd$y)
+    predd$se <- mapply(fun, predd$x, predd$se)
+    ideal <- function(x) x
+    ylab <- "Relative probability of presence" 
+  } 
+  else {
+    ideal <- function(x) x / (x + c)
+    ylab <- "Probability of presence"
+  }
+  calibplot(predd, negrug=back, posrug=pred, ideal=ideal, ylab=ylab,
+            capuci = FALSE, ...)
+  predd
+}
+
+### Presence-Absence Smoothed Calibration Plot function ------------------------
+
+pacplot <- function(pred, pa, ...) {
+  predd <- smoothdist(preds = pred, obs = pa)
+  calibplot(predd, negrug=pred[pa==0], posrug=pred[pa==1], 
+            ideal=function(x) x, ylab="Probability of presence", ...)
+}
+
+#### Plotting function for Calibration plots [nested in pocplot/pacplot] -------
+
+calibplot <- function(pred, negrug, posrug, ideal, 
+                      ylim=c(0,1), capuci=TRUE,
+                      xlabel = "Predicted probability of presence", 
+                      filename=NULL, title="Calibration plot", ...){
+  
+  if (!is.null(filename)){ png(filename) }
+  ylow <- pred$y - 2 * pred$se
+  ylow[ylow<0] <- 0
+  yhigh <- pred$y + 2 * pred$se
+  if (capuci) yhigh[yhigh>1] <- 1
+  plot(pred$x, ylow, type="l", col="grey", 
+       ylim=ylim, xlim=range(pred$x), main=title,
+       xlab=xlabel, lwd=2,cex.axis=1.4,cex.lab=1.8,cex.main=2, ...)
+  lines(pred$x, yhigh, lwd=2, col="grey")
+  lines(pred$x, sapply(pred$x, ideal), lty="dashed")
+  points(pred$x, pred$y, col="blue")
+  rug(negrug,col="blue",lwd=2)
+  rug(posrug, col = "red",lwd=2)
+  
+  if (!is.null(filename)){ dev.off() }
+}
+
+#### Smoothing function for Calibration plots [nested in pocplot/pacplot] ------
+
+smoothingdf <- 6
+smoothdist <- function(preds, obs) {
+  
+  gam1 <- try(glm(obs ~ ns(preds, df=smoothingdf), 
+                  weights=rep(1, length(preds)), 
+                  family=binomial),silent=TRUE)
+  
+  if("try-error" %in% class(gam1)){
+    gam1 <- try(glm(obs ~ ns(preds, df=1), 
+                    weights=rep(1, length(preds)), 
+                    family=binomial),silent=TRUE)
+  }
+  
+  x <- seq(min(preds), max(preds), length = 512)
+  y <- predict(gam1, newdata = data.frame(preds = x), se.fit = TRUE,
+               type = "response")
+  data.frame(x=x, y=y$fit, se=y$se.fit)
+}
+
+### Capture Statistics function ------------------------------------------------
+
+
+capture.stats <- function(Stats.lst,  # stats or lst output from calcStat function 
+                          file.name,
+                          label,      # splitType
+                          family,
+                          opt.methods,
+                          out){
+  
+  if(label == "train/test"){ label = "Final evaluation" }
+  
+  capture.output(cat(" applied to",label, "split:\n",sep=" "),
+                 file=file.name,append=TRUE)
+  capture.output(cat( "\n",
+                      "\n\t Correlation Coefficient      :",mean(unlist(lapply(Stats.lst,function(lst){lst$correlation}))),
+                      if(label %in% c("cv", "cv/train/test")){
+                        paste(" (sd ", signif(sd(unlist(lapply(Stats.lst,function(lst){lst$correlation}))),digits=5), ")",sep="")},
+                      if(!out$hasSplit |(out$hasSplit & label == "none")){ 
+                        paste("\n\t NULL Deviance                : ", signif(mean(unlist(lapply(Stats.lst,function(lst){lst$null.dev}))),digits=5),
+                        if(out$hasSplit & label == "none"){" (Averaged over background splits)"},
+                        if(label %in% c("cv", "cv/train/test")){
+                          paste(" (sd ", signif(sd(unlist(lapply(Stats.lst,function(lst){lst$null.dev}))),digits=5), ")",sep="")},
+                        "\n\t Fit Deviance                 : ", signif(mean(unlist(lapply(Stats.lst,function(lst){lst$dev.fit}))),digits=5),
+                        if(out$hasSplit & label=="none"){" (Averaged over background splits)"},  
+                        if(label %in% c("cv", "cv/train/test")){
+                          paste(" (sd ", signif(sd(unlist(lapply(Stats.lst,function(lst){lst$dev.fit}))),digits=5),")",sep="")},
+                        "\n\t Explained Deviance           : ", signif(mean(unlist(lapply(Stats.lst,function(lst){lst$dev.exp}))),digits=5),
+                        if(label %in% c("cv", "cv/train/test")){
+                          paste(" (sd ", signif(sd(unlist(lapply(Stats.lst,function(lst){lst$dev.exp}))),digits=5),")",sep="")},
+                        "\n\t Percent Deviance Explained   : ", signif(mean(unlist(lapply(Stats.lst,function(lst){lst$pct.dev.exp}))),digits=5),
+                        if(label %in% c("cv", "cv/train/test")){
+                          paste(" (sd ", signif(sd(unlist(lapply(Stats.lst,function(lst){lst$pct.dev.exp}))),5), ")",sep="")},sep="")},
+                      file=file.name, append=TRUE))
+  
+  if(family %in% c("binomial","bernoulli")){
+    capture.output(cat(
+      "\n\n  Threshold Methods based on", switch(opt.methods,
+                                                 "1"=".5 threshold",
+                                                 "2"="Sens=Spec",
+                                                 "3"="maximize (sensitivity+specificity)/2",
+                                                 "4"="maximize Kappa",
+                                                 "5"="maximize percent correctly classified",
+                                                 "6"="predicted prevalence=observed prevalence",
+                                                 "7"="threshold=observed prevalence",
+                                                 "8"="mean predicted probability",
+                                                 "9"="minimize distance between ROC plot and (0,1)"),
+      if (label %in% c("none", "Final evaluation")){
+        paste("\n\t Threshold                    : ", Stats.lst[[1]]$thresh)
+        } else { 
+          paste("\n\t Mean Threshold               : ", mean(unlist(lapply(Stats.lst,function(lst){lst$thresh}))),
+        " (sd ", signif(sd(unlist(lapply(Stats.lst,function(lst){lst$thresh}))),digits=5),")",sep="")
+      },
+      "\n\n\t Confusion Matrix: \n\n"),
+      if(label %in% c("none", "Final evaluation")){ print.table(Stats.lst[[1]]$Cmx)
+      } else {
+        a <-lapply(Stats.lst,function(lst){lst$Cmx})
+        cmx <-a[[1]]
+        for(i in 2:length(a)) cmx<-cmx+a[[i]] #it's amazing I can't think of a better way to sum a list of tables
+        print.table(cmx)
+      },
+      cat(
+        "\n\t AUC                          : ",mean(unlist(lapply(Stats.lst,function(lst){lst$auc.fit}))),
+        if(label %in% c("cv", "cv/train/test")){
+          paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$auc.fit}))),digits=5),")",sep="")},
+        "\n\t AUC-pr                       : ",mean(unlist(lapply(Stats.lst,function(lst){lst$auc.pr}))),
+        if(label %in% c("cv", "cv/train/test")){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$auc.pr}))),digits=5),")",sep="")},
+        
+        "\n\t Percent Correctly Classified : ",mean(unlist(lapply(Stats.lst,function(lst){lst$Pcc}))),
+        if(label %in% c("cv", "cv/train/test")){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Pcc}))),digits=5),")",sep="")},
+        
+        "\n\t Sensitivity                  : ",mean(unlist(lapply(Stats.lst,function(lst){lst$Sens}))),
+        if(label %in% c("cv", "cv/train/test")){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Sens}))),digits=5),")",sep="")},
+        
+        "\n\t Specificity                  : ",mean(unlist(lapply(Stats.lst,function(lst){lst$Specf}))),
+        if(label %in% c("cv", "cv/train/test")){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Specf}))),digits=5),")",sep="")},
+        
+        "\n\t Kappa                        : ",mean(unlist(lapply(Stats.lst,function(lst){lst$Kappa}))),
+        if(label %in% c("cv", "cv/train/test")){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Kappa}))),digits=5),")",sep="")},
+        
+        "\n\t True Skill Statistic         : ",mean(unlist(lapply(Stats.lst,function(lst){lst$Tss}))),
+        if(label %in% c("cv", "cv/train/test")){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Tss}))),digits=5),")",sep="")},
+        "\n"),
+      
+      file=paste0(out$tempDir, out$modType,"_output.txt",sep=""),append=TRUE)
+  }
+  
+  if(!out$pseudoAbs){
+    capture.output(cat( "\n\n   Calibration Statistics",
+                                             "\n\t Intercept (general calibration)                            : ",mean(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[1]}))),
+                                             if(label %in% c("cv", "cv/train/test")){paste(" (sd ",
+                                                                                signif(sd(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[1]}))),digits=5), ")",sep="")},
+                                             "\n\t Slope   (direction and variation in fit)                   : ",mean(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[2]}))),
+                                             if(label %in% c("cv", "cv/train/test")){paste(" (sd ",
+                                                                                signif(sd(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[2]}))),digits=5),
+                                                                                ")",sep="")},
+                                             "\n\t Testa0b1 (overall reliability of predictors)               : ",mean(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[3]}))),
+                                             if(label %in% c("cv", "cv/train/test")){paste(" (sd ",
+                                                                                signif(sd(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[3]}))),digits=5),
+                                                                                ")",sep="")},
+                                             "\n\t Testa0|b1(incorrect calibration given correct refinement)  : ",mean(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[4]}))),
+                                             if(label %in% c("cv", "cv/train/test")){paste(" (sd ",
+                                                                                signif(sd(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[4]}))),digits=5),
+                                                                                ")",sep="")},
+                                             "\n\t Testb1|a (refinement given correct calibration)            : ",mean(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[5]}))),
+                                             if(label %in% c("cv", "cv/train/test")){paste(" (sd ",
+                                                                                signif(sd(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[5]}))),digits=5),
+                                                                                ")",sep="")},
+                                             
+                                             "\n\n",
+                                             file=paste0(out$tempDir, out$modType, "_output.txt",sep=""),append=TRUE))
+  #if(label=="crossValidation"){cat("\n\n   Pooled Calibration Statistics\n",print.table(cbind(names(out$cv$pooled.calib),out$cv$pooled.calib)))}
+  #something I should include later
+  }
 }
