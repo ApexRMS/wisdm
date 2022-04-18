@@ -1,11 +1,12 @@
-## sdsim - fit glm
+## -------------------
+## wisdm - fit glm
 ## ApexRMS, April 2022
-
+## -------------------
 
 # source dependencies ----------------------------------------------------------
 
   packageDir <- Sys.getenv("ssim_package_directory")
-  source(file.path(packageDir, "0-glm-constants.R"))
+  # source(file.path(packageDir, "0-glm-constants.R"))
   source(file.path(packageDir, "0-dependencies.R"))
   source(file.path(packageDir, "0-helper-functions.R"))
 
@@ -21,14 +22,22 @@
   ssimTempDir <- Sys.getenv("ssim_temp_directory")
   
   # Read in datasheets
-  covariatesSheet <- datasheet(myProject, "sdsim_Covariates", optional = T)
-  fieldDataSheet <- datasheet(myScenario, "sdsim_FieldData", optional = T)
-  ValidationDataSheet <- datasheet(myScenario, "sdsim_ValidationOptions")
-  reducedCovariatesSheet <- datasheet(myScenario, "sdsim_ReducedCovariates", lookupsAsFactors = F)
-  siteDataSheet <- datasheet(myScenario, "sdsim_SiteData", lookupsAsFactors = F)
-  GLMSheet <- datasheet(myScenario, "sdsim_GLM")
-  modelOutputsSheet <- datasheet(myScenario, "sdsim_ModelOutputs", optional = T)
+  covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
+  fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
+  ValidationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
+  reducedCovariatesSheet <- datasheet(myScenario, "wisdm_ReducedCovariates", lookupsAsFactors = F)
+  siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
+  GLMSheet <- datasheet(myScenario, "wisdm_GLM")
+  modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T)
 
+  
+#  Set defaults ----------------------------------------------------------------  
+  
+  if(nrow(ValidationDataSheet)<1){
+    ValidationDataSheet <- addRow(ValidationDataSheet, list(SplitData = FALSE,
+                                                            CrossValidate = FALSE))
+  }
+  
 # Prep data for model fitting --------------------------------------------------
 
   siteDataWide <- spread(siteDataSheet, key = CovariatesID, value = "Value")
@@ -55,7 +64,7 @@
   testingData <- trainTestDatasets$`TRUE`
   
   # identify cross validation folds for model selection (if specified)
-  if(ValidationDataSheet$CrossValidate == TRUE){ # TO Do: build out assigns nfold number to each training row
+  if(ValidationDataSheet$CrossValidate){ # TO Do: build out assigns nfold number to each training row
     CVSplitsTrain <- list()
     CVSplitsTest <- list()
     for (i in 1:(ValidationDataSheet$NumberOfFolds)){
@@ -66,8 +75,6 @@
     }
   }
   
-  # identify cross validation folds for evaluation
-
 
 # Model definitions ------------------------------------------------------------
 
@@ -98,7 +105,7 @@
   out$data$test <- testingData
   
   # CV splits
-  if(ValidationDataSheet$CrossValidate == TRUE){
+  if(ValidationDataSheet$CrossValidate){
     out$data$cvSplits$train <- CVSplitsTrain
     out$data$cvSplits$test <- CVSplitsTest
   }
@@ -170,10 +177,6 @@
   # save model to temp storage
   saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\glm_model.rds"))
   
-  # add model to Model Outputs
-  modelOutputsSheet <- addRow(modelOutputsSheet, list(ModelType = modType, ModelRDS = paste0(ssimTempDir,"\\Data\\glm_model.rds")))
-  # saveDatasheet(myScenario, modelOutputsSheet, "sdsim_ModelOutputs")
-  
   # add relevant model details to out 
   out$finalMod <- finalMod
   out$nVarsFinal <- length(attr(terms(formula(finalMod)),"term.labels"))
@@ -181,13 +184,13 @@
   # have to remove all the junk with powers and interactions for mess map production to work
   out$finalVars <- unique(unlist(strsplit(gsub("I\\(","",gsub("\\^2)","",out$finalVars)),":")))
   
-  # add relevent model details to text output 
+  # add relevant model details to text output 
   txt0 <- paste("\n\n","Settings:\n","\n\t model family:  ",out$modelFamily,
               "\n\t simplification method:  ",GLMSheet$SimplificationMethod,
               "\n\n\n","Results:\n\t ","number covariates in final model:  ",length(attr(terms(formula(finalMod)),"term.labels")),"\n",sep="")
-  # print(finalMod$summary <- summary(finalMod))
+  print(finalMod$summary <- summary(finalMod))
   
-  capture.output(cat(txt0),finalMod$summary,file=paste0(ssimTempDir,"\\Data\\glm_output.txt"),append=TRUE)
+  capture.output(cat(txt0),finalMod$summary,file=paste0(ssimTempDir,"\\Data\\glm_output.txt"), append=TRUE)
   cat("\n","Finished with stepwise GLM","\n")
   cat("Summary of Model:","\n")
   
@@ -196,9 +199,12 @@
 # Test model predictions -------------------------------------------------------
   
   out$data$train$predicted <- pred.fct(x=out$data$train, mod=finalMod, modType=modType)
-  out$data$test$predicted <- pred.fct(x=testingData, mod=finalMod, modType=modType)
   
-  if(ValidationDataSheet$CrossValidate == TRUE){
+  if(ValidationDataSheet$SplitData){
+    out$data$test$predicted <- pred.fct(x=testingData, mod=finalMod, modType=modType)
+  }
+  
+  if(ValidationDataSheet$CrossValidate){
      for(i in 1:length(out$data$cvSplits$test)){
        out$data$cvSplits$test[[i]]$predicted <- pred.fct(x=out$data$cvSplits$test[[i]], mod=finalMod, modType=modType)
      }
@@ -208,7 +214,7 @@
   
 # Run Cross Validation (if specified) ------------------------------------------
   
-  if(ValidationDataSheet$CrossValidate == TRUE){
+  if(ValidationDataSheet$CrossValidate){
     
     out <- cv.fct(out = out,
                         nfolds = ValidationDataSheet$NumberOfFolds)
@@ -216,10 +222,32 @@
   
 # Generate Model Outputs -------------------------------------------------------
  
-  # producing auc and residual plots model summary information and accross model evaluation metric
-  out$mods$auc.output<-suppressWarnings(make.auc.plot.jpg(out=out))
+  ## AUC/ROC - Residual Plots - Variable Importance -  Calibration - Confusion Matrix ##
   
+  out <- suppressWarnings(makeModelEvalPlots(out=out))
   
-## output plots
+  ## Response Curves ##
   
+  # response.curves(out,Model)
 
+# Save model outputs -----------------------------------------------------------
+
+# list.files(paste0(ssimTempDir,"\\Data"))
+  
+# add model Outputs to datasheet
+modelOutputsSheet <- addRow(modelOutputsSheet, 
+                            list(ModelType = modType, 
+                                 ModelRDS = paste0(ssimTempDir,"\\Data\\glm_model.rds"),
+                                 # ResponseCurves = paste0(ssimTempDir,"\\Data\\glm_ResponseCurves.png"),
+                                 TextOutput = paste0(ssimTempDir,"\\Data\\glm_output.txt"),
+                                 CalibrationPlot = paste0(ssimTempDir,"\\Data\\glm_CalibrationPlot.png"),
+                                 ROCAUCPlot = paste0(ssimTempDir,"\\Data\\glm_ROCAUCPlot.png"),
+                                 AUCPRPlot = paste0(ssimTempDir,"\\Data\\glm_AUCPRPlot.png"),
+                                 ConfusionMatrix = paste0(ssimTempDir,"\\Data\\glm_ConfusionMatrix.png"),
+                                 VariableImportancePlot = paste0(ssimTempDir,"\\Data\\glm_VariableImportance.png"),
+                                 VariableImportanceData = paste0(ssimTempDir,"\\Data\\glm_VariableImportance.csv")))
+                                                   
+                                                  
+
+  saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs")
+  

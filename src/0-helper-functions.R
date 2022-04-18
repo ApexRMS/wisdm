@@ -1,5 +1,5 @@
 ## ------------------------- 
-## sdsim - helper functions  
+## wisdm - helper functions  
 ## ApexRMS, March 2022       
 ## ------------------------- 
 
@@ -485,7 +485,7 @@ permute.predict <- function(inputVars, # input variables for model fitting
 
 ## Make AUC function -----------------------------------------------------------
 
-make.auc.plot.jpg <- function(out = out){
+makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.plot.jpg
   
   standResidualFile <- paste0(out$tempDir, out$modType, "_StandardResidualPlots.png")
   variableImportanceFile <- paste0(out$tempDir, out$modType, "_VariableImportance.png")
@@ -538,12 +538,19 @@ make.auc.plot.jpg <- function(out = out){
   ### Calculate all statistics on test\train or train\cv splits  ###
   
   out$hasSplit <- hasSplit <- (out$pseudoAbs & !out$modType %in% c("glm", "maxent"))
+  Stats <- list()
   if(out$validationOptions$CrossValidate){
-    Stats <- lapply(out$data$cvSplits$test, calcStat, family = out$modelFamily, has.split = hasSplit)
-  } else { Stats <- list() }
-  Stats$train <- calcStat(x = out$data$train, family = out$modelFamily, has.split = hasSplit)
+    for (i in 1:length(out$data$cvSplits$test)){
+      Stats[[i]] <- calcStat(x = out$data$cvSplits$test[[i]],  
+                             family = out$modelFamily,
+                             thresh = out$cvResults$thresh[i], 
+                             has.split = hasSplit) 
+    }
+    names(Stats) <- c(1:ValidationDataSheet$NumberOfFolds)
+  }
+  Stats$train <- calcStat(x = out$data$train, family = out$modelFamily, thresh = out$trainThresh, has.split = hasSplit)
   if(out$validationOptions$SplitData){
-    Stats$test <- calcStat(x = out$data$test, family = out$modelFamily, has.split = hasSplit)
+    Stats$test <- calcStat(x = out$data$test, family = out$modelFamily, thresh = out$testThresh, has.split = hasSplit)
   }
   
   lst <- Stats
@@ -803,57 +810,79 @@ make.auc.plot.jpg <- function(out = out){
   # capture.stats(train.stats, file.name =paste0(out$tempDir, out$modType, "_output.txt"), 
   #               label = "train", family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
   # 
-  # if(out$dat$split.type != "none"){
-  #   
+  if(splitType == "cv/train/test"){
+   
+    capture.output(cat("\n\n============================================================",
+                       "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
+    
+    capture.stats(Stats[1:(ValidationDataSheet$NumberOfFolds)], file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
+                  label = "cv", family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
+    
+    capture.output(cat("\n\n============================================================",
+                      "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
+    
+    capture.stats(Stats["test"], file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
+                  label = "train/test", family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
+  }
+  if(splitType == "cv"){
+    
+    capture.output(cat("\n\n============================================================",
+                       "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
+    
+    capture.stats(Stats[1:(ValidationDataSheet$NumberOfFolds)], file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
+                  label = splitType, family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
+  }
+  if(splitType == "train/test"){
+    
+    capture.output(cat("\n\n============================================================",
+                       "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
+    
+    capture.stats(Stats["test"], file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
+                  label = splitType, family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
+  }  
+  if(splitType == "none"){
+    
     capture.output(cat("\n\n============================================================",
                        "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
     
     capture.stats(Stats, file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
                   label = splitType, family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
-    
-  # }
-  
-    
-    ## STOPPED HERE ------------------------------------------------------------
-  ### getting statistics along with appropriate names into a data frame for creating the appended output
-  parent <- dirname(out$input$output.dir)
-  
-  if(out$input$model.family %in% c("binomial", "bernoulli")){
-    
-    csv.stats <- lapply(Stats, function(lst){return(c("", "", lst$correlation, lst$pct.dev.exp,lst$Pcc, lst$auc.fit, lst$auc.pr,lst$Tss))})
-    stat.names <- c("Correlation Coefficient", "Percent Deviance Explained", "Percent Correctly Classified", "AUC", "AUCPR", "True Skill Stat")
-  } else {
-    
-    csv.stats <- lapply(Stats, function(lst){return(c("", "", lst$correlation, lst$pct.dev.exp, lst$prediction.error/100))})
-    stat.names <- c("Correlation Coefficient", "Percent Deviance Explained", "Prediction Error")
-    
   }
-  
-  csv.vect <- c(t(t(as.vector(unlist(csv.stats[train.mask])))), if(out$dat$split.type != "none") unlist(csv.stats[-c(train.mask)]))
-  csv.vect[seq(from = 2, by = length(csv.vect)/length(Stats), length = length(Stats))] <- if(out$dat$split.type == "none"){
     
-    "Train"
-  } else {
-    
-    c("Train",names(lst))
-    
-  }
-  x = data.frame(cbind(rep(c("", "", stat.names), times = length(Stats)), csv.vect), row.names = NULL)
-  
-  Header<-cbind(c("", "Original Field Data", "Field Data Template", "PARC Output Folder", "PARC Template", "Covariate Selection Name", ""),
-                c(basename(out$input$output.dir), out$dat$input$OrigFieldData, out$dat$input$FieldDataTemp, out$dat$input$ParcOutputFolder,
-                  basename(out$dat$input$ParcTemplate), ifelse(length(out$dat$input$CovSelectName) == 0,"NONE", out$dat$input$CovSelectName), ""))
-  
-  AppendOut(compile.out = out$input$Append.Dir, Header, x, out, Parm.Len = length(stat.names), parent = parent, split.type = out$dat$split.type)
-  
-  return(list(thresh = train.stats$train$thresh, residual.smooth.fct = residual.smooth.fct))
-  
+  # ### getting statistics along with appropriate names into a data frame for creating the appended output
+  # parent <- dirname(out$input$output.dir)
+  # 
+  # if(out$ModelFamily %in% c("binomial", "bernoulli")){
+  #   
+  #   csv.stats <- lapply(Stats, function(lst){return(c("", "", lst$correlation, lst$pct.dev.exp,lst$Pcc, lst$auc.fit, lst$auc.pr,lst$Tss))})
+  #   stat.names <- c("Correlation Coefficient", "Percent Deviance Explained", "Percent Correctly Classified", "AUC", "AUCPR", "True Skill Stat")
+  # 
+  #   } else {
+  #     csv.stats <- lapply(Stats, function(lst){return(c("", "", lst$correlation, lst$pct.dev.exp, lst$prediction.error/100))})
+  #     stat.names <- c("Correlation Coefficient", "Percent Deviance Explained", "Prediction Error")
+  #     }
+  # 
+  # csv.vect <- c(t(t(as.vector(unlist(csv.stats["train"])))), if(splitType != "none") unlist(csv.stats[-which(names(csv.stats)== "train")]))
+  # csv.vect[seq(from = 2, by = length(csv.vect)/length(Stats), length = length(Stats))] <- if(splitType == "none"){ "Train"
+  #   } else {
+  #     c("Train", names(lst))
+  #     }
+  # x = data.frame(cbind(rep(c("", "", stat.names), times = length(Stats)), csv.vect), row.names = NULL)
+  # 
+  # Header<-cbind(c("", "Original Field Data", "Field Data Template", "PARC Output Folder", "PARC Template", "Covariate Selection Name", ""),
+  #               c(basename(out$input$output.dir), out$dat$input$OrigFieldData, out$dat$input$FieldDataTemp, out$dat$input$ParcOutputFolder,
+  #                 basename(out$dat$input$ParcTemplate), ifelse(length(out$dat$input$CovSelectName) == 0,"NONE", out$dat$input$CovSelectName), ""))
+  # 
+  # AppendOut(compile.out = out$input$Append.Dir, Header, x, out, Parm.Len = length(stat.names), parent = parent, split.type = out$dat$split.type)
+  # 
+  return(out)
 }
 
 ### Calculate statistics function ----------------------------------------------
 
 calcStat <- function(x,       # x <- out$data[[i]]
                      family,
+                     thresh,  # out$trainThresh  or out$cvResults$thresh
                      has.split){
   
   auc.data <- data.frame(ID=1:nrow(x),pres.abs=x$Response, pred=x$predicted)
@@ -898,7 +927,7 @@ calcStat <- function(x,       # x <- out$data[[i]]
   calibration.stats <- calibration(auc.data$pres.abs, auc.data$pred, family =family)
   
   if(family %in% c("binomial","bernoulli")){
-    cmx <- cmx(auc.data,threshold=out$trainThresh)
+    cmx <- cmx(auc.data,threshold=thresh)
     PCC <- pcc(cmx,st.dev=F)*100
     SENS <- sensitivity(cmx,st.dev=F)
     SPEC <- specificity(cmx,st.dev=F)
@@ -911,7 +940,7 @@ calcStat <- function(x,       # x <- out$data[[i]]
                 correlation=correlation,
                 auc.data=auc.data, auc.fit=auc.fit, auc.pr=auc.pr,
                 Cmx=cmx, Pcc=PCC, Sens=SENS, Specf=SPEC, Kappa=KAPPA, Tss=TSS,
-                calibration.stats=calibration.stats, thresh=out$trainThresh))
+                calibration.stats=calibration.stats, thresh=thresh))
   }
   
   if(family == "poisson"){
@@ -989,6 +1018,7 @@ VariableImportance <- function(out,  # out list
   # order by the best in the train split
   
   xright <- as.matrix(cor.mat[order(cor.mat[,"train"],decreasing=FALSE),])
+  colnames(xright) <- colnames(cor.mat)
   ymiddle <- seq(from=0,to=length(out$inputVars),length=nrow(xright))
   offSet <- 0.5 
   
@@ -1551,27 +1581,28 @@ capture.stats <- function(Stats.lst,  # stats or lst output from calcStat functi
                           out){
   
   if(label == "train/test"){ label = "Final evaluation" }
+  if(label == "none"){ label = "Training" }
+  if (label == "cv") {label = "Cross validation"}
   
-  capture.output(cat(" applied to",label, "split:\n",sep=" "),
-                 file=file.name,append=TRUE)
-  capture.output(cat( "\n",
-                      "\n\t Correlation Coefficient      :",mean(unlist(lapply(Stats.lst,function(lst){lst$correlation}))),
-                      if(label %in% c("cv", "cv/train/test")){
+  capture.output(cat(" applied to",label, "split:\n",sep=" "), file=file.name, append=TRUE)
+  
+  capture.output(cat( "\n", "\n\t Correlation Coefficient      :",mean(unlist(lapply(Stats.lst,function(lst){lst$correlation}))),
+                      if(label == "Cross validation"){
                         paste(" (sd ", signif(sd(unlist(lapply(Stats.lst,function(lst){lst$correlation}))),digits=5), ")",sep="")},
-                      if(!out$hasSplit |(out$hasSplit & label == "none")){ 
+                      if(!out$hasSplit |(out$hasSplit & label == "Training")){ 
                         paste("\n\t NULL Deviance                : ", signif(mean(unlist(lapply(Stats.lst,function(lst){lst$null.dev}))),digits=5),
-                        if(out$hasSplit & label == "none"){" (Averaged over background splits)"},
-                        if(label %in% c("cv", "cv/train/test")){
+                        if(out$hasSplit & label == "Training"){" (Averaged over background splits)"},
+                        if(label == "Cross validation"){
                           paste(" (sd ", signif(sd(unlist(lapply(Stats.lst,function(lst){lst$null.dev}))),digits=5), ")",sep="")},
                         "\n\t Fit Deviance                 : ", signif(mean(unlist(lapply(Stats.lst,function(lst){lst$dev.fit}))),digits=5),
-                        if(out$hasSplit & label=="none"){" (Averaged over background splits)"},  
-                        if(label %in% c("cv", "cv/train/test")){
+                        if(out$hasSplit & label == "Training"){" (Averaged over background splits)"},  
+                        if(label == "Cross validation"){
                           paste(" (sd ", signif(sd(unlist(lapply(Stats.lst,function(lst){lst$dev.fit}))),digits=5),")",sep="")},
                         "\n\t Explained Deviance           : ", signif(mean(unlist(lapply(Stats.lst,function(lst){lst$dev.exp}))),digits=5),
-                        if(label %in% c("cv", "cv/train/test")){
+                        if(label == "Cross validation"){
                           paste(" (sd ", signif(sd(unlist(lapply(Stats.lst,function(lst){lst$dev.exp}))),digits=5),")",sep="")},
                         "\n\t Percent Deviance Explained   : ", signif(mean(unlist(lapply(Stats.lst,function(lst){lst$pct.dev.exp}))),digits=5),
-                        if(label %in% c("cv", "cv/train/test")){
+                        if(label == "Cross validation"){
                           paste(" (sd ", signif(sd(unlist(lapply(Stats.lst,function(lst){lst$pct.dev.exp}))),5), ")",sep="")},sep="")},
                       file=file.name, append=TRUE))
   
@@ -1587,41 +1618,41 @@ capture.stats <- function(Stats.lst,  # stats or lst output from calcStat functi
                                                  "7"="threshold=observed prevalence",
                                                  "8"="mean predicted probability",
                                                  "9"="minimize distance between ROC plot and (0,1)"),
-      if (label %in% c("none", "Final evaluation")){
+      if (label %in% c("Training", "Final evaluation")){
         paste("\n\t Threshold                    : ", Stats.lst[[1]]$thresh)
         } else { 
           paste("\n\t Mean Threshold               : ", mean(unlist(lapply(Stats.lst,function(lst){lst$thresh}))),
         " (sd ", signif(sd(unlist(lapply(Stats.lst,function(lst){lst$thresh}))),digits=5),")",sep="")
       },
       "\n\n\t Confusion Matrix: \n\n"),
-      if(label %in% c("none", "Final evaluation")){ print.table(Stats.lst[[1]]$Cmx)
+      if(label %in% c("Training", "Final evaluation")){ print.table(Stats.lst[[1]]$Cmx)
       } else {
         a <-lapply(Stats.lst,function(lst){lst$Cmx})
         cmx <-a[[1]]
-        for(i in 2:length(a)) cmx<-cmx+a[[i]] #it's amazing I can't think of a better way to sum a list of tables
+        for(i in 2:length(a)){ cmx<-cmx+a[[i]] }
         print.table(cmx)
       },
       cat(
         "\n\t AUC                          : ",mean(unlist(lapply(Stats.lst,function(lst){lst$auc.fit}))),
-        if(label %in% c("cv", "cv/train/test")){
+        if(label == "Cross validation"){
           paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$auc.fit}))),digits=5),")",sep="")},
         "\n\t AUC-pr                       : ",mean(unlist(lapply(Stats.lst,function(lst){lst$auc.pr}))),
-        if(label %in% c("cv", "cv/train/test")){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$auc.pr}))),digits=5),")",sep="")},
+        if(label == "Cross validation"){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$auc.pr}))),digits=5),")",sep="")},
         
         "\n\t Percent Correctly Classified : ",mean(unlist(lapply(Stats.lst,function(lst){lst$Pcc}))),
-        if(label %in% c("cv", "cv/train/test")){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Pcc}))),digits=5),")",sep="")},
+        if(label == "Cross validation"){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Pcc}))),digits=5),")",sep="")},
         
         "\n\t Sensitivity                  : ",mean(unlist(lapply(Stats.lst,function(lst){lst$Sens}))),
-        if(label %in% c("cv", "cv/train/test")){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Sens}))),digits=5),")",sep="")},
+        if(label == "Cross validation"){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Sens}))),digits=5),")",sep="")},
         
         "\n\t Specificity                  : ",mean(unlist(lapply(Stats.lst,function(lst){lst$Specf}))),
-        if(label %in% c("cv", "cv/train/test")){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Specf}))),digits=5),")",sep="")},
+        if(label== "Cross validation"){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Specf}))),digits=5),")",sep="")},
         
         "\n\t Kappa                        : ",mean(unlist(lapply(Stats.lst,function(lst){lst$Kappa}))),
-        if(label %in% c("cv", "cv/train/test")){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Kappa}))),digits=5),")",sep="")},
+        if(label == "Cross validation"){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Kappa}))),digits=5),")",sep="")},
         
         "\n\t True Skill Statistic         : ",mean(unlist(lapply(Stats.lst,function(lst){lst$Tss}))),
-        if(label %in% c("cv", "cv/train/test")){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Tss}))),digits=5),")",sep="")},
+        if(label == "Cross validation"){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Tss}))),digits=5),")",sep="")},
         "\n"),
       
       file=paste0(out$tempDir, out$modType,"_output.txt",sep=""),append=TRUE)
@@ -1630,27 +1661,27 @@ capture.stats <- function(Stats.lst,  # stats or lst output from calcStat functi
   if(!out$pseudoAbs){
     capture.output(cat( "\n\n   Calibration Statistics",
                                              "\n\t Intercept (general calibration)                            : ",mean(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[1]}))),
-                                             if(label %in% c("cv", "cv/train/test")){paste(" (sd ",
+                                             if(label == "Cross validation"){paste(" (sd ",
                                                                                 signif(sd(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[1]}))),digits=5), ")",sep="")},
                                              "\n\t Slope   (direction and variation in fit)                   : ",mean(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[2]}))),
-                                             if(label %in% c("cv", "cv/train/test")){paste(" (sd ",
+                                             if(label == "Cross validation"){paste(" (sd ",
                                                                                 signif(sd(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[2]}))),digits=5),
                                                                                 ")",sep="")},
                                              "\n\t Testa0b1 (overall reliability of predictors)               : ",mean(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[3]}))),
-                                             if(label %in% c("cv", "cv/train/test")){paste(" (sd ",
+                                             if(label == "Cross validation"){paste(" (sd ",
                                                                                 signif(sd(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[3]}))),digits=5),
                                                                                 ")",sep="")},
                                              "\n\t Testa0|b1(incorrect calibration given correct refinement)  : ",mean(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[4]}))),
-                                             if(label %in% c("cv", "cv/train/test")){paste(" (sd ",
+                                             if(label == "Cross validation"){paste(" (sd ",
                                                                                 signif(sd(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[4]}))),digits=5),
                                                                                 ")",sep="")},
                                              "\n\t Testb1|a (refinement given correct calibration)            : ",mean(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[5]}))),
-                                             if(label %in% c("cv", "cv/train/test")){paste(" (sd ",
+                                             if(label == "Cross validation"){paste(" (sd ",
                                                                                 signif(sd(unlist(lapply(Stats.lst,function(lst){lst$calibration.stats[5]}))),digits=5),
                                                                                 ")",sep="")},
                                              
                                              "\n\n",
-                                             file=paste0(out$tempDir, out$modType, "_output.txt",sep=""),append=TRUE))
+                                             file=paste0(out$tempDir, out$modType, "_output.txt"),append=TRUE))
   #if(label=="crossValidation"){cat("\n\n   Pooled Calibration Statistics\n",print.table(cbind(names(out$cv$pooled.calib),out$cv$pooled.calib)))}
   #something I should include later
   }

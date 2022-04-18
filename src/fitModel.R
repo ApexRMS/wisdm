@@ -1,3 +1,9 @@
+## --------------------------
+## wisdm - fit model function
+## ApexRMS, April 2022
+## --------------------------
+
+
 fitModel <- function(dat,           # df of training data 
                      out,           # out list
                      full.fit=FALSE,

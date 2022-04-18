@@ -1,5 +1,7 @@
-## sdsim - dependencies
+## --------------------
+## wisdm - dependencies
 ## ApexRMS, March 2022
+## --------------------
 
 # R version 4.1.1 
 # script checks for installed packages and installs missing ones

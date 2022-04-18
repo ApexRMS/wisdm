@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="sdsim" displayName="Simulates species distributions" version="1.0.0">
+<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.0">
 	<transformers>
 		<!--Primary Transformer-->
 		<transformer 
@@ -136,6 +136,10 @@
 						<column name="TextOutput" dataType="String" isExternalFile="True"/>
 						<column name="CalibrationPlot" dataType="String" isExternalFile="True"/>
 						<column name="ROCAUCPlot" dataType="String" isExternalFile="True"/>
+						<column name="AUCPRPlot" dataType="String" isExternalFile="True"/>
+						<column name="ConfusionMatrix" dataType="String" isExternalFile="True"/>
+						<column name="VariableImportancePlot" dataType="String" isExternalFile="True"/>
+						<column name="VariableImportanceData" dataType="String" isExternalFile="True"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -276,8 +280,14 @@
 		<transformer
 		  name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation" dataSheet="CovariateCorrelationMatrix" column="Filename" isFolderExport="True" >
 		</transformer>
-		<transformer
-		  name="ModelExportRDS" displayName="Model" dataSheet="ModelOutputs" column="ModelRDS" isFolderExport="True" >
+		<transformer 
+		name="ModelExportRDS" displayName="Model" dataSheet="ModelOutputs" column="ModelRDS" isFolderExport="True">
+		</transformer>
+		<transformer 
+		name="ModelExportText" dataSheet="ModelOutputs" column="TextOutput" isFolderExport="True">
+		</transformer>
+		<transformer 
+		name="VariableImportanceExportData" dataSheet="ModelOutputs" column="VariableImportanceData">
 		</transformer>
 	</transformers>
 	<layouts>
@@ -314,6 +324,8 @@
 				<item name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation Matrix"/>
 				<group name="ModelOutputs" displayName="Model Outputs">
 					<item name="ModelExportRDS" displayName="Model RDS"/>
+					<item name="ModelExportText" displayName="Summary Text"/>
+					<item name="VariableImportanceExportData" displayName="Variable Importance"/>
 				</group>
 			</group>
         </layout>
@@ -324,7 +336,6 @@
         displayName="Probability Map"
         dataSheet="SpatialOutputs"
         column="ProbabilityRaster"/>
-</layout>
-		
+		</layout>
 	</layouts>	
 </package>

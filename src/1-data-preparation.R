@@ -1,4 +1,4 @@
-## sdsim - data preparation
+## wisdm - data preparation
 ## ApexRMS, March 2022
 
 # R version 4.1.1
@@ -16,11 +16,11 @@ myProject <- project()
 myScenario <- scenario()
 
 # Read in datasheets
-covariatesSheet <- datasheet(myProject, "sdsim_Covariates", optional = T)
-fieldDataSheet <- datasheet(myScenario, "sdsim_FieldData", optional = T)
-CovariateDataSheet <- datasheet(myScenario, "sdsim_CovariateData")
-ValidationDataSheet <- datasheet(myScenario, "sdsim_ValidationOptions")
-# siteDataSheet <- datasheet(myScenario, "sdsim_SiteData", lookupsAsFactors = F)
+covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
+fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
+CovariateDataSheet <- datasheet(myScenario, "wisdm_CovariateData")
+ValidationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
+# siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
 
 
 # Prep Field Data --------------------------------------------------------------
