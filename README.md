@@ -1,2 +1,3 @@
-# sdsim
- SAHM package for SyncroSim 
+# wisdm
+
+Workbench for Integrated Species Distribution Modeling
