@@ -103,9 +103,9 @@
 					  <columns>
 						<column name="ValidationOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="SplitData" displayName="Split data for model training and testing" dataType="Boolean" defaultValue="0"/>
+						<column name="SplitData" displayName="Split data for model training and testing" dataType="Boolean"/>
 						<column name="ProportionTrainingData" displayName="Proportion of data used for model training" dataType="Double" validationType="Decimal" validationCondition="Between" formula1="0" formula2="1"/>
-						<column name="CrossValidate" displayName="Use cross validation for model selection" dataType="Boolean" defaultValue="0"/>
+						<column name="CrossValidate" displayName="Use cross validation for model selection" dataType="Boolean"/>
 						<column name="StratifyFolds" displayName="Stratify cross-validation folds by the response" dataType="Boolean"/>
 						<column name="NumberOfFolds" displayName="Number of cross-validation folds" dataType="Integer"/>
 					  </columns>
@@ -133,6 +133,7 @@
 						<column name="ModelType" dataType= "String"/>
 						<column name="ModelRDS" dataType="String" isExternalFile="True"/>
 						<column name="ResponseCurves" dataType="String" isExternalFile="True"/>
+						<column name="ResidualsPlot" dataType="String" isExternalFile="True"/>
 						<column name="TextOutput" dataType="String" isExternalFile="True"/>
 						<column name="CalibrationPlot" dataType="String" isExternalFile="True"/>
 						<column name="ROCAUCPlot" dataType="String" isExternalFile="True"/>
@@ -212,9 +213,9 @@
 					  <columns>
 						<column name="GLMID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="SelectBestPredictors" displayName="Select Best Predictors" dataType="Boolean" defaultValue="-1"/>
-						<column name="SimplificationMethod" displayName="Simplification Method" dataType="Integer" defaultValue="0" validationType="List" formula1="0:AIC|1:BIC"/>
-						<column name="ConsiderSquaredTerms" displayName="Consider Interactions and Squared Terms" dataType="Boolean" defaultValue="0" />
+						<column name="SelectBestPredictors" displayName="Select Best Predictors" dataType="Boolean"/>
+						<column name="SimplificationMethod" displayName="Simplification Method" dataType="Integer" validationType="List" formula1="0:AIC|1:BIC"/>
+						<column name="ConsiderSquaredTerms" displayName="Consider Interactions and Squared Terms" dataType="Boolean"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -260,6 +261,8 @@
 		  transformerSpecificOutput="False">
 			<pipeline>
 				<datafeed name="ModelOutputs" type="Input"/>
+				<datafeed name="CovariateData" type="Input"/>
+				<datafeed name="OutputOptions" type="Input"/>
 				<datafeed name="SpatialOutputs" type="Output"/>
 			</pipeline>
 			<datafeeds>
@@ -331,11 +334,7 @@
         </layout>
 		<!--Maps Layout-->
 		<layout name="corestimeforms_Maps">
-			<item
-        name="ProbabilityMap"
-        displayName="Probability Map"
-        dataSheet="SpatialOutputs"
-        column="ProbabilityRaster"/>
+			<item name="ProbabilityMap" displayName="Probability Map" dataSheet="SpatialOutputs" column="ProbabilityRaster"/>
 		</layout>
 	</layouts>	
 </package>

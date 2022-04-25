@@ -37,6 +37,9 @@
     ValidationDataSheet <- addRow(ValidationDataSheet, list(SplitData = FALSE,
                                                             CrossValidate = FALSE))
   }
+  if(is.na(ValidationDataSheet$CrossValidate)){ValidationDataSheet$CrossValidate <- FALSE}
+  if(is.na(ValidationDataSheet$SplitData)){ValidationDataSheet$SplitData <- FALSE}
+
   
 # Prep data for model fitting --------------------------------------------------
 
@@ -210,8 +213,6 @@
      }
   }
  
-  
-  
 # Run Cross Validation (if specified) ------------------------------------------
   
   if(ValidationDataSheet$CrossValidate){
@@ -232,22 +233,28 @@
 
 # Save model outputs -----------------------------------------------------------
 
-# list.files(paste0(ssimTempDir,"\\Data"))
+  tempFiles <- list.files(paste0(ssimTempDir,"\\Data"))
   
-# add model Outputs to datasheet
-modelOutputsSheet <- addRow(modelOutputsSheet, 
-                            list(ModelType = modType, 
-                                 ModelRDS = paste0(ssimTempDir,"\\Data\\glm_model.rds"),
-                                 # ResponseCurves = paste0(ssimTempDir,"\\Data\\glm_ResponseCurves.png"),
-                                 TextOutput = paste0(ssimTempDir,"\\Data\\glm_output.txt"),
-                                 CalibrationPlot = paste0(ssimTempDir,"\\Data\\glm_CalibrationPlot.png"),
-                                 ROCAUCPlot = paste0(ssimTempDir,"\\Data\\glm_ROCAUCPlot.png"),
-                                 AUCPRPlot = paste0(ssimTempDir,"\\Data\\glm_AUCPRPlot.png"),
-                                 ConfusionMatrix = paste0(ssimTempDir,"\\Data\\glm_ConfusionMatrix.png"),
-                                 VariableImportancePlot = paste0(ssimTempDir,"\\Data\\glm_VariableImportance.png"),
-                                 VariableImportanceData = paste0(ssimTempDir,"\\Data\\glm_VariableImportance.csv")))
-                                                   
-                                                  
+  # add model Outputs to datasheet
+  modelOutputsSheet <- addRow(modelOutputsSheet, 
+                              list(ModelType = modType, 
+                                   ModelRDS = paste0(ssimTempDir,"\\Data\\glm_model.rds"),
+                                   # ResponseCurves = paste0(ssimTempDir,"\\Data\\glm_ResponseCurves.png"),
+                                   TextOutput = paste0(ssimTempDir,"\\Data\\glm_output.txt"),
+                                   CalibrationPlot = paste0(ssimTempDir,"\\Data\\glm_CalibrationPlot.png"),
+                                   ROCAUCPlot = paste0(ssimTempDir,"\\Data\\glm_ROCAUCPlot.png"),
+                                   # AUCPRPlot = paste0(ssimTempDir,"\\Data\\glm_AUCPRPlot.png"),
+                                   ConfusionMatrix = paste0(ssimTempDir,"\\Data\\glm_ConfusionMatrix.png"),
+                                   VariableImportancePlot = paste0(ssimTempDir,"\\Data\\glm_VariableImportance.png"),
+                                   VariableImportanceData = paste0(ssimTempDir,"\\Data\\glm_VariableImportance.csv")))
+  
+  if(ValidationDataSheet$CrossValidate){
+      modelOutputsSheet$AUCPRPlot <- paste0(ssimTempDir,"\\Data\\glm_AUCPRPlot.png")
+  } 
+  if("glm_StandardResidualPlots.png" %in% tempFiles){
+    modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\glm_StandardResidualPlots.png")
+  }
+
 
   saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs")
   

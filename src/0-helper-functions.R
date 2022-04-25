@@ -661,64 +661,66 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
     
     #### AUCPR Plots #### 
     
-    aucpr.lst <- list()
-    mean.vec <- c()
-    df <- data.frame()
+    if(splitType %in% c("cv", "cv/train/test")){
     
-    pl <- ggplot(df) + 
-      theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
-            legend.position = "bottom", panel.border = element_rect(fill = 'transparent', color = 'black'), 
-            panel.background = element_blank(), 
-            axis.line = element_line(colour = "black"), 
-            axis.title = element_text(size = 15),
-            axis.title.x = element_text(vjust = -2),
-            plot.title = element_text(hjust = 0.5, face = 'bold')) +
-      ylab(expression(atop("Precision", atop(scriptscriptstyle(frac("True Positives", "True Positives +  False Positives")))))) +
-      xlab(expression(atop("Recall", atop(scriptscriptstyle(frac("True Positives", "True Positives +  False Negatives")))))) +
-      ggtitle('PR Plot for Cross Validation') +
-      scale_x_continuous(breaks = seq(0, 1, by = 0.2)) +
-      scale_y_continuous(breaks = seq(0, 1, by = 0.2)) +
-      expand_limits(x = 0, y = 0) 
+      aucpr.lst <- list()
+      mean.vec <- c()
+      df <- data.frame()
+      
+      pl <- ggplot(df) + 
+        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+              legend.position = "bottom", panel.border = element_rect(fill = 'transparent', color = 'black'), 
+              panel.background = element_blank(), 
+              axis.line = element_line(colour = "black"), 
+              axis.title = element_text(size = 15),
+              axis.title.x = element_text(vjust = -2),
+              plot.title = element_text(hjust = 0.5, face = 'bold')) +
+        ylab(expression(atop("Precision", atop(scriptscriptstyle(frac("True Positives", "True Positives +  False Positives")))))) +
+        xlab(expression(atop("Recall", atop(scriptscriptstyle(frac("True Positives", "True Positives +  False Negatives")))))) +
+        ggtitle('PR Plot for Cross Validation') +
+        scale_x_continuous(breaks = seq(0, 1, by = 0.2)) +
+        scale_y_continuous(breaks = seq(0, 1, by = 0.2)) +
+        expand_limits(x = 0, y = 0) 
+      
+      for(n in 1:(length(lst))){
+        tmp <- pr.curve(scores.class0 = lst[[n]]$auc.data$pred, 
+                        weights.class0 = lst[[n]]$auc.data$pres.abs, curve = T)
+        tmp$curve <- as.data.frame(tmp$curve)
+        colnames(tmp$curve) <- c('recall', 'precision', 'thresh')
+        aucpr.lst[[paste0(n)]] <- tmp
+        mean.vec <- c(mean.vec, tmp$auc.davis.goadrich)
+        pl <- pl + geom_line(data = tmp$curve, aes(x = recall, y = precision), 
+                             color = 'grey', linetype = 'dashed', alpha = 0.3)
+      }
+      
+      # Generate CV mean #
+      cv.df <- data.frame()
+      for(i in 1:length(aucpr.lst)){
+        tmp <- aucpr.lst[[i]]$curve %>%
+        summarise_all(.funs = mean)
+        cv.df <- bind_rows(cv.df, tmp)
+      }
+      
+      # Add training data # 
+      pr <- pr.curve(scores.class0 = Stats$train$auc.data$pred, 
+                     weights.class0 = Stats$train$auc.data$pres.abs, curve = TRUE)
+      pr$curve <- as.data.frame(pr$curve)
+      colnames(pr$curve) <- c('recall', 'precision', 'thresh')
+      
+      pl <- pl + suppressWarnings(geom_line(data = as.data.frame(spline(pr$curve$recall, pr$curve$precision)),
+                                            aes(x = x, y = y, color = 'train'), size = 1)) +
+        suppressWarnings(geom_line(data = as.data.frame(spline(pr$curve$recall, pr$curve$precision)), 
+                                   aes(x = x, y = y, color = 'test'), size = 1)) +
+        scale_color_manual(labels = c(paste0("Training Split (AUC=", round(Stats$train$auc.pr,3),")"),
+                                      paste0("Cross Validation Mean (AUC=", mean(round(mean.vec, digits = 3)), ")", sep='')), 
+                           values=c('red', 'grey')) +
+        theme(legend.title = element_blank(), legend.box.background = element_rect(colour = "black"),
+              legend.position = c(0.6, 0.15), legend.key = element_rect(fill = NA))
+      
+      ggsave(filename = AUCPRFile, 
+             plot = pl, width = 12.5, height = 12.5, units = 'cm', dpi = 300)
     
-    for(n in 1:(length(lst))){
-      tmp <- pr.curve(scores.class0 = lst[[n]]$auc.data$pred, 
-                      weights.class0 = lst[[n]]$auc.data$pres.abs, curve = T)
-      tmp$curve <- as.data.frame(tmp$curve)
-      colnames(tmp$curve) <- c('recall', 'precision', 'thresh')
-      aucpr.lst[[paste0(n)]] <- tmp
-      mean.vec <- c(mean.vec, tmp$auc.davis.goadrich)
-      pl <- pl + geom_line(data = tmp$curve, aes(x = recall, y = precision), 
-                           color = 'grey', linetype = 'dashed', alpha = 0.3)
-    }
-    
-    # Generate CV mean #
-    cv.df <- data.frame()
-    for(i in 1:length(aucpr.lst)){
-      tmp <- aucpr.lst[[i]]$curve %>%
-      summarise_all(.funs = mean)
-      cv.df <- bind_rows(cv.df, tmp)
-    }
-    
-    # Add training data # 
-    pr <- pr.curve(scores.class0 = Stats$train$auc.data$pred, 
-                   weights.class0 = Stats$train$auc.data$pres.abs, curve = TRUE)
-    pr$curve <- as.data.frame(pr$curve)
-    colnames(pr$curve) <- c('recall', 'precision', 'thresh')
-    
-    pl <- pl + suppressWarnings(geom_line(data = as.data.frame(spline(pr$curve$recall, pr$curve$precision)),
-                                          aes(x = x, y = y, color = 'train'), size = 1)) +
-      suppressWarnings(geom_line(data = as.data.frame(spline(pr$curve$recall, pr$curve$precision)), 
-                                 aes(x = x, y = y, color = 'test'), size = 1)) +
-      scale_color_manual(labels = c(paste0("Training Split (AUC=", round(Stats$train$auc.pr,3),")"),
-                                    paste0("Cross Validation Mean (AUC=", mean(round(mean.vec, digits = 3)), ")", sep='')), 
-                         values=c('red', 'grey')) +
-      theme(legend.title = element_blank(), legend.box.background = element_rect(colour = "black"),
-            legend.position = c(0.6, 0.15), legend.key = element_rect(fill = NA))
-    
-    ggsave(filename = AUCPRFile, 
-           plot = pl, width = 12.5, height = 12.5, units = 'cm', dpi = 300)
-    
-   # TO DO: should above code should only be created if CV ^^^ put into if statement??
+    } # Should above code only be created if CV = TRUE ?? (if yes, keep above if statement, otherwise remove brackets)
     
     #### Calibration Plot #### 
     
