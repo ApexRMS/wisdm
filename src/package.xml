@@ -280,18 +280,10 @@
 			</datafeeds>
 		</transformer>
 		 <!--Export Transformers-->
-		<transformer
-		  name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation" dataSheet="CovariateCorrelationMatrix" column="Filename" isFolderExport="True" >
-		</transformer>
-		<transformer 
-		name="ModelExportRDS" displayName="Model" dataSheet="ModelOutputs" column="ModelRDS" isFolderExport="True">
-		</transformer>
-		<transformer 
-		name="ModelExportText" dataSheet="ModelOutputs" column="TextOutput" isFolderExport="True">
-		</transformer>
-		<transformer 
-		name="VariableImportanceExportData" dataSheet="ModelOutputs" column="VariableImportanceData">
-		</transformer>
+		<transformer name="CovariateCorrelationExportMatrix" className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms" dataSheet="CovariateCorrelationMatrix" column="Filename" isFolderExport="True" />
+		<transformer name="ModelExportRDS" className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms" dataSheet="ModelOutputs" column="ModelRDS" isFolderExport="True"/>
+		<transformer name="ModelExportText" dataSheet="ModelOutputs" className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms" column="TextOutput" isFolderExport="True"/>
+		<transformer name="VariableImportanceExportData" className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms" dataSheet="ModelOutputs" column="VariableImportanceData"/>
 	</transformers>
 	<layouts>
 		<!--Library Datafeeds Layout-->
