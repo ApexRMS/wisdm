@@ -7,30 +7,26 @@
 
 
 ## Proc.tiff Function ----------------------------------------------------------
-
-proc.tiff <- function(fit.model,
-                      mod.vars,
-                      raster.files = NULL,
-                      output.options = NULL,
-                      factor.levels=NA,
-                      make.binary.tif=F,
-                      make.p.tif=T,
-                      thresh = 0.5,
-                      # outfile.p="brt.prob.map.tif",
-                      # outfile.bin="brt.bin.map.tif",
-                      tsize=2.0,
-                      NAval=-3000,
-                      fnames=NULL,
-                      out,
-                      Model){
   
-  # vnames,fpath,myfun,make.binary.tif=F,outfile=NA,outfile.bin=NA,output.dir=NA,tsize=10.0,NAval=NA,fnames=NA
-  # Written by Alan Swanson, YERC, 6-11-08
-  # Revised and Edited by Marian Talbert 2010-2011
   # Description:
   # This function is used to make predictions using a number of .tiff image inputs
   # in cases where memory limitations don't allow the full images to be read in.
-  #
+  
+  proc.tiff <- function(fit.model,
+                        modType,
+                        mod.vars,
+                        raster.files = NULL,
+                        output.options = NULL,
+                        factor.levels = NA,
+                        temp.directory, 
+                        multiprocessing.cores = 1,
+                        train.dat,
+                        pred.fct,
+                        tsize=2.0,
+                        NAval = -3.399999999999999961272e+38)
+    {
+    
+
   # Arguments:
   # vname: names of variables used for prediction.  must be same as filenames and variables
   #   in model used for prediction. do not include a .tif extension as this is added in code.
@@ -42,14 +38,7 @@ proc.tiff <- function(fit.model,
   # tsize: size of dataframe used for prediction in MB.  this controls the size of tiles
   #   extracted from the input files, and the memory usage of this function.
   # NAval: this is the NAvalue used in the input files.
-  # fnames: if the filenames of input files are different from the variable names used in the
-  #   prediction model.
-  #
-  # Modification history:
-  # Fixed problem with NA values causing crash 10/2010
-  # Included code to produce MESS map and Mod map  8/2011
-  # Removed Tiff Directory option as well as some other unused code 10/2011
-  #
+  
   # Description:
   # This function reads in a limited number of lines of each image (specified in terms of the
   # size of the temporary predictor dataframe), applies a user-specified
@@ -57,15 +46,15 @@ proc.tiff <- function(fit.model,
   # output file is specified, a file is written directly to that file in .tif format to
   # the same directory as the input files.  Geographic information from the input images
   # is retained.
-  #
   
   # Start of function #
+  makeProb <- output.options$MakeProbabilityMap
+  makeMESS <- F # output.options$MakeMessMap 
+  makeMOD <- F # output.options$MakeModMap
+  makeResid <- F # output.options$MakeResidualsMap
   
   if(is.null(factor.levels)){ factor.levels <- NA }
   # if(is.null(thresh)){ thresh <- 0.5 }
-  
-  makeMESS <- output.options$MakeMessMap 
-  makeMOD <- output.options$MakeModMap
   
   nVars <- length(mod.vars)
   
@@ -78,23 +67,32 @@ proc.tiff <- function(fit.model,
     message("NOTE: MOD map not generated. Model must have at least 1 predictor variables to make a MOD map.")
   }
   
-  ######################################
   # get spatial reference info from existing image file
   
-  gi <- GDALinfo(fullnames[1])
+  RasterInfo <- rast(raster.files[1])
   
-  dims <- as.vector(gi)[1:2]
-  ps <- as.vector(gi)[6:7]
-  ll <- as.vector(gi)[4:5]
-  pref<-attr(gi,"projection")
+  dims <- dim(RasterInfo)[1:2]
+  ps <- res(RasterInfo)
+  ll <- RasterInfo@ptr$extent$vector[c(1,3)] # lower left origin x,y
+  pref <- crs(RasterInfo)
   
-  RasterInfo=raster(fullnames[1])
-  RasterInfo@file@datanotation<-"FLT4S"
-  NAval<- -3.399999999999999961272e+38
+  # setting tile size
+  MB.per.row <- dims[2]*nVars*32/8/1000/1024
+  if(makeMESS){ # use more blocks for mess
+    MB.per.row <- MB.per.row*8 
+  } 
+  nrows <- min(round(tsize/MB.per.row),dims[1])
+ 
+  tr <- list()
+  tr$row <- seq(1,dims[1], by = nrows)
+  tr$nrows <- diff(tr$row)
+  if(tail(tr$row,1)<dims[1]){ tr$nrows <- c(tr$nrows, (dims[1] - tail(tr$row,1)+1)) }
+  tr$n <- length(tr$row) 
   
-  #To remove use of the Raster package I need to see if rgdal handles area or point correctly
+  
+  gi <- rgdal::GDALinfo(raster.files[1])
   if(!is.na(match("AREA_OR_POINT=Point",attr(gi,"mdata")))){                                                                          
-    xx<-RasterInfo  #this shifts by a half pixel
+    xx<-RasterInfo  # this shifts by a half pixel
     nrow(xx) <- nrow(xx) - 1
     ncol(xx) <- ncol(xx) - 1
     rs <- res(xx)
@@ -104,50 +102,314 @@ proc.tiff <- function(fit.model,
     ymax(RasterInfo) <- ymax(RasterInfo) + 0.5 * rs[2]
   }
   
-  # setting tile size
-  MB.per.row<-dims[2]*nvars*32/8/1000/1024
-  if(MESS) MB.per.row<-MB.per.row*8 #use more blocks for mess
-  nrows<-min(round(tsize/MB.per.row),dims[1])
-  bs<-c(nrows,dims[2])
-  chunksize<-bs[1]*bs[2]
-  tr<-blockSize(RasterInfo,chunksize=chunksize)
+  FactorInd <- which(!is.na(match(mod.vars,names(factor.levels))),arr.ind=TRUE)
+  if((nVars-length(FactorInd))==0) { # turn this off if only one factor column was selected
+    makeMESS <- makeMOD <- FALSE 
+  }
+    
+  # create some temporary folders    
+  if(makeProb){ dir.create(file.path(temp.directory,"ProbTiff")) }
+  if(makeMESS){ dir.create(file.path(temp.directory,"MESSTiff")) } 
+  if(makeMOD){ dir.create(file.path(temp.directory,"ModTiff")) } 
+  if(makeResid){ dir.create(file.path(temp.directory,"ResidTiff")) }
   
-  FactorInd<-which(!is.na(match(mod.vars,names(factor.levels))),arr.ind=TRUE)
-  if((nvars-length(FactorInd))==0) MESS<-MOD<-FALSE #turn this off if only one factor column was selected
-  
-  #for debugging I'm always using multiple cores
-  # multCore<-multCore
-  if(tr$n<10 | getRversion()<2.14) multCore<-FALSE #turn off multicore in certian circumstances
+  # turn off multicore in certain circumstances
+  if(is.na(multiprocessing.cores)){ multCore <- FALSE } else { multCore <- TRUE }
+  if(tr$n<10 | getRversion()<2.14){ multCore <- FALSE }
   
   if(multCore){
+    
     library(parallel)
-    #create some temporary folders    
-    if(make.p.tif)
-      dir.create(file.path(out$input$output.dir,"ProbTiff"))
-    outfile.p=file.path(out$input$output.dir,"ProbTiff","_prob_map.tif")
-    if(make.binary.tif)                                                                                         
-      outfile.bin=dir.create(file.path(out$input$output.dir,"BinTiff"))
-    if(MESS) dir.create(file.path(out$input$output.dir,"MESSTiff"))
-    if(MOD)  dir.create(file.path(out$input$output.dir,"ModTiff"))
-    if(out$input$ResidMaps)
-      dir.create(file.path(out$input$output.dir,"ResidTiff"))
-    tile.start<-seq(from=1,to=tr$n,by=ceiling(tr$n/(detectCores()-1))) 
+    
+    # identify available cores and assign tiled raster processing 
+    tile.start <- seq(from=1, to=tr$n, by=ceiling(tr$n/multiprocessing.cores)) 
     cl <- makeCluster(detectCores()) 
-    parLapply(cl,X=tile.start,fun=parRaster,dims=dims,
-              tr=tr,MESS=MESS,MOD=MOD,nvars=nvars,fullnames=fullnames,nvars.final=nvars.final,mod.vars=mod.vars,NAval=NAval,factor.levels=factor.levels,
-              model=model,Model=Model,pred.fct=pred.fct,make.binary.tif=make.binary.tif,make.p.tif=make.p.tif,RasterInfo=RasterInfo,outfile.p=outfile.p,
-              outfile.bin=outfile.bin,thresh=thresh,nToDo= ceiling(tr$n/(detectCores()-1)),ScriptPath=out$input$ScriptPath,
-              mod.vars.final.mod=mod.vars.final.mod,train.dat=out$dat$ma$train$dat,residSmooth=out$mods$auc.output$residual.smooth.fct,
-              template=out$dat$input$ParcTemplate,maDir=out$input$ma.name)
+    parLapply(cl, X = tile.start, fun = parRaster, nToDo = ceiling(tr$n/multiprocessing.cores))
+              # pred.fct=pred.fct,
+              # dims=dims,
+              # tr=tr,
+              # makeProb=makeProb,
+              # makeMESS=makeMESS,
+              # makeMOD=makeMOD,
+              # RasterInfo=RasterInfo,
+              # template=RasterInfo,
+              # nVars=nVars,
+              # raster.files=raster.files,
+              # mod.vars=mod.vars,
+              # NAval=NAval,
+              # factor.levels=factor.levels,
+              # fit.model=fit.model,
+              # train.dat=train.dat)
+              # residSmooth=out$mods$auc.output$residual.smooth.fct,
     stopCluster(cl)
-  }  else{  #multicore is slower for small tiffs so we won't do it and the library is not available prior to 2.14
-    #also due to multicore multiinstance R issues we're currently only running it on condor or when running synchronously
-    parRaster(start.tile=1,dims=dims,
-              tr=tr,MESS=MESS,MOD=MOD,nvars=nvars,fullnames=fullnames,nvars.final=nvars.final,mod.vars=mod.vars,NAval=NAval,factor.levels=factor.levels,
-              model=model,Model=Model,pred.fct=pred.fct,make.binary.tif=make.binary.tif,make.p.tif=make.p.tif,RasterInfo=RasterInfo,outfile.p=outfile.p,outfile.bin=outfile.bin,thresh=thresh,nToDo=tr$n,ScriptPath=out$       
-                input$ScriptPath,mod.vars.final.mod=mod.vars.final.mod,train.dat=out$dat$ma$train$dat,residSmooth=out$mods$auc.output$residual.smooth.fct,
-              template=out$dat$input$ParcTemplate,maDir=out$input$ma.name)
+  } else {  # multicore is slower for small tiffs so we won't do it and the library is not available prior to 2.14
+    # also due to multicore multiinstance R issues we're currently only running it on condor or when running synchronously
+    parRaster(start.tile=1, nToDo = tr$n)
+              # dims=dims,
+              # tr=tr,
+              # makeProb=makeProb,
+              # makeMESS=makeMESS,
+              # makeMOD=makeMOD,
+              # nVars=nVars,
+              # raster.files=raster.files,
+              # mod.vars=mod.vars,
+              # NAval=NAval,
+              # factor.levels=factor.levels,
+              # RasterInfo=RasterInfo,
+              # template=RasterInfo,
+              # fit.model=fit.model,
+              # pred.fct=pred.fct,
+              # train.dat=train.dat
+              # residSmooth=out$mods$auc.output$residual.smooth.fct,
+            
   }
-  if(length(l<-list.files(dirname(outfile.p),pattern="_prob_map.txt",full.names=TRUE))!=0) unlink(l)
+  if(length(l <- list.files(dirname(outfile.p),pattern="_prob_map.txt",full.names=TRUE))!= 0){ unlink(l) } 
   return(0)
-}
+  }
+  
+### parRaster function ---------------------------------------------------------
+  
+  parRaster <- function(start.tile,
+                        nToDo,
+                        dims = dims,
+                        tr = tr,
+                        makeProb = makeProb,
+                        makeMESS = makeMESS,
+                        makeMOD = makeMOD,
+                        nVars = nVars,
+                        raster.files = raster.files,
+                        temp.directory = temp.directory,
+                        mod.vars = mod.vars,
+                        NAval = NAval,
+                        factor.levels = factor.levels,
+                        RasterInfo = RasterInfo,
+                        template = RasterInfo, 
+                        pred.fct = pred.fct,
+                        train.dat = train.dat, 
+                        # residSmooth,
+                        fit.model = fit.model,
+                        modType = modType)
+  {
+    
+    # source(paste0(file.path(ScriptPath),"/pred.fct.r",sep=''))
+    # source(paste0(file.path(ScriptPath),"/maxent.predict.r",sep=''))
+    # source(paste0(file.path(ScriptPath),"/CalcMESS.r",sep=''))
+    
+    
+    # if(!is.null(residSmooth)) source(paste0(file.path(ScriptPath),"/Pred.Surface.R",sep=''))
+    
+    # for the last set we have to adjust tr$n based on the number of remaining tiles
+    if((start.tile + nToDo) > tr$n){ 
+      nToDo <- tr$n - start.tile + 1 
+    } 
+    
+    if(tr$n > (start.tile+nToDo)){
+      # hack to change the extent for writing sections to separate files because crop crashes for large files
+      start.val <- xyFromCell(RasterInfo, cellFromRowCol(RasterInfo, 
+                                                         row = tr$row[(start.tile+nToDo)]-1, 
+                                                         col = 1)) - 0.5 * res(RasterInfo)[2]
+      end.val <- xyFromCell(RasterInfo, cellFromRowCol(RasterInfo, 
+                                                       row = tr$row[start.tile], 
+                                                       col = ncol(RasterInfo))) + 0.5 * res(RasterInfo)[2]
+      e <- ext(RasterInfo)
+      ext(RasterInfo) <- c(e[1:2], start.val[1, 2], end.val[1, 2])
+      v <- values(RasterInfo, nrows = as.integer(sum(tr$nrows[start.tile:(start.tile + nToDo - 1)])))
+      nrow(RasterInfo) <- as.integer(sum(tr$nrows[start.tile:(start.tile + nToDo - 1)]))
+      values(RasterInfo) <- v
+    }
+    
+    outfile.p <- paste0(temp.directory,"ProbTiff\\", modType,"_prob_map.tif")
+    outfile.p <- file.path(paste(substr(outfile.p, 1, (nchar(outfile.p) - 4)), ifelse(start.tile == 1, "", start.tile), ".tif", sep = ""))
+
+    # finding a folder that's been created so we can keep the user updated on the progress of creating the files
+    if(makeProb){
+      outtext <- paste(substr(outfile.p,1,(nchar(outfile.p)-4)),".txt",sep="")
+    } else {
+      if(makeMESS){
+        outtext <- paste0(temp.directory,"MESSTiff\\", modType,"_mess_map.txt")
+        if(makeMOD){
+          outtext <- paste0(temp.directory,"ModTiff\\", modType,"_mod_map.txt")
+        }
+      }
+    }
+
+    capture.output(cat(paste(nToDo,"tiles to do\n")),file=outtext,append=TRUE)
+
+    # start up rasters we need   
+    if(makeProb){
+      continuousRaster <- RasterInfo
+      writeStart(x = continuousRaster, 
+                 filename = outfile.p, 
+                 overwrite = TRUE,
+                 datatype ='INT1U',
+                 gdal=c("COMPRESS=LZW", "TILED=YES", "BIGTIFF=YES"))
+    }
+    
+    if(makeMESS){
+      MessRaster <- RasterInfo
+      MessRaster <- writeStart(MessRaster, 
+                               filename = sub("ProbTiff", "MESSTiff", sub("prob", "mess", outfile.p)), 
+                               overwrite = TRUE,
+                               datatype ='INT2S') #, options=c("COMPRESS=LZW", "TILED=YES", "BIGTIFF=YES"))
+      
+      if(makeMOD){
+        ModRaster <- RasterInfo
+        if(makeMOD) ModRaster <- writeStart(ModRaster, 
+                                        filename = sub("ProbTiff", "ModTiff", sub("prob", "MoD", outfile.p)), 
+                                        overwrite = TRUE) # datatype ='INT1U', options=c("COMPRESS=LZW", "TILED=YES", "BIGTIFF=YES"))
+      }
+      
+      # order the training data so that we can consider the first and last row  only in mess calculations
+      train.dat <- train.dat[ ,match(mod.vars, names(train.dat))]
+      for(k in 1:nVars){ train.dat[ ,k] <- sort(train.dat[ ,k]) } 
+    }
+    
+      HasTemplate = FALSE
+      TemplateMask = NA
+      templateRast <- template
+    
+    # if(class(templateRast)=="try-error"){ #so that we can move a session folder to a new computer
+    #   template <- file.path(dirname(maDir), basename(template))
+    #   templateRast <- try(raster(template), silent = TRUE) 
+    #   if(class(templateRast) == "try-error") HasTemplate = FALSE
+    # }
+    
+    for (i in start.tile:min(start.tile + nToDo - 1, length(tr$row))){
+      
+      capture.output(cat(paste("starting tile", i, Sys.time(), "\n")), file = outtext, append = TRUE)
+      
+      # alter the write start location because we always start at position 1                                   
+      writeLoc <- ifelse((start.tile - 1) == 0, tr$row[i], tr$row[i] - sum(tr$nrows[1:(start.tile-1)]))
+      
+      if(HasTemplate){
+        TemplateMask <- values(templateRast, row = tr$row[i], nrows = tr$nrows[i])
+
+        if(all(is.na(TemplateMask))){
+
+          # if the template is completely NA values, don't read in any other data
+          temp <- rep(NA, times = tr$nrow[i] * dims[2])
+
+          if(makeMESS){ pred.rng <- rep(NA,length(temp)) }
+        }
+      }
+
+      if(!HasTemplate | !all(is.na(TemplateMask))){
+        
+        temp <- data.frame(matrix(ncol = nVars, nrow = tr$nrows[i] * dims[2]))
+        
+        # Setting the first predictor equal to NA where ever the mask is NA
+        # fill temp data frame
+        for(k in 1:nVars){
+          rast_k <- rast(raster.files[k])
+          temp[,k] <- as.vector(values(rast_k, row = tr$row[i], nrows = tr$nrows[i]))
+        }
+        # so we won't write out predictions here
+        
+        if(HasTemplate){ temp[is.na(TemplateMask),] <- NA }
+        
+        names(temp) <- mod.vars
+        
+        if(makeMESS){
+          pred.rng <- rep(NA, nrow(temp))
+          names(pred.rng) <- NA
+          
+          if(any(complete.cases(temp))){
+            MessVals <- CalcMESS(temp[complete.cases(temp), ], train.dat = train.dat)
+            pred.rng[complete.cases(temp)] <- MessVals[ ,2]
+            names(pred.rng)[complete.cases(temp)] <- MessVals[ ,1]
+          }
+        }
+        
+        if(length(mod.vars) == 1){ names(temp) <- mod.vars }
+        
+        # replace missing values 
+        temp[temp == NAval] <- NA
+        for(m in mod.vars){
+          temp[is.nan(temp[,m]),m] <- NA
+        }
+         
+        if(!is.na(factor.levels)){
+          factor.cols <- match(names(factor.levels), names(temp))
+          if(sum(!is.na(factor.cols)) > 0){
+            for(j in 1:length(factor.cols)){
+              if(!is.na(factor.cols[j])){
+                temp[,factor.cols[j]] <- factor(temp[, factor.cols[j]], levels = factor.levels[[j]]$number, labels = factor.levels[[j]]$class)
+              }
+            }
+          }
+        } 
+      } 
+      
+      # will not calculate predictions if all predictors in the region are na
+      ifelse(sum(complete.cases(temp)) == 0,  
+             preds <- matrix(data = NA, nrow = dims[2], ncol = tr$nrows[i]),
+             preds <- t(matrix(pred.fct(model = fit.model, x = temp), ncol = dims[2], byrow = T)))
+      
+      preds <- round((preds*100), 0)
+      
+      if(makeMESS){
+        MessRaster <- writeValues(MessRaster, round(pred.rng*100,0), writeLoc)
+        if(is.null(names(pred.rng))) names(pred.rng) <- NA
+        if(makeMOD) { ModRaster <- writeValues(ModRaster, names(pred.rng), writeLoc) }
+      }
+      
+     if(makeProb){ writeValues(x = continuousRaster, v = preds, start = writeLoc, nrows = tr$nrows[i]) }
+    } #end of the big for loop
+    
+    end.seq <- c(tr$row, dims[1] + 1)
+    
+    if(makeProb){ writeStop(continuousRaster) }
+    if(makeMESS){ writeStop(MessRaster) }
+    if(makeMOD){ 
+      writeStop(ModRaster)
+      d <- data.frame(as.integer(seq(1:length(train.dat))), names(train.dat))
+      names(d) = c("Value","Class")
+      ModRaster@file@datanotation <- "INT1U"
+      write.dbf(d, sub(".tif", ".tif.vat.dbf", ModRaster@file@name), factor2char = TRUE, max_nchar = 254)
+    }
+    
+    # if(!is.null(residSmooth)){
+    #   Pred.Surface(object = rast(outfile.p), 
+    #                model = residSmooth, 
+    #                filename = (sub("ProbTiff", "ResidTiff", sub("prob", "resid", outfile.p))), 
+    #                NAval = NAval)
+    # }
+  }
+
+#### Calculate MESS Map function ------------------------------------------------
+  
+  CalcMESS <- function(rast,train.dat){  
+    
+    # if anything is out of range, return it before calculating sums                       
+    min.train <- train.dat[1,] #because we sorted
+    max.train <- train.dat[nrow(train.dat),]
+    output <- data.frame(matrix(data=NA,nrow=nrow(rast),ncol=ncol(rast)))
+    for(k in 1:length(min.train)){
+      output[,k] <- my.min(rast.val=rast[,k], as.numeric(min.train[,k]), as.numeric(max.train[,k]))
+    }
+    Indx <- apply(output,1,which.min)
+    output <- apply(output,1,min)
+    if(sum(output>0)==0){ return(data.frame(Indx=Indx,output=output)) }
+    
+    f <- data.frame(matrix(dat=NA,nrow=sum(output>0),ncol=ncol(rast)))
+    
+    for(k in 1:length(min.train))  {
+      f[,k]<-100*mapply(vecSum,rast[output>0,k],MoreArgs=list(vect=train.dat[,k]))/nrow(train.dat)
+      f[,k]<-I(f[,k]<=50)*2*f[,k]+I(f[,k]>50)*2*(100-f[,k])
+    }
+    
+    Indx[output>0] <- apply(f,1,which.min)
+    f <- apply(f,1,min)
+    output[output>0] <- f
+    return(data.frame(Indx=Indx,output=output))
+  }
+  
+##### My Min Function -----------------------------------------------------------
+  
+  my.min <- function(rast.val,min.train,max.train){
+    pmin((rast.val-min.train),(max.train-rast.val))/(max.train-min.train)*100
+  }
+
+##### Vector Sum function -------------------------------------------------------
+
+  vecSum <- function(v,vect){ sum(v > vect) }

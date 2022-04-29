@@ -12,6 +12,7 @@
 packageDir <- Sys.getenv("ssim_package_directory")
 # source(file.path(packageDir, "0-glm-constants.R"))
 source(file.path(packageDir, "0-dependencies.R"))
+source(file.path(packageDir, "0-helper-functions.R"))
 source(file.path(packageDir, "0-apply-model-functions.R"))
 
 # Connect to library -----------------------------------------------------------
@@ -23,12 +24,13 @@ myScenario <- scenario()
 # datasheet(myScenario)
 
 # path to ssim directories
-ssimTempDir <- Sys.getenv("ssim_temp_directory")
+ssimTempDir <- paste0(Sys.getenv("ssim_temp_directory"),"\\Data\\")
 ssimOutputDir <- Sys.getenv("ssim_output_directory")
 resultScenario <- Sys.getenv("ssim_scenario_id")
 
 # Read in datasheets
-# covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
+covariatesSheet <- datasheet(myProject, "Covariates", optional = T)
+multiProcessingSheet <- datasheet(myScenario, "core_Multiprocessing")
 # fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
 # ValidationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
 # reducedCovariatesSheet <- datasheet(myScenario, "wisdm_ReducedCovariates", lookupsAsFactors = F)
@@ -39,6 +41,8 @@ covariateDataSheet <- datasheet(myScenario, "CovariateData", optional = T, looku
 modelOutputsSheet <- datasheet(myScenario, "ModelOutputs", optional = T)
 outputOptionsSheet <- datasheet(myScenario, "OutputOptions", optional = T)
 
+spatialOutputsSheet <- datasheet(myScenario, "SpatialOutputs", optional = T)
+
 # Set defaults -----------------------------------------------------------------
 
 if(nrow(outputOptionsSheet)<1){
@@ -47,7 +51,6 @@ if(nrow(outputOptionsSheet)<1){
 if(any(is.na(outputOptionsSheet))){
   outputOptionsSheet[is.na(outputOptionsSheet)] <- F
 }
-
 
 # Load model object ------------------------------------------------------------
 
@@ -62,7 +65,13 @@ if(modType == "glm"){
   # have to remove all the junk with powers and interactions for mess map production to work
   modVars <- unique(unlist(strsplit(gsub("I\\(","",gsub("\\^2)","",modVars)),":")))
   
+  trainingData <-  mod$data 
 }
+
+# identify factor variables
+factorVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T)]
+factorVars <- factorVars[factorVars %in% modVars]
+if(length(factorVars)==0){ factorVars <- NULL }
 
 
 # Predict model ----------------------------------------------------------------
@@ -72,7 +81,7 @@ if(modType == "glm"){
   covData <- covariateDataSheet[which(covariateDataSheet$CovariatesID %in% modVars),]
   
   # check that all tifs are present
-  if(all(file.exists(paths))){
+  if(all(file.exists(paths)) == F){
     missingTifs <- covData$CovariatesID[!file.exists(covData$RasterFilePath)]
     stop("ERROR: the following geotiff(s) are missing from Covariate Data:  ",
          paste(missingTifs, collapse=" ,"),sep="")
@@ -85,57 +94,46 @@ if(modType == "glm"){
   }
   
   if(modType == "glm"){
-    pred.fct <- glm.predict
+    predictFct <- glm.predict
   }
-  # if(out$input$model.source.file=="rf.r")   {
-  #   pred.fct = rf.predict
+  # if(modType == "rf")   {
+  #   predictFct = rf.predict
   #   library(randomForest)
   # }
-  # if(out$input$model.source.file=="mars.r") {
-  #   pred.fct=pred.mars
+  # if(modType == "mars") {
+  #   predictFct = mars.predict
   #   library(mda)
   # }
-  # if(out$input$model.source.file=="brt.r")  {
-  #   pred.fct=brt.predict
+  # if(modType == "brt")  {
+  #   model.covs<-levels(summary(out$mods$final.mod,plotit=FALSE)[,1])
+  #   predictFct = brt.predict
   #   library(gbm)
   # }
-  # if(out$input$model.source.file=="brt.r") {
-  #   model.covs<-levels(summary(out$mods$final.mod,plotit=FALSE)[,1])
-  #   pred.fct=brt.predict
-  # }
   
-  maps <- proc.tiff(fit.model = mod,
-                    mod.vars = modVars,
-                    raster.files = paths,
-                    pred.fct = pred.fct,
-                    output.options = outputOptionsSheet,
-                    factor.levels=out$dat$ma$factor.levels,
-                    make.binary.tif=make.binary.tif,
-                    thresh=out$mods$auc.output$thresh,
-                    make.p.tif=make.p.tif,outfile.p=file.path(out.dir,"prob_map.tif"),
-                    outfile.bin=file.path(out.dir,"bin_map.tif"),tsize=50.0,NAval=-3000,logname=logname,out=out)
-}
+  # create prediction maps
+  proc.tiff(fit.model = mod,
+            modType = modType,
+            mod.vars = covData$CovariatesID,
+            raster.files = covData$RasterFilePath,
+            pred.fct = predictFct,
+            output.options = outputOptionsSheet,
+            factor.levels = factorVars,
+            multiprocessing.cores = multiProcessingSheet$MaximumJobs,
+            temp.directory = ssimTempDir,
+            train.dat = trainingData, 
+            tsize = 20,
+            NAval = -3000)
 
 
-proc.tiff(model,
-          mod.vars,
-                        filenames=NULL,
-                        factor.levels=NA,
-                        make.binary.tif=F,
-                        make.p.tif=T,
-                        thresh=0.5,
-                        # outfile.p="brt.prob.map.tif",
-                        # outfile.bin="brt.bin.map.tif",
-                        tsize=2.0,
-                        NAval=-3000,
-                        fnames=NULL,
-                        out,
-                        Model){
+# Save output maps -------------------------------------------------------------
 
-
-# Load spatial layers ----------------------------------------------------------
-
-[covariateDataSheet$CovariatesID %in% modVars]
-for()
-raster_i <- rast(x=covariateDataSheet$RasterFilePath[i])
-
+  # tempFiles <- list.files(paste0(ssimTempDir))
+  
+  # add model Outputs to datasheet
+  spatialOutputsSheet <- addRow(spatialOutputsSheet, 
+                              list(modType = modType,
+                                ProbabilityMap = paste0(ssimTempDir,"ProbTiff\\glm_prob_map.rds")))
+  
+  saveDatasheet(myScenario, spatialOutputsSheet, "SpatialOutputs")
+  
+  

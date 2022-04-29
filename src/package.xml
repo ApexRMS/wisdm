@@ -145,6 +145,19 @@
 					</datasheet>
 				  </datasheets>
 				</datafeed>	
+				<datafeed name="SpatialOutputs" dataScope="Scenario" isOutput="True">
+				  <datasheets>
+					<datasheet name="SpatialOutputs">
+					  <columns>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="ProbabilityMap" dataType="String" isExternalFile="True"/>
+						<column name="MessMap" dataType="String" isExternalFile="True"/>
+						<column name="ModMap" dataType="String" isExternalFile="True"/>
+						<column name="ResidualsMap" dataType="String" isExternalFile="True"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>	
 			</datafeeds>
 		</transformer>
 		<!--Data Preparation Transformer-->
