@@ -1,6 +1,6 @@
 ## --------------------
 ## wisdm - apply model
-## ApexRMS, April 2022
+## ApexRMS, May 2022
 ## --------------------
 
 # built under R version 4.1.1
@@ -30,6 +30,7 @@ resultScenario <- Sys.getenv("ssim_scenario_id")
 
 # Read in datasheets
 covariatesSheet <- datasheet(myProject, "Covariates", optional = T)
+runControlSheet <- datasheet(myScenario, "RunControl", optional = T)
 multiProcessingSheet <- datasheet(myScenario, "core_Multiprocessing")
 # fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
 # ValidationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
@@ -45,6 +46,11 @@ spatialOutputsSheet <- datasheet(myScenario, "SpatialOutputs", optional = T)
 
 # Set defaults -----------------------------------------------------------------
 
+## run control 
+runControlSheet <- addRow(runControlSheet, list(1,1,0,0))
+saveDatasheet(myScenario, runControlSheet, "RunControl")
+
+## output options
 if(nrow(outputOptionsSheet)<1){
   outputOptionsSheet <- addRow(outputOptionsSheet, list(T,F,F))
 }
@@ -126,13 +132,16 @@ if(length(factorVars)==0){ factorVars <- NULL }
 
 
 # Save output maps -------------------------------------------------------------
-
-  # tempFiles <- list.files(paste0(ssimTempDir))
+  
+  # possibleFolders <- c("ProbTiff", "MESSTiff", 'ModTiff', "ResidTiff")
+  # tempFolders <- list.files(paste0(ssimTempDir))
   
   # add model Outputs to datasheet
   spatialOutputsSheet <- addRow(spatialOutputsSheet, 
-                              list(modType = modType,
-                                ProbabilityMap = paste0(ssimTempDir,"ProbTiff\\glm_prob_map.rds")))
+                              list(Iteration = 1, Timestep = 0,
+                                   ModelType = modType,
+                                   ProbabilityRaster = paste0(ssimTempDir,"ProbTiff\\glm_prob_map.tif"),
+                                   MessRaster = paste0(ssimTempDir,"MESSTiff\\glm_mess_map.tif")))
   
   saveDatasheet(myScenario, spatialOutputsSheet, "SpatialOutputs")
   

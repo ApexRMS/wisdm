@@ -3,9 +3,7 @@
 	<transformers>
 		<!--Primary Transformer-->
 		<transformer 
-			name="Primary" 
-			isPrimary="True" 
-			isPipelineBased="True">
+			name="Primary" isPrimary="True" isPipelineBased="True">
 		<include>
 			<transformer name="corestime_Runtime"/>
 			<transformer name="Global"/>
@@ -19,6 +17,21 @@
 	   <!--Global Transformer-->
 		<transformer name="Global">
 			<datafeeds>
+			<!--Run Control-->
+				<datafeed name="RunControl" displayName="Run Control" dataScope="Scenario">
+					<datasheets>
+						<datasheet name="RunControl" displayName="Run Control" isSingleRow="True">
+							<columns>
+								<column name="RunControlID" dataType="Integer" isPrimary="True"/>
+								<column name="ScenarioID" dataType="Integer"/>
+								<column	name="MinimumIteration" dataType="Integer" defaultValue="1" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="1"/>
+								<column	name="MaximumIteration"	dataType="Integer" defaultValue="2" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="2"/>
+								<column	name="MinimumTimestep" dataType="Integer" defaultValue="0" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="0"/>
+								<column	name="MaximumTimestep" dataType="Integer" defaultValue="1" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="1"/>
+							</columns>
+						</datasheet>
+					</datasheets>
+				</datafeed>
 				<datafeed name="Covariates" dataScope="Project">
 				  <datasheets>
 					<datasheet name="Covariates" valueMember="CovariatesID" displayMember="CovariateName">
@@ -145,19 +158,6 @@
 					</datasheet>
 				  </datasheets>
 				</datafeed>	
-				<datafeed name="SpatialOutputs" dataScope="Scenario" isOutput="True">
-				  <datasheets>
-					<datasheet name="SpatialOutputs">
-					  <columns>
-						<column name="ScenarioID" dataType="Integer"/>
-						<column name="ProbabilityMap" dataType="String" isExternalFile="True"/>
-						<column name="MessMap" dataType="String" isExternalFile="True"/>
-						<column name="ModMap" dataType="String" isExternalFile="True"/>
-						<column name="ResidualsMap" dataType="String" isExternalFile="True"/>
-					  </columns>
-					</datasheet>
-				  </datasheets>
-				</datafeed>	
 			</datafeeds>
 		</transformer>
 		<!--Data Preparation Transformer-->
@@ -228,7 +228,8 @@
 						<column name="ScenarioID" dataType="Integer"/>
 						<column name="SelectBestPredictors" displayName="Select Best Predictors" dataType="Boolean"/>
 						<column name="SimplificationMethod" displayName="Simplification Method" dataType="Integer" validationType="List" formula1="0:AIC|1:BIC"/>
-						<column name="ConsiderSquaredTerms" displayName="Consider Interactions and Squared Terms" dataType="Boolean"/>
+						<column name="ConsiderSquaredTerms" displayName="Consider Squared Terms" dataType="Boolean"/>
+						<column name="ConsiderInteractions" displayName="Consider Interactions" dataType="Boolean"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -271,21 +272,29 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="4-apply-model.R"
-		  transformerSpecificOutput="False">
+		  configurationSheet="RunControl"
+		  runContext="LocalOnly">
 			<pipeline>
+				<datafeed name="RunControl" type="Input"/>
 				<datafeed name="ModelOutputs" type="Input"/>
 				<datafeed name="CovariateData" type="Input"/>
 				<datafeed name="OutputOptions" type="Input"/>
 				<datafeed name="SpatialOutputs" type="Output"/>
 			</pipeline>
-			<datafeeds>
+			<datafeeds>			
 				<datafeed name="SpatialOutputs" dataScope="Scenario" isOutput="True">
 				  <datasheets>
 					<datasheet  name="SpatialOutputs">
 					  <columns>
-						<column name="ScenarioID" dataType="Integer"/>
+					  	<column name="ScenarioID" dataType="Integer" isCompositeIndex="True"/>
+						<column name="Iteration" dataType= "Integer" isCompositeIndex="True"/>
+						<column name="Timestep" dataType= "Integer" isCompositeIndex="True"/>
 						<column name="ModelType" dataType= "String"/>
-						<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
+						<column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
+						<column name="ModRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
+						<column name="ResidualsRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
+						<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -346,8 +355,9 @@
 			</group>
         </layout>
 		<!--Maps Layout-->
-		<layout name="corestimeforms_Maps">
+		<layout name="corestimeforms_Maps" configurationSheet="RunControl">
 			<item name="ProbabilityMap" displayName="Probability Map" dataSheet="SpatialOutputs" column="ProbabilityRaster"/>
+			<item name="MessMap" displayName="MESS Map" dataSheet="SpatialOutputs" column="MessRaster"/>
 		</layout>
 	</layouts>	
 </package>

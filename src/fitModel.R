@@ -30,25 +30,37 @@ fitModel <- function(dat,           # df of training data
     myModelGLMStep <- list()
     penalty <- if(out$modOptions$SimplificationMethod == "AIC"){2} else {log(nrow(dat))}
     
-    if(!out$modOptions$ConsiderSquaredTerms){
+    factor.mask <- na.omit(match(names(out$factorInputVars),out$inputVars))
+    cont.mask <- seq(1:length(out$inputVars))
+    if(length(factor.mask)!=0){cont.mask<-cont.mask[-c(factor.mask)]}
+      
+    if(!out$modOptions$ConsiderSquaredTerms & !out$modOptions$ConsiderInteractions){
       scopeGLM <- list(lower = as.formula(paste("Response","~1")),
                        upper = as.formula(paste("Response","~",paste(out$inputVars, collapse='+'))))
-    }else{
-      factor.mask <- na.omit(match(names(out$factorInputVars),out$inputVars))
-      cont.mask <- seq(1:length(out$inputVars))
-      if(length(factor.mask)!=0){cont.mask<-cont.mask[-c(factor.mask)]}
-      
+    }
+    if(out$modOptions$ConsiderSquaredTerms & out$modOptions$ConsiderInteractions){ # creates full scope with interactions and squared terms
       scopeGLM <- list(lower = as.formula(paste("Response","~1")),
                        upper = as.formula(paste("Response","~",paste(c(if(length(factor.mask)>0) paste(out$inputVars[factor.mask],collapse=" + "),
-                                                                      paste("(",paste(out$inputVars[cont.mask],collapse=" + "),")^2",sep=""),
-                                                                      paste("I(",out$inputVars[cont.mask],"^2)",sep="")),collapse=" + "),sep="")))
+                                                                         paste("(",paste(out$inputVars[cont.mask],collapse=" + "),")^2",sep=""),
+                                                                         paste("I(",out$inputVars[cont.mask],"^2)",sep="")),collapse=" + "),sep="")))
+    }
+    if(!out$modOptions$ConsiderSquaredTerms & out$modOptions$ConsiderInteractions){ # creates full scope with interactions
+        scopeGLM <- list(lower = as.formula(paste("Response","~1")),
+                       upper = as.formula(paste("Response","~",paste(c(if(length(factor.mask)>0) paste(out$inputVars[factor.mask],collapse=" + "),
+                                                                       paste("(",paste(out$inputVars[cont.mask],collapse=" + "),")^2",sep="")),
+                                                                     collapse=" + "),sep="")))
+    }
+    if(out$modOptions$ConsiderSquaredTerms & !out$modOptions$ConsiderInteractions){ # creates full scope with squared terms
+        scopeGLM <- list(lower = as.formula(paste("Response","~1")),
+                         upper = as.formula(paste("Response","~",paste(c(paste(out$inputVars,collapse=" + "),
+                                                                         paste("I(",out$inputVars[cont.mask],"^2)",sep="")),collapse=" + "),sep="")))
     }
     
     if(out$modOptions$SelectBestPredictors){
-      myModelGLMStep <- step(glm(scopeGLM$lower,family=out$modelFamily,data=dat,weights=weight,na.action="na.exclude"),
+      myModelGLMStep <- step(glm(scopeGLM$lower,family=out$modelFamily,data=dat,weights=Weight,na.action="na.exclude"),
                                     direction='both',scope=scopeGLM,k=penalty,trace=1)
     } else {
-      myModelGLMStep <- glm(scopeGLM$upper,family=model.family,data=dat,weights=weight,na.action="na.exclude")
+      myModelGLMStep <- glm(scopeGLM$upper,family=out$modelFamily,data=dat,weights=Weight,na.action="na.exclude")
     }
     
     # out$mods$final.mod <- myModelGLMStep
