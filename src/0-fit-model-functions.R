@@ -165,40 +165,7 @@ cv.fct <- function(out,         # out list
 }
 
 
-### Calculate Deviance function ------------------------------------------------
-
-calc.deviance <- function(obs,   # observed response
-                          preds, # predicted response 
-                          weights = rep(1,length(obs)), 
-                          family = "binomial", 
-                          calc.mean = TRUE)
-{
-  # function to calculate deviance given two vectors of raw and fitted values
-  # requires a family argument which is set to binomial by default
-  
-  if (length(obs) != length(preds)){ stop("observations and predictions must be of equal length") }
-  
-  if (family == "binomial" | family == "bernoulli") {
-    # preds[preds==0] <- 0.000000001
-    deviance.contribs <- (obs * log(preds)) + ((1-obs) * log(1 - preds))
-    deviance <- -2 * sum(deviance.contribs * weights, na.rm = T)
-  }
-  
-  if (family == "poisson" | family == "Poisson") {
-    deviance.contribs <- ifelse(obs == 0, 0, (obs * log(obs/preds))) - (obs - preds)
-    # deviance.contribs[which(deviance.contribs==Inf)] <- 1
-    deviance <- 2 * sum(deviance.contribs * weights)
-  }
-  
-  if (family == "laplace") { deviance <- sum(abs(obs - preds)) }
-  
-  if (family == "gaussian") { deviance <- sum((obs - preds) * (obs - preds)) }
-  
-  if (calc.mean) deviance <- deviance/length(obs)
-  
-  return(deviance)
-  
-}
+### Calculate Deviance function -----------[see helper functions]---------------
 
 ### ROC Function ---------------------------------------------------------------
 
@@ -311,10 +278,13 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
   standResidualFile <- paste0(out$tempDir, out$modType, "_StandardResidualPlots.png")
   variableImportanceFile <- paste0(out$tempDir, out$modType, "_VariableImportance.png")
   confusionMatrixFile <- paste0(out$tempDir, out$modType, "_ConfusionMatrix.png")
+  residualSmoothFile <- paste0(out$tempDir, out$modType, "_ResidualSmoothPlot.png")
+  residualSmoothFctFile <- paste0(out$tempDir, out$modType, "_ResidualSmoothFunction.rds")
   ROCAUCFile <- paste0(out$tempDir, out$modType, "_ROCAUCPlot.png")  
   AUCPRFile <- paste0(out$tempDir, out$modType, "_AUCPRPlot.png")
   calibrationFile <- paste0(out$tempDir, out$modType, "_CalibrationPlot.png")
-  residualPlotFile <- paste0(out$tempDir, out$modType, "_PoissonResidulePlot.png")
+  residualPlotFile <- paste0(out$tempDir, out$modType, "_PoissonResidualPlot.png")
+
   
   if(!out$validationOptions$SplitData & !out$validationOptions$CrossValidate){ splitType <- "none" }
   if(out$validationOptions$SplitData & !out$validationOptions$CrossValidate){ splitType <- "train/test" }
@@ -397,24 +367,36 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
     
   }
   
-  # ### Create residual surface of input data  # TO DO: move to map output section 
-  # 
-  # if(out$input$ResidMaps){
-  #   
-  #   if(out$dat$split.label != "eval"){
-  #     
-  #     residual.smooth.fct <- resid.image(calc.dev(inlst$train$dat$response, inlst$train$pred, inlst$train$weight, family = out$input$model.family)$dev.cont, inlst$train$pred,
-  #                                        inlst$train$dat$response, inlst$train$XY$X, inlst$train$XY$Y, inlst$train$weight, out$input$model.family, out$input$output.dir, label = out$dat$split.label, out)
-  #   } else {
-  #     
-  #     residual.smooth.fct <- resid.image(calc.dev(inlst$test$dat$response, inlst$test$pred, inlst$test$weight, family = out$input$model.family)$dev.cont, inlst$test$pred,
-  #                                        inlst$test$dat$response, inlst$test$XY$X, inlst$test$XY$Y, inlst$test$weight, out$input$model.family, out$input$output.dir, label = out$dat$split.label, out)
-  #   }
-  # } else {
-  #   
-  #   residual.smooth.fct=NULL
-  #   
-  # }
+  ### Create residual surface of input data  
+
+    if(splitType %in% c("none", "cv")){
+      
+      dev.contrib <- calc.deviance(obs = out$data$train$Response, 
+                                   preds = out$data$train$predicted,
+                                   weights = out$data$train$Weight,
+                                   family = out$modelFamily,
+                                   return.list = T)$dev.cont
+
+      residualSmoothFct <- resid.image(dev.contrib = dev.contrib, 
+                                         dat = out$data$train,
+                                         file.name = residualSmoothFile,
+                                         label = splitType)
+      
+    } else {
+      
+      dev.contrib <- calc.deviance(obs = out$data$test$Response, 
+                                   preds = out$data$test$predicted,
+                                   weights = out$data$test$Weight,
+                                   family = out$modelFamily,
+                                   return.list = T)$dev.cont
+      
+      residualSmoothFct <- resid.image(dev.contrib = dev.contrib, 
+                                       dat = out$data$test,
+                                       file.name = residualSmoothFile,
+                                       label = "eval")
+    }
+  
+  saveRDS(object = residualSmoothFct, file = residualSmoothFctFile)
   
   ### AUC and Calibration plot for binomial data ### 
   
@@ -982,6 +964,107 @@ confusion.matrix <- function(Stats,    # output from calcStat function
   
 }
 
+### Residual Image function ----------------------------------------------------
+
+resid.image <- function(dev.contrib,
+                        dat, 
+                        file.name,
+                        label,
+                        create.image = T){
+  
+  #produces a map of deviance residuals unless we're using independent evaluation data in which case
+  #it produces a map of predicted-observed data with a lowess smooth so the relationship is easier to see
+  #if there are more than 2000 points a random sample is drawn to speed up the calculations
+  #if weights are available these are used for the lowess surface
+
+  if(length(dat$predicted)>2000){
+    samp<-seq(1:length(dat$predicted))[order(runif(length(dat$predicted)))][1:2000]
+    dev.contrib<-dev.contrib[samp]
+    dat<-dat[samp,]
+  }
+  
+  x <- dat$X
+  y <- dat$Y
+  wgt <- dat$Weight
+  
+  # dev.contrib is negative for binomial and bernoulli and positive for poisson
+  if(label!="eval"){ z <- sign(dat$Response - dat$predicted)*abs(dev.contrib) 
+  } else { z <- dat$Response - dat$predicted }
+  MinCol <- min(z)
+  MaxCol <- max(z)
+  col.i <- beachcolours(heightrange=c(min(z),max(z)),sealevel=0,s=1,ncolours=(length(table(z))+1))
+  f <- function(a,b){ sqrt((a-b)^2)}
+  s1 <- seq(from=MinCol,to=MaxCol,length=length(table(z)))
+  col.ind <- apply((outer(s1,z,f)),2,which.min)
+  
+  a <- loess(z~x*y,weights=wgt)
+  x.lim <- rep(seq(from=min(x),to=max(x),length=100),each=100)
+  y.lim <- rep(seq(from=min(y),to=max(y),length=100),times=100)
+  z <- predict(a,newdata=cbind("x"=x.lim,"y"=y.lim))
+  x.lim <- seq(from=min(x),to=max(x),length=100)
+  y.lim <- seq(from=min(y),to=max(y),length=100)
+  z <- matrix(data=z,ncol=100,nrow=100,byrow=TRUE)
+  
+  # Plot residual smooth with signed and sized residuals on top
+  if(create.image){
+    png(file=file.name,width=1000,height=1000,pointsize=13)
+    par(oma=c(3,3,3,3))
+    layout(matrix(data=c(1,2), nrow=1, ncol=2), widths=c(4,1), heights=c(1,1))
+    image(z,x=x.lim,y=y.lim,col=beachcolours(heightrange=c(min(z),max(z)),sealevel=0,s=.5,ncolours=length(table(z))),
+          main=paste("Spatial pattern of", ifelse(label!="eval"," deviance residuals\n(magnitude and sign)"," prediction error")),
+          xlab="X coordinate",ylab="Y coordinate",cex.main=2.2,cex.axis=1.6,cex.lab=1.8)
+    
+    points(x,y,bg=col.i[col.ind], pch=21,cex=abs(dev.contrib)*1.5)
+    par(mar = c(3,2.5,2.5,2))
+    
+    colrange<-seq(from=MinCol,to=MaxCol,length=100)
+    image(1,colrange,
+          matrix(data=colrange, ncol=length(colrange),nrow=1),
+          col=beachcolours(heightrange=c(MinCol,MaxCol),sealevel=0,ncolours=length(colrange)),
+          xlab="",ylab="",
+          xaxt="n",cex.main=2,cex.axis=2,cex.lab=2)
+    graphics.off()
+  }
+  return(a)
+}
+
+#### beach colours function -----------------------------------------------------
+
+beachcolours <- function (heightrange, 
+                          sealevel = 0, 
+                          monochrome = FALSE, 
+                          s=1,
+                          ncolours = if (monochrome) 16 else 64){
+  
+  if (monochrome)
+    return(grey(seq(0, 1, length = ncolours)))
+  stopifnot(is.numeric(heightrange) && length(heightrange) == 2)
+  stopifnot(all(is.finite(heightrange)))
+  depths <- heightrange[1]
+  peaks <- heightrange[2]
+  dv <- diff(heightrange)/(ncolours - 1)
+  epsilon <- dv/2
+  lowtide <- max(sealevel - epsilon, depths)
+  hightide <- min(sealevel + epsilon, peaks)
+  countbetween <- function(a, b, delta) {
+    max(0, round((b - a)/delta))
+  }
+  nsea <- countbetween(depths, lowtide, dv)
+  nbeach <- countbetween(lowtide, hightide, dv)
+  nland <- countbetween(hightide, peaks, dv)
+  colours <- character(0)
+  if (nsea > 0)
+    colours <- rev(rainbow(nsea, start = 3/6, end = 4/6,s=s))
+  if (nbeach > 0)
+    colours <- c(colours, rev(rainbow(nbeach, start = 3/12,
+                                      end = 5/12,s=s)))
+  if (nland > 0)
+    colours <- c(colours, rev(rainbow(nland, start = 0, end = 1/6,s=s)))
+  return(colours)
+}
+
+
+
 ### Test/Train ROC Plot function -----------------------------------------------
 
 TestTrainRocPlot <- function(dat,    # Stats$train$auc.data
@@ -1509,3 +1592,77 @@ capture.stats <- function(Stats.lst,  # stats or lst output from calcStat functi
     #something I should include later
   }
 }
+
+## response curves function -----------------------------------------------------
+
+response.curves <- function(out){
+  
+  # if(out$modType %in% c("brt","mars","rf")){ nVars <- nrow(out$mod$summary)
+  # if(out$modType %in% c("maxent","udc")) nVars <- out$mods$n.vars.final
+  if(out$modType == "glm"){ nVars <- out$nVarsFinal  }
+  
+  pcol <- ceiling(sqrt(nVars))
+  prow <- ceiling(nVars/pcol)
+  
+  
+  # rf partial plot does something odd with the y axis
+  dat <- out$data$train[,out$finalVars]
+  resp <- out$dat$train$Response
+  Xp <- as.data.frame(matrix(NA, nc = ncol(dat), nr = nrow(dat),
+                             dimnames = list(NULL, colnames(dat))))
+  for (i in 1:ncol(dat)) {
+    if (is.numeric(dat[, i])) {
+      Xp[, i] <- mean(dat[, i])
+    }
+    else {
+      Xp[, i] <- as.factor(rep(names(which.max(summary(dat[,i]))), nrow(dat)))
+      levels(Xp[, i]) <- levels(dat[, i])
+    }
+  }
+  
+  # dir.create(paste0(out$tempDir, out$modType, "_ResponseCurves"))
+  
+  # for (k in c(1,2)){
+  k <- 1
+    if(k==1){ png(paste0(out$tempDir, out$modType,"_ResponseCurves.png"), width=2000, height=2000, pointsize = 20) 
+      par(oma=c(1,6,4,2),mfrow=c(prow,pcol))}                   
+    for (i in sort(match(out$finalVars,names(dat)))) {
+      if (k==2){ png(filename=paste0(out$tempDir, out$modType,"_ResponseCurves\\",names(dat)[i],".png",sep=""),width=2000, height=2000, pointsize = 20)
+        par(mar=c(5,8,6,1))
+      }
+      if (!is.factor(dat[, i])) {
+        xr <- range(dat[, i])
+        Xp1 <- Xp
+        Xp1[, i] <- seq(xr[1], xr[2], len = nrow(dat))
+        } else {
+          Xp1 <- Xp
+          Nrepcat <- floor(nrow(dat)/length(levels(dat[,i])))
+          Xp1[, i] <- as.factor(c(rep(levels(dat[, i])[1],
+                                    nrow(dat) - (Nrepcat * length(levels(dat[,i])))), 
+                                rep(levels(dat[, i]), each = Nrepcat)))
+      }
+      Xf <- matrix(nrow=nrow(Xp1),ncol=1)
+      Xf[,1] <- pred.fct(mod = out$finalMod, x = as.data.frame(Xp1), modType = out$modType)
+      
+      y.lim <- c(0,1)
+      if(out$modelFamily == "poisson"){ y.lim <- range(apply(Xf,1,mean)) } 
+      
+      plot(Xp1[, i],apply(Xf,1,mean), ylim = y.lim, xlab = "",
+           ylab = "", type = "l", main = names(dat)[i],lwd=ifelse(k==1,4,6),
+           cex.main=3.5,xaxt="n",yaxt="n")
+      if(k==2){ mtext("Predicted Value", side=2,line=5,cex=3.5) }
+      axis(1,labels=FALSE)
+      axis(2,labels=FALSE)
+      axis(1,line=0.75,lwd=0,cex.axis=2)
+      axis(2,line=0.75,lwd=0,cex.axis=2)
+      
+      rug(dat[resp==1,i],col="red",lwd=2)
+      rug(dat[resp==0,i],col="blue",lwd=2)
+      if(k==2){ graphics.off() }  
+    } 
+    if(k==1){
+      mtext("Predicted Value",side=2,cex=3,line=2,outer=TRUE)
+      graphics.off()
+    }     
+  # } # end k statement 
+}  

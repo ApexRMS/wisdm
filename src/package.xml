@@ -132,7 +132,8 @@
 						<column name="OutputOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
 						<column name="MakeProbabilityMap" displayName="Make Probability Map" dataType="Boolean"/>
-						<column name="MakeMessMap" displayName="Make Mess Map" dataType="Boolean"/>
+						<column name="MakeResidualsMap" displayName="Make Residuals Map" dataType="Boolean"/>
+						<column name="MakeMessMap" displayName="Make Multivariate Environmental Similarity Surface (MESS) Map" dataType="Boolean"/>
 						<column name="MakeModMap" displayName="Make Mod Map" dataType="Boolean"/>
 					  </columns>
 					</datasheet>
@@ -147,6 +148,8 @@
 						<column name="ModelRDS" dataType="String" isExternalFile="True"/>
 						<column name="ResponseCurves" dataType="String" isExternalFile="True"/>
 						<column name="ResidualsPlot" dataType="String" isExternalFile="True"/>
+						<column name="ResidualSmoothPlot" dataType="String" isExternalFile="True"/>
+						<column name="ResidualSmoothRDS" dataType="String" isExternalFile="True"/>
 						<column name="TextOutput" dataType="String" isExternalFile="True"/>
 						<column name="CalibrationPlot" dataType="String" isExternalFile="True"/>
 						<column name="ROCAUCPlot" dataType="String" isExternalFile="True"/>
@@ -358,6 +361,7 @@
 		<layout name="corestimeforms_Maps" configurationSheet="RunControl">
 			<item name="ProbabilityMap" displayName="Probability Map" dataSheet="SpatialOutputs" column="ProbabilityRaster"/>
 			<item name="MessMap" displayName="MESS Map" dataSheet="SpatialOutputs" column="MessRaster"/>
+			<item name="ModMap" displayName="Mod Map" dataSheet="SpatialOutputs" column="ModRaster"/>
 		</layout>
 	</layouts>	
 </package>

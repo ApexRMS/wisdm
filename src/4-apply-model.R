@@ -10,7 +10,6 @@
 # source dependencies ----------------------------------------------------------
 
 packageDir <- Sys.getenv("ssim_package_directory")
-# source(file.path(packageDir, "0-glm-constants.R"))
 source(file.path(packageDir, "0-dependencies.R"))
 source(file.path(packageDir, "0-helper-functions.R"))
 source(file.path(packageDir, "0-apply-model-functions.R"))
@@ -32,25 +31,18 @@ resultScenario <- Sys.getenv("ssim_scenario_id")
 covariatesSheet <- datasheet(myProject, "Covariates", optional = T)
 runControlSheet <- datasheet(myScenario, "RunControl", optional = T)
 multiProcessingSheet <- datasheet(myScenario, "core_Multiprocessing")
-# fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
-# ValidationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
-# reducedCovariatesSheet <- datasheet(myScenario, "wisdm_ReducedCovariates", lookupsAsFactors = F)
-# siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
-# GLMSheet <- datasheet(myScenario, "GLM")
-
 covariateDataSheet <- datasheet(myScenario, "CovariateData", optional = T, lookupsAsFactors = F)
 modelOutputsSheet <- datasheet(myScenario, "ModelOutputs", optional = T)
 outputOptionsSheet <- datasheet(myScenario, "OutputOptions", optional = T)
-
 spatialOutputsSheet <- datasheet(myScenario, "SpatialOutputs", optional = T)
 
 # Set defaults -----------------------------------------------------------------
 
-## run control 
+## Run control sheet
 runControlSheet <- addRow(runControlSheet, list(1,1,0,0))
 saveDatasheet(myScenario, runControlSheet, "RunControl")
 
-## output options
+## Output options sheet
 if(nrow(outputOptionsSheet)<1){
   outputOptionsSheet <- addRow(outputOptionsSheet, list(T,F,F))
 }
@@ -65,13 +57,18 @@ modType <- modelOutputsSheet$ModelType
 mod <- readRDS(paste0(ssimOutputDir,"\\Scenario-", resultScenario,"\\wisdm_ModelOutputs\\",modelOutputsSheet$ModelRDS))
 
 if(modType == "glm"){
-
+  
   nVars <- length(attr(terms(formula(mod)),"term.labels"))
   modVars <- attr(terms(formula(mod)),"term.labels")
   # have to remove all the junk with powers and interactions for mess map production to work
   modVars <- unique(unlist(strsplit(gsub("I\\(","",gsub("\\^2)","",modVars)),":")))
   
   trainingData <-  mod$data 
+  
+  if(outputOptionsSheet$MakeResidualsMap){
+  trainingData$predicted <- pred.fct(x=trainingData, mod=mod, modType=modType)
+  if(max(trainingData$Response)>1){ modFamily <-"poisson" 
+  } else { modFamily <- "binomial" }
 }
 
 # identify factor variables
@@ -116,7 +113,7 @@ if(length(factorVars)==0){ factorVars <- NULL }
   #   library(gbm)
   # }
   
-  # create prediction maps
+  # create probability/Mess/Mod maps
   proc.tiff(fit.model = mod,
             modType = modType,
             mod.vars = covData$CovariatesID,
@@ -131,6 +128,38 @@ if(length(factorVars)==0){ factorVars <- NULL }
             NAval = -3000)
 
 
+  # create residuals map
+  if(outputOptionsSheet$MakeResidualsMap){
+    
+    # ### Create residual surface of input data
+    # 
+    #   if(out$dat$split.label != "eval"){
+    #     
+    #    dev.contrib <- calc.deviance(obs = trainingData$Response, 
+    #                                 preds = trainingData$predicted,
+    #                                 weights = trainingData$Weight,
+    #                                 family = modFamily,
+    #                                 return.list = T)$dev.cont
+    # 
+    #     residual.smooth.fct <- resid.image(dev.contrib = dev.contrib,
+    #                                        dat = trainingData, 
+    #                                        
+    #                                        pred = inlst$train$pred,
+    #                                        raw.dat = inlst$train$dat$response, 
+    #                                        x = inlst$train$XY$X, 
+    #                                        y = inlst$train$XY$Y, 
+    #                                        wgt = inlst$train$weight, out$input$model.family, out$input$output.dir, label = out$dat$split.label, out)
+    #   } else {
+    # 
+    #     residual.smooth.fct <- resid.image(calc.dev(inlst$test$dat$response, inlst$test$pred, inlst$test$weight, family = out$input$model.family)$dev.cont, inlst$test$pred,
+    #                                        inlst$test$dat$response, inlst$test$XY$X, inlst$test$XY$Y, inlst$test$weight, out$input$model.family, out$input$output.dir, label = out$dat$split.label, out)
+    #   }
+
+    Pred.Surface(object = rast(paste0(ssimTempDir,"ProbTiff\\glm_prob_map.tif")),
+                 model = residSmooth, # residSmooth=out$mods$auc.output$residual.smooth.fct,
+                 filename = paste0(ssimTempDir,"ResidTiff\\glm_resid_map.tif"),
+                 NAval = -3000)
+  }
 # Save output maps -------------------------------------------------------------
   
   # possibleFolders <- c("ProbTiff", "MESSTiff", 'ModTiff', "ResidTiff")

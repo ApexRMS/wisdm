@@ -3,8 +3,46 @@
 ## ApexRMS, March 2022       
 ## ------------------------- 
 
+# Calculate Deviance function --------------------------------------------------
 
-## Predict Function ------------------------------------------------------------
+calc.deviance <- function(obs,   # observed response
+                          preds, # predicted response 
+                          weights = rep(1,length(obs)), 
+                          family = "binomial", 
+                          calc.mean = TRUE, 
+                          return.list = FALSE)
+{
+  # function to calculate deviance given two vectors of raw and fitted values
+  # requires a family argument which is set to binomial by default
+  
+  if (length(obs) != length(preds)){ stop("observations and predictions must be of equal length") }
+  
+  if (family == "binomial" | family == "bernoulli") {
+    # preds[preds==0] <- 0.000000001
+    deviance.contribs <- (obs * log(preds)) + ((1-obs) * log(1 - preds))
+    deviance <- -2 * sum(deviance.contribs * weights, na.rm = T)
+  }
+  
+  if (family == "poisson" | family == "Poisson") {
+    deviance.contribs <- ifelse(obs == 0, 0, (obs * log(obs/preds))) - (obs - preds)
+    # deviance.contribs[which(deviance.contribs==Inf)] <- 1
+    deviance <- 2 * sum(deviance.contribs * weights)
+  }
+  
+  if (family == "laplace") { deviance <- sum(abs(obs - preds)) }
+  
+  if (family == "gaussian") { deviance <- sum((obs - preds) * (obs - preds)) }
+  
+  if (calc.mean) deviance <- deviance/length(obs)
+  
+  if (return.list){
+    deviance <- list(deviance=deviance,dev.cont=deviance.contribs)
+  } 
+  return(deviance)
+  
+}
+
+# Predict Function -------------------------------------------------------------
 
 pred.fct <- function(mod,      # mod = the model fit object
                      x,        # x = data to predict for

@@ -19,7 +19,7 @@
   myScenario <- scenario()
   # datasheet(myScenario)
   
-  # path to ssim temporary directory
+  # Path to ssim temporary directory
   ssimTempDir <- Sys.getenv("ssim_temp_directory")
   
   # Read in datasheets
@@ -34,6 +34,19 @@
   
 #  Set defaults ----------------------------------------------------------------  
   
+  ## GLM Sheet
+  if(nrow(GLMSheet)<1){
+    GLMSheet <- addRow(GLMSheet, list(SelectBestPredictors = FALSE,
+                                      SimplificationMethod = "AIC",
+                                      ConsiderSquaredTerms = FALSE,
+                                      ConsiderInteractions = FALSE))
+  }
+  if(is.na(GLMSheet$SelectBestPredictors)){GLMSheet$SelectBestPredictors <- FALSE}
+  if(is.na(GLMSheet$SimplificationMethod)){ValidationDataSheet$SplitData <- "AIC"}
+  if(is.na(GLMSheet$ConsiderSquaredTerms)){GLMSheet$ConsiderSquaredTerms <- FALSE}
+  if(is.na(GLMSheet$ConsiderInteractions)){GLMSheet$ConsiderInteractions <- FALSE}
+  
+  ## Validation Sheet
   if(nrow(ValidationDataSheet)<1){
     ValidationDataSheet <- addRow(ValidationDataSheet, list(SplitData = FALSE,
                                                             CrossValidate = FALSE))
@@ -230,7 +243,7 @@
   
   ## Response Curves ##
   
-  # response.curves(out,Model)
+  response.curves(out)
 
 # Save model outputs -----------------------------------------------------------
 
@@ -240,9 +253,11 @@
   modelOutputsSheet <- addRow(modelOutputsSheet, 
                               list(ModelType = modType, 
                                    ModelRDS = paste0(ssimTempDir,"\\Data\\glm_model.rds"),
-                                   # ResponseCurves = paste0(ssimTempDir,"\\Data\\glm_ResponseCurves.png"),
+                                   ResponseCurves = paste0(ssimTempDir,"\\Data\\glm_ResponseCurves.png"),
                                    TextOutput = paste0(ssimTempDir,"\\Data\\glm_output.txt"),
-                                   CalibrationPlot = paste0(ssimTempDir,"\\Data\\glm_CalibrationPlot.png"),
+                                   CalibrationPlot = paste0(ssimTempDir,"\\Data\\glm_CalibrationPlot.png"), 
+                                   ResidualSmoothPlot = paste0(ssimTempDir,"\\Data\\glm_ResidualSmoothPlot.png"),
+                                   ResidualSmoothRDS = paste0(ssimTempDir,"\\Data\\glm_ResidualSmoothFunction.rds"),
                                    ROCAUCPlot = paste0(ssimTempDir,"\\Data\\glm_ROCAUCPlot.png"),
                                    # AUCPRPlot = paste0(ssimTempDir,"\\Data\\glm_AUCPRPlot.png"),
                                    ConfusionMatrix = paste0(ssimTempDir,"\\Data\\glm_ConfusionMatrix.png"),

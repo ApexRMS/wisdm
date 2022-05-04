@@ -4,7 +4,7 @@
 ## ----------------------------- 
 
 
-## Proc.tiff Function ----------------------------------------------------------
+# Proc.tiff Function -----------------------------------------------------------
   
   # Description:
   # This function is used to make predictions using a number of .tiff image inputs
@@ -48,11 +48,9 @@
   # Start of function #
   makeProb <- output.options$MakeProbabilityMap
   makeMESS <- output.options$MakeMessMap 
-  makeMOD <- F # output.options$MakeModMap
-  makeResid <- F # output.options$MakeResidualsMap
-  
+  makeMOD <- output.options$MakeModMap
+ 
   if(is.null(factor.levels)){ factor.levels <- NA }
-  # if(is.null(thresh)){ thresh <- 0.5 }
   
   nVars <- length(mod.vars)
   
@@ -66,16 +64,21 @@
   }
   
   # get spatial reference info from existing image file
-  
   RasterInfo <- rast(raster.files[1])
   
+  # tilize(templateRaster = raster::raster(raster.files[1]), 
+  #        # tempfilename = paste0(ssimTempDir,"tempTile.tif"), 
+  #        filename = paste0(ssimTempDir,"tile.tif"),
+  #        tileSize = 1e6L)
+  
   dims <- dim(RasterInfo)[1:2]
-  ps <- res(RasterInfo)
-  ll <- RasterInfo@ptr$extent$vector[c(1,3)] # lower left origin x,y
-  pref <- crs(RasterInfo)
+  # ps <- res(RasterInfo)
+  # ll <- RasterInfo@ptr$extent$vector[c(1,3)] # lower left origin x,y
+  # pref <- crs(RasterInfo)
   
   # setting tile size
-  MB.per.row <- dims[2]*nVars*32/8/1000/1024
+  MB.per.row <- dims[2]*nVars*32/8/1000/1024 # TO Do: check why this calculation is used
+ 
   if(makeMESS){ # use more blocks for mess
     MB.per.row <- MB.per.row*8 
   } 
@@ -120,7 +123,7 @@
     
     # identify available cores and assign tiled raster processing 
     tile.start <- seq(from=1, to=tr$n, by=ceiling(tr$n/multiprocessing.cores)) 
-    cl <- makeCluster(detectCores()) 
+    cl <- makeCluster(multiprocessing.cores) 
     parLapply(cl, X = tile.start, fun = parRaster, 
               nToDo = ceiling(tr$n/multiprocessing.cores),
               pred.fct=pred.fct,
@@ -138,8 +141,8 @@
               NAval=NAval,
               factor.levels=factor.levels,
               fit.model=fit.model,
+              modType = modType,
               train.dat=train.dat)
-              # residSmooth=out$mods$auc.output$residual.smooth.fct,
     stopCluster(cl)
   } else {  # multicore is slower for small tiffs so we won't do it and the library is not available prior to 2.14
     # also due to multicore multiinstance R issues we're currently only running it on condor or when running synchronously
@@ -162,14 +165,138 @@
               modType = modType,
               pred.fct=pred.fct,
               train.dat=train.dat)
-              # residSmooth=out$mods$auc.output$residual.smooth.fct,
-            
   }
   if(length(l <- list.files(paste0(temp.directory,"ProbTiff\\"),pattern="_prob_map.txt",full.names=TRUE))!= 0){ unlink(l) } 
   return(0)
   }
+
+## Tilize function -------------------------------------------------------------
   
-### parRaster function ---------------------------------------------------------
+  # Function to generate a tiling mask given template
+  # - To avoid holding the entire raster in memory, the raster is written directly
+  #   to file row-by-row. This way only one row of the tiling needs to be held in
+  #   memory at a time. This is also why the number of rows (and implicitly the size
+  #   of a given row) cannot be chosen manually
+  # - minProportion is used to determine the size threshold for consolidating tiles
+  #   that are too small into neighboring tiles. Represented as a porportion of a
+  #   full tile
+  # 
+  # tilize <- function(templateRaster, 
+  #                    filename, 
+  #                    tempfilename, 
+  #                    tileSize) {
+  #   
+  #   # Calculate recommended block size of template
+  #   blockInfo <- raster::blockSize(templateRaster)
+  #   
+  #   # Check that the blockSize is meaningful
+  #   # - This should only matter for very small rasters, such as in test mode
+  #   if(max(blockInfo$nrows) == 1){
+  #     blockInfo <- list(row = 1, nrows = nrow(templateRaster), n = 1)
+  #   }
+  #     
+  #   # Calculate dimensions of each tile
+  #   tileHeight <- blockInfo$nrows[1]
+  #   tileWidth <- floor(tileSize / tileHeight)
+  #   
+  #   # Calculate number of rows and columns
+  #   ny <- blockInfo$n
+  #   nx <- ceiling(ncol(templateRaster) / tileWidth)
+  #   
+  #   # Generate a string of zeros the width of one tile
+  #   oneTileWidth <- rep(0, tileWidth)
+  #   
+  #   # Generate one line of one row, repeat to the height of one row
+  #   oneRow <-
+  #     as.vector(vapply(seq(nx), function(i) oneTileWidth + i, FUN.VALUE = numeric(tileWidth))) %>%
+  #     `[`(1:ncol(templateRaster)) %>% # Trim the length of one row to fit in template
+  #     rep(tileHeight)
+  #   
+  #   # Write an empty raster with the correct metadata to file
+  #   tileRaster <- raster::raster(templateRaster)
+  #   
+  #   # Write tiling to file row-by-row
+  #   tileRaster <- raster::writeStart(tileRaster, filename,  overwrite=TRUE)
+  #   for(i in seq(blockInfo$n)) {
+  #     if(blockInfo$nrows[i] < tileHeight)
+  #       oneRow <- oneRow[1:(ncol(tileRaster) * blockInfo$nrows[i])]
+  #     #browser()
+  #     tileRaster <- writeValues(tileRaster, oneRow, blockInfo$row[i])
+  #     oneRow <- oneRow + nx
+  #   }
+  #   tileRaster <- writeStop(tileRaster)
+  #   
+  #   # # Mask raster by template
+  #   # tileRaster <-
+  #   #   maskRaster(inputRaster = tileRaster, filename = tempfilename, maskingRaster = templateRaster)
+  #   # 
+  #   # # Consolidate small tiles into larger groups
+  #   # # - We want a map from the original tile IDs to new consolidated tile IDs
+  #   # reclassification <-
+  #   #   # Find the number of cells in each tile ID
+  #   #   tabulateRaster(tileRaster) %>%
+  #   #   # Sort by ID to approximately group tiles by proximity
+  #   #   arrange(value) %>%
+  #   #   # Consolidate into groups up to size tileSize
+  #   #   transmute(
+  #   #     from = value,
+  #   #     to   = consolidateGroups(freq, tileSize)) %>%
+  #   #   as.matrix()
+  #   # 
+  #   # # Reclassify the tiling raster to the new consolidated IDs
+  #   # tileRaster <-
+  #   #   reclassify(
+  #   #     tileRaster,
+  #   #     reclassification,
+  #   #     filename = filename,
+  #   #     overwrite = T)
+  #   
+  #   return(tileRaster)
+  # } 
+
+### maskRaster function --------------------------------------------------------
+  
+  # # A memory safe implementation of raster::mask() optimized for large rasters
+  # # - Requires an output filename, slower than raster::mask for small rasters
+  # # - Input and mask rasters must have same extent (try cropRaster() if not)
+  # 
+  # maskRaster <- function(inputRaster, filename, maskingRaster){
+  #   # Create an empty raster to hold the output
+  #   outputRaster <-  raster::raster(inputRaster)
+  #   
+  #   ## Split output into manageable chunks and fill with data from input
+  #   blockInfo <- raster::blockSize(outputRaster)
+  #   
+  #   ## Calculate mask and write to output block-by-block
+  #   outputRaster <- raster::writeStart(outputRaster, filename, overwrite=TRUE)
+  #   
+  #   # Each block of the mask raster is converted into a multiplicative mask
+  #   # and multiplied with the corresponding block of the input raster
+  #   for(i in seq(blockInfo$n)) {
+  #     maskedBlock <-
+  #       raster::getValuesBlock(maskingRaster, row = blockInfo$row[i], nrows = blockInfo$nrows[i]) %>%
+  #       maskify %>%
+  #       `*`(raster::getValuesBlock(inputRaster, row = blockInfo$row[i], nrows = blockInfo$nrows[i]))
+  #     outputRaster <- raster::writeValues(outputRaster, maskedBlock, blockInfo$row[i])
+  #   }
+  #   
+  #   outputRaster <- raster::writeStop(outputRaster)
+  #   
+  #   return(outputRaster)
+  # }
+  
+#### maskify function ----------------------------------------------------------
+  
+  # # Function to convert a vector, etc. of number into a multiplicative mask
+  # # - Replaces all values with 1, NA remains as NA
+  # # - Assumes no negative numbers (specifically, no -1)
+  # 
+  #  maskify <- function(x) {
+  #   x <- x + 1L # Used to avoid divide by zero errors, this is why -1 is not acceptable
+  #   return(x / x)
+  # }
+      
+## parRaster function ---------------------------------------------------------
   
   parRaster <- function(start.tile,
                         nToDo,
@@ -187,18 +314,20 @@
                         RasterInfo,
                         template, 
                         pred.fct,
-                        train.dat, 
-                        # residSmooth,
+                        train.dat,
                         fit.model,
                         modType)
   {
+    # packageDir <- Sys.getenv("ssim_package_directory")
+    # source(file.path(packageDir, "0-dependencies.R"))
+    # source(file.path(packageDir, "0-helper-functions.R"))
+    # source(file.path(packageDir, "0-apply-model-functions.R"))
+    # library(terra)
     
     # source(paste0(file.path(ScriptPath),"/pred.fct.r",sep=''))
     # source(paste0(file.path(ScriptPath),"/maxent.predict.r",sep=''))
     # source(paste0(file.path(ScriptPath),"/CalcMESS.r",sep=''))
     
-    
-    # if(!is.null(residSmooth)) source(paste0(file.path(ScriptPath),"/Pred.Surface.R",sep=''))
     
     # for the last set we have to adjust tr$n based on the number of remaining tiles
     if((start.tile + nToDo) > tr$n){ 
@@ -372,17 +501,10 @@
         # ModRaster@file@datanotation <- "INT1U"
         write.dbf(d, sub(".tif", ".tif.vat.dbf", ModRaster@file@name), factor2char = TRUE, max_nchar = 254)
       }
-    
-      # if(!is.null(residSmooth)){
-      #   Pred.Surface(object = rast(outfile.p), 
-      #                model = residSmooth, 
-      #                filename = (sub("ProbTiff", "ResidTiff", sub("prob", "resid", outfile.p))), 
-      #                NAval = NAval)
-      # }
     } # end run loop
   }
 
-#### Calculate MESS Map function ------------------------------------------------
+### Calculate MESS Map function ------------------------------------------------
   
   CalcMESS <- function(rast,train.dat){  
     
@@ -410,12 +532,77 @@
     return(data.frame(Indx=Indx,output=output))
   }
   
-##### My Min Function -----------------------------------------------------------
+#### My Min Function -----------------------------------------------------------
   
   my.min <- function(rast.val,min.train,max.train){
     pmin((rast.val-min.train),(max.train-rast.val))/(max.train-min.train)*100
   }
 
-##### Vector Sum function -------------------------------------------------------
+#### Vector Sum function -------------------------------------------------------
 
   vecSum <- function(v,vect){ sum(v > vect) }
+    
+### Predict Surface function ---------------------------------------------------
+  
+  Pred.Surface <- function(object, 
+                           model, 
+                           filename="", 
+                           na.rm=TRUE,
+                           NAval) {
+    
+    predrast <- rast(object)
+    # filename <- trim(filename)
+    firstrow <- 1
+    firstcol <- 1
+    ncols <- ncol(predrast)
+    lyrnames <- names(object)
+    xylyrnames <- c('x', 'y', lyrnames)
+    v <- matrix(NA, ncol=nrow(predrast), nrow=ncol(predrast))
+    na.rm <- FALSE
+    
+    tr <- blockSize(predrast, n=nlayers(object)+5)
+    ablock <- 1:(ncol(object) * tr$nrows[1])
+    napred <- rep(NA, ncol(predrast)*tr$nrows[1])
+    predrast <- writeStart(predrast, filename=filename,overwrite=TRUE)
+    ############################################################
+    for (i in 1:tr$n) {
+      if (i==tr$n) { 
+        ablock <- 1:(ncol(object) * tr$nrows[i])
+        napred <- rep(NA, ncol(predrast) * tr$nrows[i])
+      }
+      rr <- firstrow + tr$row[i] - 1
+      p <- xyFromCell(predrast, ablock + (tr$row[i]-1) * ncol(predrast)) 
+      p <- na.omit(p)
+      blockvals <- data.frame(x=p[,1], y=p[,2])
+      if (na.rm) {
+        blockvals <- na.omit(blockvals)		
+      }
+      if (nrow(blockvals) == 0 ) {
+        predv <- napred
+      } else {
+        
+        predv <- predict(model, blockvals)
+        predv[is.na(predv)]<-NA
+      }
+      if (na.rm) {  
+        naind <- as.vector(attr(blockvals, "na.action"))
+        if (!is.null(naind)) {
+          p <- napred
+          p[-naind] <- predv
+          predv <- p
+          rm(p)
+        }
+      }
+      
+      # to change factor to numeric; should keep track of this to return a factor type RasterLayer
+      predv = as.numeric(predv)
+      predrast <- writeValues(predrast, predv, tr$row[i])
+      #NAvalue(predrast)<-NAval
+      print(i)
+    }
+    
+    predrast <- writeStop(predrast)
+    
+    return(predrast)
+  }
+  
