@@ -30,7 +30,8 @@ resultScenario <- Sys.getenv("ssim_scenario_id")
 # Read in datasheets
 covariatesSheet <- datasheet(myProject, "Covariates", optional = T)
 runControlSheet <- datasheet(myScenario, "RunControl", optional = T)
-multiProcessingSheet <- datasheet(myScenario, "core_Multiprocessing")
+multiprocessingSheet <- datasheet(myScenario, "core_Multiprocessing")
+spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing")
 covariateDataSheet <- datasheet(myScenario, "CovariateData", optional = T, lookupsAsFactors = F)
 modelOutputsSheet <- datasheet(myScenario, "ModelOutputs", optional = T)
 outputOptionsSheet <- datasheet(myScenario, "OutputOptions", optional = T)
@@ -39,15 +40,24 @@ spatialOutputsSheet <- datasheet(myScenario, "SpatialOutputs", optional = T)
 # Set defaults -----------------------------------------------------------------
 
 ## Run control sheet
-runControlSheet <- addRow(runControlSheet, list(1,1,0,0))
-saveDatasheet(myScenario, runControlSheet, "RunControl")
-
+if(nrow(runControlSheet)<1){
+  runControlSheet <- addRow(runControlSheet, list(1,1,0,0))
+  saveDatasheet(myScenario, runControlSheet, "RunControl")
+}
 ## Output options sheet
 if(nrow(outputOptionsSheet)<1){
   outputOptionsSheet <- addRow(outputOptionsSheet, list(T,F,F))
 }
 if(any(is.na(outputOptionsSheet))){
   outputOptionsSheet[is.na(outputOptionsSheet)] <- F
+}
+
+# Setup multiprocessing --------------------------------------------------------
+
+if(name(myLibrary == "Partial")){
+  
+  tileID <- 1
+  
 }
 
 # Load model object ------------------------------------------------------------
@@ -121,7 +131,7 @@ if(length(factorVars)==0){ factorVars <- NULL }
             pred.fct = predictFct,
             output.options = outputOptionsSheet,
             factor.levels = factorVars,
-            multiprocessing.cores = multiProcessingSheet$MaximumJobs,
+            multiprocessing.cores = multiprocessingSheet$MaximumJobs,
             temp.directory = ssimTempDir,
             train.dat = trainingData, 
             tsize = 20,

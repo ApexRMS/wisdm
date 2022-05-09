@@ -11,6 +11,7 @@
 			<transformer name="VariableReduction"/>
 			<transformer name="GLM"/>
 			<transformer name="RandomForest"/>
+			<transformer name="PrepMultiprocessing"/>
 			<transformer name="ApplyModel"/>
 		</include>
 		</transformer>
@@ -28,6 +29,7 @@
 								<column	name="MaximumIteration"	dataType="Integer" defaultValue="2" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="2"/>
 								<column	name="MinimumTimestep" dataType="Integer" defaultValue="0" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="0"/>
 								<column	name="MaximumTimestep" dataType="Integer" defaultValue="1" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="1"/>
+								<column name="IsSpatial" dataType="Boolean"/>
 							</columns>
 						</datasheet>
 					</datasheets>
@@ -124,7 +126,18 @@
 					  </columns>
 					</datasheet>
 				  </datasheets>
-				</datafeed>		
+				</datafeed>	
+				<datafeed name="TemplateRaster" displayName="Template Raster" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="TemplateRaster" displayName="Template Raster" isSingleRow="True">
+					  <columns>
+						<column name="TemplateRasterID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="RasterFilePath" displayName="Raster File" dataType="String" isExternalFile="True" isRaster="True"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
 				<datafeed name="OutputOptions" displayName="Output Options" dataScope="Scenario">
 				  <datasheets>
 					<datasheet  name="OutputOptions" displayName="Output Options" isSingleRow="True">
@@ -268,6 +281,17 @@
 				</datafeed>
 			</datafeeds>
 		</transformer>
+		<!--Prepare Multiprocessing Transformer-->
+		<transformer
+		  name="PrepMultiprocessing"
+		  displayName ="4 - Prepare Multiprocessing"
+		  isRunnable="True"
+		  programName="RScript"
+		  programArguments="4-prep-multiprocessing.R">
+			<pipeline>
+				<datafeed name="TemplateRaster" type="Input"/>
+			</pipeline>
+		</transformer>	
 		<!--Apply Model Transformer-->
 		<transformer
 		  name="ApplyModel"
@@ -275,8 +299,10 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="4-apply-model.R"
+		  className="SyncroSim.StochasticTime.StochasticTimeTransformer" 
+		  classAssembly="SyncroSim.StochasticTime"
 		  configurationSheet="RunControl"
-		  runContext="LocalOnly">
+		  runContext="AllowRemote">
 			<pipeline>
 				<datafeed name="RunControl" type="Input"/>
 				<datafeed name="ModelOutputs" type="Input"/>
@@ -287,11 +313,11 @@
 			<datafeeds>			
 				<datafeed name="SpatialOutputs" dataScope="Scenario" isOutput="True">
 				  <datasheets>
-					<datasheet  name="SpatialOutputs">
+					<datasheet name="SpatialOutputs" spatialMultiProcessing="True">
 					  <columns>
-					  	<column name="ScenarioID" dataType="Integer" isCompositeIndex="True"/>
-						<column name="Iteration" dataType= "Integer" isCompositeIndex="True"/>
-						<column name="Timestep" dataType= "Integer" isCompositeIndex="True"/>
+					  	<column name="ScenarioID" dataType="Integer"/>
+						<column name="Iteration" dataType= "Integer"/>
+						<column name="Timestep" dataType= "Integer"/>
 						<column name="ModelType" dataType= "String"/>
 						<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
 						<column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
@@ -333,6 +359,7 @@
 			<item name="FieldData"/>
 			<item name="CovariateData"/>
 			<item name="ValidationOptions"/>
+			<item name="TemplateRaster"/>
 		  </group>
 		  <group name="VariableReduction" displayName="Variable Reduction">
 			<item name="CovariateSelectionOptions"/>
