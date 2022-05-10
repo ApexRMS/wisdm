@@ -6,7 +6,6 @@
 # source dependencies ----------------------------------------------------------
 
   packageDir <- Sys.getenv("ssim_package_directory")
-  # source(file.path(packageDir, "0-glm-constants.R"))
   source(file.path(packageDir, "0-dependencies.R"))
   source(file.path(packageDir, "0-helper-functions.R"))
   source(file.path(packageDir, "0-fit-model-functions.R"))

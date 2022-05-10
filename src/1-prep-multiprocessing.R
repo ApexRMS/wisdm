@@ -5,14 +5,12 @@
 
 # built under R version 4.1.1
 # this transformer pulls in a template raster and creates a tiling raster for 
-# spatial mulitprocessing 
+# spatial multiprocessing 
 
 # source dependencies ----------------------------------------------------------
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "0-dependencies.R"))
-# source(file.path(packageDir, "0-helper-functions.R"))
-# source(file.path(packageDir, "0-apply-model-functions.R"))
 
 # Connect to library -----------------------------------------------------------
 
@@ -22,35 +20,40 @@ myProject <- rsyncrosim::project()
 myScenario <- scenario()
 # datasheet(myScenario)
 
-# path to ssim directories
-ssimTransDir <- ssimEnvironment()$TransferDirectory 
-  
-# Read in datasheets
-runControlSheet <- datasheet(myScenario, "RunControl", optional = T)
-multiprocessingSheet <- datasheet(myScenario, "core_Multiprocessing")
-templateSheet <- datasheet(myScenario, "TemplateRaster")
-spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing")
-
-# Set defaults -----------------------------------------------------------------
-
-## Run control sheet
-if(nrow(runControlSheet)<1){
-  runControlSheet <- addRow(runControlSheet, list(1,1,0,0,T))
-  saveDatasheet(myScenario, runControlSheet, "RunControl")
-}
-
 # determine if transformer needs to be run -------------------------------------
-runTransformer <- multiprocessingSheet$EnableMultiprocessing
+
+runTransformer <- datasheet(myScenario, "core_Multiprocessing")$EnableMultiprocessing
 
 if(runTransformer){ # if true, run transformer
+  
+  # path to ssim directories
+  ssimTransDir <- ssimEnvironment()$TransferDirectory 
+    
+  # Read in datasheets
+  runControlSheet <- datasheet(myScenario, "RunControl", optional = T)
+  templateSheet <- datasheet(myScenario, "TemplateRaster")
+  spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing")
+  
+  # Set defaults -----------------------------------------------------------------
+  
+  ## Run control sheet
+  if(nrow(runControlSheet)<1){
+    runControlSheet <- addRow(runControlSheet, list(1,1,0,0))
+    saveDatasheet(myScenario, runControlSheet, "RunControl")
+  }
 
   # Setup multiprocessing ------------------------------------------------------
-
+  
+  if(nrow(templateSheet)<1){ stop("ERROR: template raster is missing") }
+  
   # load template raster
   templateRaster <- rast(templateSheet$RasterFilePath)
   
   tileData <- writeStart(templateRaster, filename = file.path(ssimTransDir, "temp.tif"), overwrite = T)
   writeStop(templateRaster)
+  tileData$row <- c(1, 651) # remove
+  tileData$nrows <- c(650, tileData$nrows-650) # remove
+  tileData$n <- 2 # remove
   
   if(tileData$n > 1){
     
@@ -58,11 +61,13 @@ if(runTransformer){ # if true, run transformer
     
     # Calculate dimensions of each tile
     tileHeight <- tileData$nrows[1]
-    tileWidth <- floor(tileSize / tileHeight)
+    # tileWidth <- floor(tileSize / tileHeight)
+    tileWidth <- ncol(templateRaster) # remove
     
     # Calculate number of rows and columns
     ny <- tileData$n
-    nx <- ceiling(ncol(templateRaster) / tileWidth)
+    # nx <- ceiling(ncol(templateRaster) / tileWidth)
+    nx <- 1 # remove
     
     # Generate a string of zeros the width of one tile
     oneTileWidth <- rep(0, tileWidth)
@@ -94,4 +99,6 @@ if(runTransformer){ # if true, run transformer
     saveDatasheet(myScenario, spatialMulitprocessingSheet, "corestime_Multiprocessing")
   
     } # end if statement: tileData$n > 1  
+} else {
+  stop("ERROR: Multiprocessing is not enabled. Enable multiprocessing to prepare a tiling raster.")
 } # end run transformer
