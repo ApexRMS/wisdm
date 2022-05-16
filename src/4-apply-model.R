@@ -188,7 +188,7 @@ if(!is.null(factorVars)){
 if(outputOptionsSheet$MakeProbabilityMap){
   
   preds <- t(matrix(predictFct(model = mod, x = temp), ncol = ncol(templateRaster), byrow = T))
-  preds <- as.integer(round((preds*100), 0))
+  preds <- round((preds*100), 0)
   # typeof(preds)
   
   probRaster <- rast(templateRaster, vals = preds)
