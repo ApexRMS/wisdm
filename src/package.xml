@@ -133,6 +133,7 @@
 						<column name="TemplateRasterID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
 						<column name="RasterFilePath" displayName="Raster File" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="TileCount" displayName="Number of Mulitprocessing Tiles (optional)" dataType="Integer"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -215,6 +216,7 @@
 				<datafeed name="FieldData" type="Input"/>
 				<datafeed name="CovariateData" type="Input"/>
 				<datafeed name="SiteData" type="Input"/>
+				<datafeed name="CovariateSelectionOptions" type ="Input"/>
 				<datafeed name="CovariateCorrelationMatrix" type="Output"/>
 				<datafeed name="ReducedCovariates" type="Output"/>
 			</pipeline>

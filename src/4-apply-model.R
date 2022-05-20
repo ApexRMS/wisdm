@@ -108,13 +108,13 @@ covData <- covariateDataSheet[which(covariateDataSheet$CovariatesID %in% modVars
 # check that all tifs are present
 if(all(file.exists(paths)) == F){
   missingTifs <- covData$CovariatesID[!file.exists(covData$RasterFilePath)]
-  stop("ERROR: the following geotiff(s) are missing from Covariate Data:  ",
+  stop("The following geotiff(s) are missing from Covariate Data:  ",
        paste(missingTifs, collapse=" ,"),sep="")
 }
 
 # check that we have read access to all tiffs
 if(sum(file.access(paths),mode=0)!=0){
-  stop("ERROR: the following geotiff(s) are missing : ",
+  stop("The following geotiff(s) are missing : ",
        paths[(file.access(paths)!=0),][1],sep="")
 }
 
@@ -138,7 +138,7 @@ if(modType == "glm"){
 
 # prep prediction data ---------------------------------------------------------
 
-if(nrow(templateSheet)<1){ stop("ERROR: template raster is missing") }
+if(nrow(templateSheet)<1){ stop("Template raster is missing") }
 
 templateRaster <- rast(templateSheet$RasterFilePath)
   
@@ -197,56 +197,74 @@ if(outputOptionsSheet$MakeProbabilityMap){
               filename = file.path(ssimTempDir, paste0(modType,"_prob_map.tif")), 
               datatype = "INT4S",
               overwrite = TRUE)
-  
-  # writeStart(x = probRaster, 
-  #            filename = file.path(ssimTempDir, paste0(modType,"_prob_map.tif")), 
-  #            datatype = "INT4S",
-  #            overwrite = TRUE) #, gdal=c("COMPRESS=LZW", "TILED=YES", "BIGTIFF=YES"))
-  # 
-  # writeValues(x = probRaster, v = preds, start = 1, nrows = nrow(templateRaster)) 
-  # writeStop(probRaster) 
-  
-  # system(paste("gdalinfo", probRaster))
 }
   
 # create MESS and MoD maps -----------------------------------------------------  
   
 if(outputOptionsSheet$MakeMessMap){
   
-}  
+  # order the training data so that we can consider the first and last row only in mess calculations
+  train.dat <- trainingData[ ,match(modVars, names(trainingData))]
+  for(k in 1:nVars){ train.dat[ ,k] <- sort(train.dat[ ,k]) } 
+  
+  pred.rng <- rep(NA, nrow(temp))
+  names(pred.rng) <- NA
+    
+  if(any(complete.cases(temp))){
+      MessVals <- CalcMESS(rast = temp[complete.cases(temp), ], train.dat = train.dat)
+      pred.rng[complete.cases(temp)] <- MessVals[ ,2]
+      names(pred.rng)[complete.cases(temp)] <- MessVals[ ,1]
+  }
+  pred.rng <- as.integer(round(pred.rng,0))
+  # typeof(pred.rng)
+  
+  messRaster <- rast(templateRaster, vals = pred.rng)
+  writeRaster(x = messRaster, 
+                filename = file.path(ssimTempDir, paste0(modType,"_mess_map.tif")), 
+                datatype = "INT4S",
+                overwrite = TRUE) 
+  # is.int(messRaster) 
+  
+  if(outputOptionsSheet$MakeModMap){ 
+    
+    if(is.null(names(pred.rng))) names(pred.rng) <- NA
+    vals <- as.integer(names(pred.rng))
+    # typeof(vals)
+    
+    modRaster <- rast(templateRaster, vals = vals)
+    writeRaster(x = modRaster, 
+                filename = file.path(ssimTempDir, paste0(modType,"_mod_map.tif")), 
+                datatype = "INT4S", # "INT1U"
+                overwrite = TRUE) 
+    # is.int(modRaster) 
+  }
+}
+
   
 # create residuals map ---------------------------------------------------------
   if(outputOptionsSheet$MakeResidualsMap){
     
-    # ### Create residual surface of input data
-    # 
-    #   if(out$dat$split.label != "eval"){
-    #     
-    #    dev.contrib <- calc.deviance(obs = trainingData$Response, 
-    #                                 preds = trainingData$predicted,
-    #                                 weights = trainingData$Weight,
-    #                                 family = modFamily,
-    #                                 return.list = T)$dev.cont
-    # 
-    #     residual.smooth.fct <- resid.image(dev.contrib = dev.contrib,
-    #                                        dat = trainingData, 
-    #                                        
-    #                                        pred = inlst$train$pred,
-    #                                        raw.dat = inlst$train$dat$response, 
-    #                                        x = inlst$train$XY$X, 
-    #                                        y = inlst$train$XY$Y, 
-    #                                        wgt = inlst$train$weight, out$input$model.family, out$input$output.dir, label = out$dat$split.label, out)
-    #   } else {
-    # 
-    #     residual.smooth.fct <- resid.image(calc.dev(inlst$test$dat$response, inlst$test$pred, inlst$test$weight, family = out$input$model.family)$dev.cont, inlst$test$pred,
-    #                                        inlst$test$dat$response, inlst$test$XY$X, inlst$test$XY$Y, inlst$test$weight, out$input$model.family, out$input$output.dir, label = out$dat$split.label, out)
-    #   }
+    residSmooth <- readRDS(file.path(ssimEnvironment()$OutputDirectory, paste0("Scenario-",ssimEnvironment()$ScenarioId), "wisdm_ModelOutputs", modelOutputsSheet$ResidualSmoothRDS))
 
-    Pred.Surface(object = rast(paste0(ssimTempDir,"ProbTiff\\glm_prob_map.tif")),
-                 model = residSmooth, # residSmooth=out$mods$auc.output$residual.smooth.fct,
-                 filename = paste0(ssimTempDir,"ResidTiff\\glm_resid_map.tif"),
-                 NAval = -3000)
-  }  
+    predrast <- rast(probRaster)
+    ablock <- 1:(ncol(probRaster) * nrow(probRaster))
+    
+    p <- xyFromCell(predrast, ablock) 
+    p <- na.omit(p)
+    
+    blockvals <- data.frame(x=p[,1], y=p[,2])
+  
+    predv <- predict(residSmooth, blockvals)
+    predv[is.na(predv)]<-NA
+    predv = as.numeric(predv)
+    
+    residRaster <- rast(templateRaster, vals = predv)
+    writeRaster(x = residRaster, 
+                filename = file.path(ssimTempDir, paste0(modType,"_resid_map.tif")), 
+                datatype = "INT4S",
+                overwrite = TRUE) 
+    
+}  
 
 
 # Save output maps -------------------------------------------------------------
@@ -272,23 +290,3 @@ if(outputOptionsSheet$MakeMessMap){
   # save outputs
   saveDatasheet(myScenario, spatialOutputsSheet, "SpatialOutputs")
     
-
-  
-  # old code --------------------------------
-  # create probability/Mess/Mod maps
-  # proc.tiff(fit.model = mod,
-  #           modType = modType,
-  #           mod.vars = covData$CovariatesID,
-  #           raster.files = covData$RasterFilePath,
-  #           pred.fct = predictFct,
-  #           output.options = outputOptionsSheet,
-  #           factor.levels = factorVars,
-  #           multiprocessing.cores = multiprocessingSheet$MaximumJobs,
-  #           temp.directory = ssimTempDir,
-  #           train.dat = trainingData, 
-  #           tsize = 20,
-  #           NAval = -3000)
-
-
-
-  

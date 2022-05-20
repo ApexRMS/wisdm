@@ -20,61 +20,73 @@ myProject <- rsyncrosim::project()
 myScenario <- scenario()
 # datasheet(myScenario)
 
-# determine if transformer needs to be run -------------------------------------
-
-runTransformer <- datasheet(myScenario, "core_Multiprocessing")$EnableMultiprocessing
-
-if(runTransformer){ # if true, run transformer
-  
-  # path to ssim directories
-  ssimTransDir <- ssimEnvironment()$TransferDirectory 
+# path to ssim directories
+ssimTransDir <- ssimEnvironment()$TransferDirectory 
     
-  # Read in datasheets
-  runControlSheet <- datasheet(myScenario, "RunControl", optional = T)
-  templateSheet <- datasheet(myScenario, "TemplateRaster")
-  spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing")
+# Read in datasheets
+runControlSheet <- datasheet(myScenario, "RunControl", optional = T)
+templateSheet <- datasheet(myScenario, "TemplateRaster")
+spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing")
   
-  # Set defaults -----------------------------------------------------------------
+# Set defaults -----------------------------------------------------------------
   
-  ## Run control sheet
-  if(nrow(runControlSheet)<1){
-    runControlSheet <- addRow(runControlSheet, list(1,1,0,0))
-    saveDatasheet(myScenario, runControlSheet, "RunControl")
-  }
+## Run control sheet
+if(nrow(runControlSheet)<1){
+  runControlSheet <- addRow(runControlSheet, list(1,1,0,0))
+  saveDatasheet(myScenario, runControlSheet, "RunControl")
+}
 
-  # Setup multiprocessing ------------------------------------------------------
+# Setup multiprocessing ------------------------------------------------------
   
-  if(nrow(templateSheet)<1){ stop("ERROR: template raster is missing") }
+  if(nrow(templateSheet)<1){ stop("Template raster is missing") }
   
   # load template raster
   templateRaster <- rast(templateSheet$RasterFilePath)
+  tileCount <- templateSheet$TileCount
   
-  tileData <- writeStart(templateRaster, filename = file.path(ssimTransDir, "temp.tif"), overwrite = T)
-  writeStop(templateRaster)
-  tileData$row <- c(1, 651) # remove
-  tileData$nrows <- c(650, tileData$nrows-650) # remove
-  tileData$n <- 2 # remove
+  # if tile count is provided
+  if(!is.na(tileCount)){
+    
+    nRow <- round(nrow(templateRaster)/tileCount, 0)
+    startRows <- seq(1,nrow(templateRaster), by = nRow)
+    nRows <- rep(nRow, length(startRows))
+  
+    if(tail(nRows,1)+tail(startRows,1)-1 != nrow(templateRaster)){
+      nRows[length(nRows)] <- nrow(templateRaster)-tail(startRows,1)+1
+      # sum(nRows) == nrow(templateRaster)
+    }
+    
+    tileData <- list(row = startRows, 
+                   nrows = nRows, 
+                   n = tileCount)
+    
+    suggestedTiles <- writeStart(templateRaster, filename = file.path(ssimTransDir, "temp.tif"), overwrite = T)
+    writeStop(templateRaster)
+    
+    if(abs(suggestedTiles$n-tileData$n)>2){ message(paste0("The output tiling raster includes ", 
+                                                      tileData$n, " tiles when the suggested tile count is ",
+                                                      suggestedTiles$n, ". This may cause longer processing time."))}
+   
+    
+  } else {
+    tileData <- writeStart(templateRaster, filename = file.path(ssimTransDir, "temp.tif"), overwrite = T)
+    writeStop(templateRaster)
+  }
   
   if(tileData$n > 1){
     
-    tileSize <- nrow(templateRaster)*ncol(templateRaster)/tileData$n
+    tileSize <- round(nrow(templateRaster)*ncol(templateRaster)/tileData$n,0)
     
     # Calculate dimensions of each tile
     tileHeight <- tileData$nrows[1]
-    # tileWidth <- floor(tileSize / tileHeight)
-    tileWidth <- ncol(templateRaster) # remove
-    
-    # Calculate number of rows and columns
-    ny <- tileData$n
-    # nx <- ceiling(ncol(templateRaster) / tileWidth)
-    nx <- 1 # remove
-    
+    tileWidth <- floor(tileSize / tileHeight)
+
     # Generate a string of zeros the width of one tile
     oneTileWidth <- rep(0, tileWidth)
     
     # Generate one line of one row, repeat to the height of one row
     oneRow <-
-      as.vector(vapply(seq(nx), function(i) oneTileWidth + i, FUN.VALUE = numeric(tileWidth))) %>%
+      as.vector(vapply(seq(1), function(i) oneTileWidth + i, FUN.VALUE = numeric(tileWidth))) %>%
       `[`(1:ncol(templateRaster)) %>% # Trim the length of one row to fit in template
       rep(tileHeight)
     
@@ -87,7 +99,7 @@ if(runTransformer){ # if true, run transformer
       if(tileData$nrows[i] < tileHeight)
         oneRow <- oneRow[1:(ncol(tileRaster) * tileData$nrows[i])]
         writeValues(x = tileRaster, v = oneRow, start = tileData$row[i], nrows = tileData$nrows[i])
-        oneRow <- oneRow + nx
+        oneRow <- oneRow + 1
     }
     writeStop(tileRaster)
     
@@ -99,6 +111,3 @@ if(runTransformer){ # if true, run transformer
     saveDatasheet(myScenario, spatialMulitprocessingSheet, "corestime_Multiprocessing")
   
     } # end if statement: tileData$n > 1  
-} else {
-  stop("ERROR: Multiprocessing is not enabled. Enable multiprocessing to prepare a tiling raster.")
-} # end run transformer
