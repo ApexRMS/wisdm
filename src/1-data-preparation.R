@@ -8,6 +8,7 @@
 
 pkg_dir <- (Sys.getenv("ssim_package_directory"))
 source(file.path(pkg_dir, "0-dependencies.R"))
+source(file.path(packageDir, "01-data-prep-functions.R"))
 
 # Connect to library -----------------------------------------------------------
 

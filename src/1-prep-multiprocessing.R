@@ -24,17 +24,17 @@ myScenario <- scenario()
 ssimTransDir <- ssimEnvironment()$TransferDirectory 
     
 # Read in datasheets
-runControlSheet <- datasheet(myScenario, "RunControl", optional = T)
+# runControlSheet <- datasheet(myScenario, "RunControl", optional = T)
 templateSheet <- datasheet(myScenario, "TemplateRaster")
 spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing")
   
 # Set defaults -----------------------------------------------------------------
   
-## Run control sheet
-if(nrow(runControlSheet)<1){
-  runControlSheet <- addRow(runControlSheet, list(1,1,0,0))
-  saveDatasheet(myScenario, runControlSheet, "RunControl")
-}
+# ## Run control sheet
+# if(nrow(runControlSheet)<1){
+#   runControlSheet <- addRow(runControlSheet, list(1,1,0,0))
+#   saveDatasheet(myScenario, runControlSheet, "RunControl")
+# }
 
 # Setup multiprocessing ------------------------------------------------------
   

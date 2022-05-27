@@ -18,7 +18,7 @@
 	   <!--Global Transformer-->
 		<transformer name="Global">
 			<datafeeds>
-			<!--Run Control-->
+			<!--Run Control>
 				<datafeed name="RunControl" displayName="Run Control" dataScope="Scenario">
 					<datasheets>
 						<datasheet name="RunControl" displayName="Run Control" isSingleRow="True">
@@ -32,7 +32,7 @@
 							</columns>
 						</datasheet>
 					</datasheets>
-				</datafeed>
+				</datafeed-->
 				<datafeed name="Covariates" dataScope="Project">
 				  <datasheets>
 					<datasheet name="Covariates" valueMember="CovariatesID" displayMember="CovariateName">
@@ -147,7 +147,7 @@
 						<column name="MakeProbabilityMap" displayName="Make Probability Map" dataType="Boolean"/>
 						<column name="MakeResidualsMap" displayName="Make Residuals Map" dataType="Boolean"/>
 						<column name="MakeMessMap" displayName="Make Multivariate Environmental Similarity Surface (MESS) Map" dataType="Boolean"/>
-						<column name="MakeModMap" displayName="Make Mod Map" dataType="Boolean"/>
+						<column name="MakeModMap" displayName="Make Most Dissimilar Variable (MoD) Map" dataType="Boolean"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -159,16 +159,16 @@
 						<column name="ScenarioID" dataType="Integer"/>
 						<column name="ModelType" dataType= "String"/>
 						<column name="ModelRDS" dataType="String" isExternalFile="True"/>
-						<column name="ResponseCurves" dataType="String" isExternalFile="True"/>
-						<column name="ResidualsPlot" dataType="String" isExternalFile="True"/>
-						<column name="ResidualSmoothPlot" dataType="String" isExternalFile="True"/>
+						<column name="ResponseCurves" dataType="String" isExternalFile="True" isPngImage="True"/>
+						<column name="ResidualsPlot" dataType="String" isExternalFile="True" isPngImage="True"/>
+						<column name="ResidualSmoothPlot" dataType="String" isExternalFile="True" isPngImage="True"/>
 						<column name="ResidualSmoothRDS" dataType="String" isExternalFile="True"/>
 						<column name="TextOutput" dataType="String" isExternalFile="True"/>
-						<column name="CalibrationPlot" dataType="String" isExternalFile="True"/>
-						<column name="ROCAUCPlot" dataType="String" isExternalFile="True"/>
-						<column name="AUCPRPlot" dataType="String" isExternalFile="True"/>
-						<column name="ConfusionMatrix" dataType="String" isExternalFile="True"/>
-						<column name="VariableImportancePlot" dataType="String" isExternalFile="True"/>
+						<column name="CalibrationPlot" dataType="String" isExternalFile="True" isPngImage="True"/>
+						<column name="ROCAUCPlot" dataType="String" isExternalFile="True" isPngImage="True"/>
+						<column name="AUCPRPlot" dataType="String" isExternalFile="True" isPngImage="True"/>
+						<column name="ConfusionMatrix" dataType="String" isExternalFile="True" isPngImage="True"/>
+						<column name="VariableImportancePlot" dataType="String" isExternalFile="True" isPngImage="True"/>
 						<column name="VariableImportanceData" dataType="String" isExternalFile="True"/>
 					  </columns>
 					</datasheet>
@@ -304,10 +304,8 @@
 		  programArguments="4-apply-model.R"
 		  className="SyncroSim.StochasticTime.StochasticTimeTransformer" 
 		  classAssembly="SyncroSim.StochasticTime"
-		  configurationSheet="RunControl"
 		  runContext="AllowRemote">
 			<pipeline>
-				<datafeed name="RunControl"/>
 				<datafeed name="corestime_Multiprocessing" type="Input"/>
 				<datafeed name="TemplateRaster" type="Input"/>
 				<datafeed name="ModelOutputs" type="Input"/>
@@ -321,8 +319,8 @@
 					<datasheet name="SpatialOutputs" spatialMultiProcessing="True">
 					  <columns>
 					  	<column name="ScenarioID" dataType="Integer"/>
-						<column name="Iteration" dataType= "Integer"/>
-						<column name="Timestep" dataType= "Integer"/>
+						<!--column name="Iteration" dataType= "Integer"/>
+						<column name="Timestep" dataType= "Integer"/-->
 						<column name="ModelType" dataType= "String"/>
 						<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
 						<column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
@@ -337,17 +335,25 @@
 		</transformer>
 		 <!--Export Transformers-->
 		<transformer
-		  name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation" dataSheet="CovariateCorrelationMatrix" column="Filename" isFolderExport="True" >
+		  name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation" dataSheet="CovariateCorrelationMatrix" column="Filename" 
+		  isFolderExport="True" className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
 		</transformer>
 		<transformer 
-		name="ModelExportRDS" displayName="Model" dataSheet="ModelOutputs" column="ModelRDS" isFolderExport="True">
+		name="ModelExportRDS" dataSheet="ModelOutputs" column="ModelRDS" isFolderExport="True" 
+		className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
 		</transformer>
 		<transformer 
-		name="ModelExportText" dataSheet="ModelOutputs" column="TextOutput" isFolderExport="True">
+		name="ModelExportText" dataSheet="ModelOutputs" column="TextOutput" isFolderExport="True"
+		className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
 		</transformer>
 		<transformer 
-		name="VariableImportanceExportData" dataSheet="ModelOutputs" column="VariableImportanceData">
+		name="VariableImportanceExportData" dataSheet="ModelOutputs" column="VariableImportanceData" isFolderExport="True"
+		className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
 		</transformer>
+		<!--transformer 
+		name="ResidualSmoothExportRDS" dataSheet="ModelOutputs" column="ResidualSmoothRDS" isFolderExport="True" 
+		className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		</transformer-->
 	</transformers>
 	<layouts>
 		<!--Library Datafeeds Layout-->
@@ -387,14 +393,25 @@
 					<item name="ModelExportRDS" displayName="Model RDS"/>
 					<item name="ModelExportText" displayName="Summary Text"/>
 					<item name="VariableImportanceExportData" displayName="Variable Importance"/>
+					<!--item name="ResidualSmoothExportRDS" displayName="Residual Smooth RDS"/-->	
 				</group>
 			</group>
         </layout>
 		<!--Maps Layout-->
-		<layout name="corestimeforms_Maps" configurationSheet="RunControl">
-			<item name="ProbabilityMap" displayName="Probability Map" dataSheet="SpatialOutputs" column="ProbabilityRaster"/>
-			<item name="MessMap" displayName="MESS Map" dataSheet="SpatialOutputs" column="MessRaster"/>
-			<item name="ModMap" displayName="Mod Map" dataSheet="SpatialOutputs" column="ModRaster"/>
+		<layout name="corestimeforms_Maps">
+			<group name="Visuals">
+				<item name="CovariateCorrelationMatrix" displayName="Covariate Correlations" dataSheet="CovariateCorrelationMatrix" column="Filename"/>
+				<item name="ProbabilityMap" displayName="Probability Map" dataSheet="SpatialOutputs" column="ProbabilityRaster"/>
+				<item name="MessMap" displayName="MESS Map" dataSheet="SpatialOutputs" column="MessRaster"/>
+				<item name="ModMap" displayName="MoD Map" dataSheet="SpatialOutputs" column="ModRaster"/>
+				<item name="ResponseCurves" displayName="Response Curves" dataSheet="ModelOutputs" column="ResponseCurves"/>
+				<item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="ModelOutputs" column="ResidualsPlot"/>
+				<item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="ModelOutputs" column="ResidualSmoothPlot"/>	
+				<item name="CalibrationPlot" displayName="Calibration" dataSheet="ModelOutputs" column="CalibrationPlot"/>
+				<item name="ROCAUCPlot" displayName="ROC/AUC" dataSheet="ModelOutputs" column="ROCAUCPlot"/>
+				<item name="AUCPRPlot" displayName="AUCPR" dataSheet="ModelOutputs" column="AUCPRPlot"/>
+				<item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="ModelOutputs" column="ConfusionMatrix"/>
+				<item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="ModelOutputs" column="VariableImportancePlot"/>		
 		</layout>
 	</layouts>	
 </package>

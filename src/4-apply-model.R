@@ -12,7 +12,7 @@
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "0-dependencies.R"))
 source(file.path(packageDir, "0-helper-functions.R"))
-source(file.path(packageDir, "0-apply-model-functions.R"))
+source(file.path(packageDir, "04-apply-model-functions.R"))
 
 # Connect to library -----------------------------------------------------------
 
@@ -29,7 +29,7 @@ resultScenario <- ssimEnvironment()$ScenarioId
 
 # Read in datasheets
 covariatesSheet <- datasheet(myProject, "Covariates", optional = T)
-runControlSheet <- datasheet(myScenario, "RunControl", optional = T)
+# runControlSheet <- datasheet(myScenario, "RunControl", optional = T)
 multiprocessingSheet <- datasheet(myScenario, "core_Multiprocessing")
 spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing")
 covariateDataSheet <- datasheet(myScenario, "CovariateData", optional = T, lookupsAsFactors = F)
@@ -41,10 +41,10 @@ spatialOutputsSheet <- datasheet(myScenario, "SpatialOutputs", optional = T)
 # Set defaults -----------------------------------------------------------------
 
 ## Run control sheet
-if(nrow(runControlSheet)<1){
-  runControlSheet <- addRow(runControlSheet, list(1,1,0,0))
-  saveDatasheet(myScenario, runControlSheet, "RunControl")
-}
+# if(nrow(runControlSheet)<1){
+#   runControlSheet <- addRow(runControlSheet, list(1,1,0,0))
+#   saveDatasheet(myScenario, runControlSheet, "RunControl")
+# }
 ## Output options sheet
 if(nrow(outputOptionsSheet)<1){
   outputOptionsSheet <- addRow(outputOptionsSheet, list(T,F,F,F))
@@ -189,6 +189,7 @@ if(outputOptionsSheet$MakeProbabilityMap){
   
   preds <- t(matrix(predictFct(model = mod, x = temp), ncol = ncol(templateRaster), byrow = T))
   preds <- round((preds*100), 0)
+  preds[is.na(preds)] <- -9999
   # typeof(preds)
   
   probRaster <- rast(templateRaster, vals = preds)
@@ -206,6 +207,7 @@ if(outputOptionsSheet$MakeMessMap){
   # order the training data so that we can consider the first and last row only in mess calculations
   train.dat <- trainingData[ ,match(modVars, names(trainingData))]
   for(k in 1:nVars){ train.dat[ ,k] <- sort(train.dat[ ,k]) } 
+  # index <- names(train.dat)
   
   pred.rng <- rep(NA, nrow(temp))
   names(pred.rng) <- NA
@@ -215,7 +217,8 @@ if(outputOptionsSheet$MakeMessMap){
       pred.rng[complete.cases(temp)] <- MessVals[ ,2]
       names(pred.rng)[complete.cases(temp)] <- MessVals[ ,1]
   }
-  pred.rng <- as.integer(round(pred.rng,0))
+  pred.rng <- round(pred.rng,0)
+  pred.rng[is.na(pred.rng)] <- -9999
   # typeof(pred.rng)
   
   messRaster <- rast(templateRaster, vals = pred.rng)
@@ -227,8 +230,9 @@ if(outputOptionsSheet$MakeMessMap){
   
   if(outputOptionsSheet$MakeModMap){ 
     
-    if(is.null(names(pred.rng))) names(pred.rng) <- NA
+    if(is.null(names(pred.rng))){ names(pred.rng) <- NA }
     vals <- as.integer(names(pred.rng))
+    vals[is.na(vals)] <- -9999
     # typeof(vals)
     
     modRaster <- rast(templateRaster, vals = vals)
@@ -255,8 +259,8 @@ if(outputOptionsSheet$MakeMessMap){
     blockvals <- data.frame(x=p[,1], y=p[,2])
   
     predv <- predict(residSmooth, blockvals)
-    predv[is.na(predv)]<-NA
-    predv = as.numeric(predv)
+    predv <- as.numeric(predv)
+    predv[is.na(predv)] <- - 9999
     
     residRaster <- rast(templateRaster, vals = predv)
     writeRaster(x = residRaster, 
@@ -271,7 +275,7 @@ if(outputOptionsSheet$MakeMessMap){
   
   # add model Outputs to datasheet
   spatialOutputsSheet <- addRow(spatialOutputsSheet, 
-                              list(Iteration = 1, Timestep = 0,
+                              list( # Iteration = 1, Timestep = 0,
                                    ModelType = modType))
                               
   if(outputOptionsSheet$MakeProbabilityMap){

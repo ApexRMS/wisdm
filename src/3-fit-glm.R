@@ -8,7 +8,7 @@
   packageDir <- Sys.getenv("ssim_package_directory")
   source(file.path(packageDir, "0-dependencies.R"))
   source(file.path(packageDir, "0-helper-functions.R"))
-  source(file.path(packageDir, "0-fit-model-functions.R"))
+  source(file.path(packageDir, "03-fit-model-functions.R"))
 
 # Connect to library -----------------------------------------------------------
 
@@ -184,7 +184,7 @@
 
 # Fit model --------------------------------------------------------------------
 
-  source(file.path(packageDir, "fitModel.R")) ## GLM - code sourced and updated from model.fit.r 
+  # source(file.path(packageDir, "fitModel.R")) ## GLM - code sourced and updated from model.fit.r 
 
   finalMod <- fitModel(dat = trainingData, 
                       out = out,         

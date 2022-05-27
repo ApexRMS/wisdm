@@ -20,10 +20,11 @@ if("rsyncrosim" %in% installed.packages()[,"Package"]){
   #   library(rsyncrosim)}
 
 # check remaining packages
+packagesToLoad_02 <- c("shiny")
 packagesToLoad_03 <- c("tidyr", "PresenceAbsence", "PRROC", "ROCR", "ggplot2", "dplyr", "splines")
 packagesToLoad_04 <- c("terra", "gbm", "rgdal")
 
-packagesToLoad <- c(packagesToLoad_03, packagesToLoad_04)
+packagesToLoad <- c(packagesToLoad_02, packagesToLoad_03, packagesToLoad_04)
   
 # install missing packages
 packagesToInstall <- packagesToLoad[!(packagesToLoad %in% installed.packages()[,"Package"])]

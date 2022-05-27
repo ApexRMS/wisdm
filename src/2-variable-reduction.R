@@ -9,8 +9,7 @@
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "0-dependencies.R"))
-# source(file.path(packageDir, "0-helper-functions.R"))
-# source(file.path(packageDir, "0-variable-reduction-functions.R"))
+source(file.path(packageDir, "02-variable-reduction-functions.R"))
 
 # Connect to library -----------------------------------------------------------
 
@@ -26,12 +25,13 @@ ssimOutputDir <- ssimEnvironment()$OutputDirectory
 resultScenario <- ssimEnvironment()$ScenarioId
 
 # Read in datasheets
-covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
+covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T, includeKey = T)
+# covariateDataSheet <- datasheet(myScenario, "CovariateData", optional = T, lookupsAsFactors = F)
 fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
 siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
 covariateSelectionSheet <- datasheet(myScenario, "wisdm_CovariateSelectionOptions", optional = T)
 covariateCorrelationSheet <- datasheet(myScenario, "wisdm_CovariateCorrelationMatrix", optional = T)
-reducedCovariatesSheet <- datasheet(myScenario, "wisdm_ReducedCovariates", lookupsAsFactors = F)
+# reducedCovariatesSheet <- datasheet(myScenario, "wisdm_ReducedCovariates", lookupsAsFactors = F, optional = T) 
 
 
 # Set defaults -----------------------------------------------------------------
@@ -67,10 +67,33 @@ if(max(fieldDataSheet$Response)>1){
 
 # run pairs explore ------------------------------------------------------------
 
-pairsExplore(inputData = siteData,
-             options = covariateSelectionSheet,
-             factorVars = factorVars,
-             family = modelFamily,
-             outputFile = file.path(ssimTempDir, "CovariateCorrelationMatrix.png"))
+# pairsExplore(inputData = siteData,
+#              options = covariateSelectionSheet,
+#              selectedCovs = names(select(siteData, -Response)),
+#              factorVars = factorVars,
+#              family = modelFamily,
+#              outputFile = file.path(ssimTempDir, "CovariateCorrelationMatrix.png"))
+# 
+
+# run shiny app ----------------------------------------------------------------
+
+covData <- select(siteData, -Response)
+options <- covariateSelectionSheet
+
+# options(shiny.launch.browser = .rs.invokeShinyWindowViewer) # .rs.invokeShinyWindowExternal
+runApp(file.path(packageDir, "02-covariate-correlation-app.R"), launch.browser = TRUE) #
 
 
+# save reduced covariate list and image file -----------------------------------
+
+# TO Do: fix issue with covariate names not saving to datasheet
+# selectedCovariateIDs <- covariatesSheet$CovariatesID[covariatesSheet$CovariateName %in% SelectedCovariates]
+# CovariatesID <- data.frame(CovariatesID = selectedCovariateIDs)
+# reducedCovariatesSheet <- addRow(reducedCovariatesSheet, CovariatesID)
+# reducedCovariatesSheet$CovariatesID <- SelectedCovariates
+
+reducedCovariatesSheet <- data.frame(CovariatesID = SelectedCovariates)
+saveDatasheet(myScenario, reducedCovariatesSheet, "wisdm_ReducedCovariates")
+
+covariateCorrelationSheet <- addRow(covariateCorrelationSheet, data.frame(Filename = file.path(ssimTempDir, "CovariateCorrelationMatrix.png")))
+saveDatasheet(myScenario, covariateCorrelationSheet, "wisdm_CovariateCorrelationMatrix")
