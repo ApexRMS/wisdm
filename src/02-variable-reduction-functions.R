@@ -1,7 +1,7 @@
 ## sdsim - variable reduction functions
 ## ApexRMS, May 2022
 
-# pairs explore function --------------------------------------------------------
+# pairs explore function -------------------------------------------------------
 
 pairsExplore <- function(inputData,     # dataframe with response and covariate values per site 
                          selectedCovs,  # covariates to consider
@@ -16,7 +16,7 @@ pairsExplore <- function(inputData,     # dataframe with response and covariate 
                          seed=1){
   # input data
   response <- inputData$Response
-  dat <- select(inputData, selectedCovs)
+  dat <- select(inputData, all_of(selectedCovs))
   
   # input options
   displayHighCors <- options$DisplayHighestCorrelations
@@ -98,7 +98,7 @@ pairsExplore <- function(inputData,     # dataframe with response and covariate 
     
     #record counts of total number of correlations with all predictors for those
     #predictors that are highly correlated with the Highest predictor
-    High.cor <- sort(High.cor[names(corWHigh)], decreasing=TRUE)    
+    # High.cor <- sort(High.cor[names(corWHigh)], decreasing=TRUE)    
   }
   HighToPlot <- dat[,match(names(High.cor),names(dat))[1:min(numPlots,length(High.cor))]]
   for.dev$dat <- for.dev$dat[,match(names(High.cor),names(dat))[1:min(numPlots,length(High.cor))]]
@@ -110,9 +110,9 @@ pairsExplore <- function(inputData,     # dataframe with response and covariate 
   
   missing.summary <- missing.summary[match(names(High.cor),names(missing.summary))[1:min(numPlots,length(High.cor))]]
   
-  # embedded functions ----
+  ## nested functions -----
   
-  ### panel histograms function ###
+  ## panel histograms function ---------------------------------------------------
   
   # puts histograms on the diagonal
   
@@ -125,7 +125,7 @@ pairsExplore <- function(inputData,     # dataframe with response and covariate 
     rect(breaks[-nB], 0, breaks[-1], y, col="steelblue", ...)
   }
   
-  ### panel correlation function ###
+  ## panel correlation function --------------------------------------------------
   
   # put (absolute) correlations on the upper panels,
   # with size proportional to the correlations.
@@ -134,38 +134,42 @@ pairsExplore <- function(inputData,     # dataframe with response and covariate 
                         digits=2, 
                         prefix="", 
                         cor.range,
-                        cor.mult, ...){
+                        cor.mult,
+                        minCor,
+                        ...){
     
-    a<-colors()
+    a <- colors()
     usr <- par("usr"); on.exit(par(usr))
     par(usr = c(0, 1, 0, 1))
     r <- abs(cor(x, y,use="pairwise.complete.obs"))
-    spear<-abs(cor(x,y,method="spearman",use="pairwise.complete.obs"))
-    ken<- abs(cor(x,y,method="kendall",use="pairwise.complete.obs"))
-    all.cor<-max(r,spear,ken)
-    ramp<-heat.colors(20, alpha = .7)[20:1]
-    if(all.cor>=.6){
+    spear <- abs(cor(x,y,method="spearman",use="pairwise.complete.obs"))
+    ken <- abs(cor(x,y,method="kendall",use="pairwise.complete.obs"))
+    all.cor <- max(r,spear,ken)
+    ramp <- heat.colors(20, alpha = 0.7)[20:1]
+    if(all.cor >= minCor){
       rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col =
-             ramp[which.min(abs(all.cor-seq(from=.65,to=1,length=20)))])}
-    r<-max(all.cor)
-    cex.cor=3*cor.mult
+             ramp[which.min(abs(all.cor - seq(from=minCor,to=1,length=20)))])
+    }
+    r <- max(all.cor)
+    cex.cor <- 3*cor.mult
     txt <- format(c(r, 0.123456789), digits=digits)[1]
     txt <- paste(prefix, txt, sep="")
     #if(missing(cex.cor)) cex.cor <- 1.2/strwidth(txt)
     
     txt2=""
-    if(max(all.cor)>cor.range[2]){
-      if(spear==max(all.cor) && spear!=cor(x,y,use="pairwise.complete.obs")) {txt2 <- " s"
-      } else if(ken==max(all.cor) && ken!=cor(x,y,use="pairwise.complete.obs")){
+    if(max(all.cor) > cor.range[2]){
+      if(spear == max(all.cor) && spear != cor(x,y,use="pairwise.complete.obs")) {
+        txt2 <- " s"
+      } else if(ken == max(all.cor) && ken != cor(x,y,use="pairwise.complete.obs")){
         txt2 <-" k"
       }
       
     }
-    text(0.5, 0.5, txt, cex = .7+cex.cor * (r-min(cor.range))/(max(cor.range)-min(cor.range)))
-    text(.9,.1,txt2,cex=cor.mult)
+    text(0.5, 0.5, txt, cex = 0.7+cex.cor * (r-min(cor.range))/(max(cor.range)-min(cor.range)))
+    text(0.9,0.1,txt2,cex=cor.mult)
   }
   
-  # create correlation image ----
+  # create output image -----
   
   options(warn=-1)
   numPlots <- min(ncol(HighToPlot),numPlots)
@@ -184,6 +188,7 @@ pairsExplore <- function(inputData,     # dataframe with response and covariate 
   png(outputFile, width=wdth, height=wdth, pointsize=13)
  
   myPairs(for.dev = for.dev,
+          minCor = minCor,
           missing.summary = missing.summary,
           my.labels = (as.vector(High.cor)[1:numPlots]),
           lower.panel = panel.smooth,
@@ -193,7 +198,6 @@ pairsExplore <- function(inputData,     # dataframe with response and covariate 
           bg = c("blue","red","yellow")[factor(for.dev$response,levels=c(0,1,-9999))],
           col.smooth = "red",
           cex.mult = cex.mult,
-          # cor.mult = cex.mult,
           cor.range = cor.range,
           oma = c(0,2,6,0),
           family = family)
@@ -292,13 +296,14 @@ my.panel.smooth <- function(x,
 ## My Pairs function -----------------------------------------------------------
 
 myPairs <- function(for.dev,
+                    minCor,
                     missing.summary,
                     my.labels,
                     labels = NULL, 
                     panel = points,
-                    lower.panel = panel,
-                    upper.panel = panel,
-                    diag.panel = NULL, 
+                    lower.panel, # = panel,
+                    upper.panel, # = panel,
+                    diag.panel, # = NULL, 
                     text.panel = textPanel,
                     label.pos = 0.5 + has.diag/3, 
                     cex.labels = NULL, 
@@ -327,8 +332,8 @@ myPairs <- function(for.dev,
   }
   
   localPlot <- function(..., main, oma, font.main, cex.main) { plot(...) }
-  localLowerPanel <- function(..., main, oma, font.main, cex.main){ lower.panel(...) }
-  localUpperPanel <- function(..., main, oma, font.main, cex.main){ upper.panel(...) }
+  localLowerPanel <- function(..., main, oma, font.main, cex.main){lower.panel(...)} 
+  localUpperPanel <-  function(..., main, oma, font.main, cex.main){upper.panel(...)}
   localDiagPanel <- function(..., main, oma, font.main, cex.main){ diag.panel(...) }
   
   # code starts for my pairs function ----
@@ -348,7 +353,7 @@ myPairs <- function(for.dev,
   if ((has.lower <- !is.null(lower.panel)) && !missing(lower.panel)){ lower.panel <- match.fun(lower.panel) }
   if ((has.upper <- !is.null(upper.panel)) && !missing(upper.panel)){ upper.panel <- match.fun(upper.panel) }
   if ((has.diag <- !is.null(diag.panel)) && !missing(diag.panel)){ diag.panel <- match.fun(diag.panel) }
-    
+
   if (row1attop) {
     tmp <- lower.panel
     lower.panel <- upper.panel
@@ -444,7 +449,7 @@ myPairs <- function(for.dev,
           }
           else if (i < j)
             if(length(unique(x[,i])>2)){
-              localLowerPanel(as.vector(x[, j]), as.vector(x[,i]),cex=cex.mult*3,cor.mult=cex.mult,...) 
+              localLowerPanel(as.vector(x[, j]), as.vector(x[,i]),cex=cex.mult*3,cor.mult=cex.mult,minCor=minCor,...) 
               } else {
                 if(missing(for.dev)){ 
                   pct.dev <- try(my.panel.smooth(as.vector(x[,j]), 
@@ -464,7 +469,9 @@ myPairs <- function(for.dev,
                     localUpperPanel(as.vector(x[, j]), 
                                     as.vector(x[,i]),
                                     cex=cex.mult,
-                                    cor.mult=cex.mult , ...)
+                                    cor.mult=cex.mult, 
+                                    minCor = minCor,
+                                    ...)
                     }
           if (any(par("mfg") != mfg)){ stop("the 'panel' function made a new plot") }
         } else { par(new = FALSE) }

@@ -18,21 +18,6 @@
 	   <!--Global Transformer-->
 		<transformer name="Global">
 			<datafeeds>
-			<!--Run Control>
-				<datafeed name="RunControl" displayName="Run Control" dataScope="Scenario">
-					<datasheets>
-						<datasheet name="RunControl" displayName="Run Control" isSingleRow="True">
-							<columns>
-								<column name="RunControlID" dataType="Integer" isPrimary="True"/>
-								<column name="ScenarioID" dataType="Integer"/>
-								<column	name="MinimumIteration" dataType="Integer" defaultValue="1" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="1"/>
-								<column	name="MaximumIteration"	dataType="Integer" defaultValue="2" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="2"/>
-								<column	name="MinimumTimestep" dataType="Integer" defaultValue="0" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="0"/>
-								<column	name="MaximumTimestep" dataType="Integer" defaultValue="1" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="1"/>
-							</columns>
-						</datasheet>
-					</datasheets>
-				</datafeed-->
 				<datafeed name="Covariates" dataScope="Project">
 				  <datasheets>
 					<datasheet name="Covariates" valueMember="CovariatesID" displayMember="CovariateName">
@@ -58,6 +43,18 @@
 						<column name="Response" dataType="Integer"/>
 						<column name="UseInModelEvaluation" displayName="Use In Model Evaluation" dataType="Boolean" defaultValue="0" isOptional="True"/>
 						<column name="ModelSelectionSplit" displayName="Model Selection Split" dataType="Integer" isOptional="True"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+				<datafeed name="FieldDataOptions" displayName="Options" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="FieldDataOptions" displayName="Field Data Options" isSingleRow="True">
+					  <columns>
+						<column name="FieldDataOptionsID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="EPSG" displayName="EPSG Code (optional)" dataType="Integer"/>
+						<column name="AggregateAndWeight" displayName="Aggregate and Weight Data" dataType="Boolean" isOptional="True"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -185,7 +182,6 @@
 		  programArguments="1-prep-multiprocessing.R"
 		  runContext="LocalOnly">
 			<pipeline>
-				<datafeed name="RunControl"/>
 				<datafeed name="TemplateRaster" type="Input"/>
 			</pipeline>
 		</transformer>	
@@ -199,7 +195,9 @@
 		  transformerSpecificOutput="False">
 		  <pipeline>
 			<datafeed name="FieldData" type="Input"/>
+			<datafeed name="FieldDataOptions" type="Input"/>
 			<datafeed name="CovariateData" type="Input"/>
+			<datafeed name="TemplateRaster" type="Input"/>
 			<datafeed name="ValidationOptions" type="Input"/>
 			<datafeed name="SiteData" type="Output"/>
 		  </pipeline>
@@ -226,7 +224,7 @@
 					<datasheet name="CovariateCorrelationMatrix">
 					  <columns>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="Filename" displayName="Covariate Correlation Matrix" dataType="String" isExternalFile="True"/>
+						<column name="Filename" dataType="String" isExternalFile="True" isPngImage="True"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -319,8 +317,6 @@
 					<datasheet name="SpatialOutputs" spatialMultiProcessing="True">
 					  <columns>
 					  	<column name="ScenarioID" dataType="Integer"/>
-						<!--column name="Iteration" dataType= "Integer"/>
-						<column name="Timestep" dataType= "Integer"/-->
 						<column name="ModelType" dataType= "String"/>
 						<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
 						<column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
@@ -359,6 +355,7 @@
 		<!--Library Datafeeds Layout-->
 		<layout name="coreforms_LibraryDatafeeds">
 		  <item name="core_Rconfig"/>
+		  <item name="core_Options"/>
 		</layout>  
 		<!--Project Datafeeds Layout-->
 		<layout name="coreforms_ProjectDatafeeds">
@@ -367,7 +364,10 @@
 		<!--Scenario Datafeeds Layout-->
 		<layout name="coreforms_ScenarioDatafeeds">
 		  <group name="DataPreparation" displayName="Data Preparation">
-			<item name="FieldData"/>
+			<group name="FieldData" displayName="Field Data">
+				<item name="FieldData"/>
+				<item name="FieldDataOptions"/>
+			</group>
 			<item name="CovariateData"/>
 			<item name="ValidationOptions"/>
 			<item name="TemplateRaster"/>
@@ -398,20 +398,20 @@
 			</group>
         </layout>
 		<!--Maps Layout-->
-		<layout name="corestimeforms_Maps">
-			<group name="Visuals">
-				<item name="CovariateCorrelationMatrix" displayName="Covariate Correlations" dataSheet="CovariateCorrelationMatrix" column="Filename"/>
-				<item name="ProbabilityMap" displayName="Probability Map" dataSheet="SpatialOutputs" column="ProbabilityRaster"/>
-				<item name="MessMap" displayName="MESS Map" dataSheet="SpatialOutputs" column="MessRaster"/>
-				<item name="ModMap" displayName="MoD Map" dataSheet="SpatialOutputs" column="ModRaster"/>
-				<item name="ResponseCurves" displayName="Response Curves" dataSheet="ModelOutputs" column="ResponseCurves"/>
-				<item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="ModelOutputs" column="ResidualsPlot"/>
-				<item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="ModelOutputs" column="ResidualSmoothPlot"/>	
-				<item name="CalibrationPlot" displayName="Calibration" dataSheet="ModelOutputs" column="CalibrationPlot"/>
-				<item name="ROCAUCPlot" displayName="ROC/AUC" dataSheet="ModelOutputs" column="ROCAUCPlot"/>
-				<item name="AUCPRPlot" displayName="AUCPR" dataSheet="ModelOutputs" column="AUCPRPlot"/>
-				<item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="ModelOutputs" column="ConfusionMatrix"/>
-				<item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="ModelOutputs" column="VariableImportancePlot"/>		
+		<layout name="corestimeforms_Maps" displayName="Visuals">
+			<item name="CovariateCorrelationMatrix" displayName="Covariate Correlations" dataSheet="CovariateCorrelationMatrix" column="Filename"/>
+			<item name="ProbabilityMap" displayName="Probability Map" dataSheet="SpatialOutputs" column="ProbabilityRaster"/>
+			<item name="MessMap" displayName="MESS Map" dataSheet="SpatialOutputs" column="MessRaster"/>
+			<item name="ModMap" displayName="MoD Map" dataSheet="SpatialOutputs" column="ModRaster"/>
+			<item name="ResidualsMap" displayName="Residuals Map" dataSheet="SpatialOutputs" column="ResidualsRaster"/>
+			<item name="ResponseCurves" displayName="Response Curves" dataSheet="ModelOutputs" column="ResponseCurves"/>
+			<item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="ModelOutputs" column="ResidualsPlot"/>
+			<item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="ModelOutputs" column="ResidualSmoothPlot"/>	
+			<item name="CalibrationPlot" displayName="Calibration" dataSheet="ModelOutputs" column="CalibrationPlot"/>
+			<item name="ROCAUCPlot" displayName="ROC/AUC" dataSheet="ModelOutputs" column="ROCAUCPlot"/>
+			<item name="AUCPRPlot" displayName="AUCPR" dataSheet="ModelOutputs" column="AUCPRPlot"/>
+			<item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="ModelOutputs" column="ConfusionMatrix"/>
+			<item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="ModelOutputs" column="VariableImportancePlot"/>		
 		</layout>
 	</layouts>	
 </package>

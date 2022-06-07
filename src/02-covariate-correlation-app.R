@@ -28,7 +28,7 @@ ui <- fluidPage(
                  
                  # action button
                  actionButton(inputId = "update", label = "Update")
-                 
+               
     ),
     
     # Main panel for displaying outputs ----
@@ -57,10 +57,6 @@ server <- function(input, output, session) { #
   
   output$image <- renderImage({
     
-    # options$CorrelationThreshold  <-  
-    # options$NumberOfPlots <- input$numPlots
-    # selectedCovs <- input$show_vars
-    
     # Generate the image and write it to file
     pairsExplore(inputData = siteData,
                  selectedCovs = v$selectedCovs,
@@ -73,8 +69,7 @@ server <- function(input, output, session) { #
     list(src = outfile,
          contentType = "image/png",
          height = "100%",
-         width = "100%",
-         alt = "This is alternate text")
+         width = "100%")
   }, deleteFile = FALSE)
   
   session$onSessionEnded(function() {

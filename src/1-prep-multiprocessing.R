@@ -14,29 +14,18 @@ source(file.path(packageDir, "0-dependencies.R"))
 
 # Connect to library -----------------------------------------------------------
 
-# Active project and scenario
-myLibrary <- ssimLibrary()
-myProject <- rsyncrosim::project()
+# Active scenario
 myScenario <- scenario()
-# datasheet(myScenario)
 
 # path to ssim directories
 ssimTransDir <- ssimEnvironment()$TransferDirectory 
     
 # Read in datasheets
-# runControlSheet <- datasheet(myScenario, "RunControl", optional = T)
 templateSheet <- datasheet(myScenario, "TemplateRaster")
 spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing")
   
-# Set defaults -----------------------------------------------------------------
-  
-# ## Run control sheet
-# if(nrow(runControlSheet)<1){
-#   runControlSheet <- addRow(runControlSheet, list(1,1,0,0))
-#   saveDatasheet(myScenario, runControlSheet, "RunControl")
-# }
 
-# Setup multiprocessing ------------------------------------------------------
+# Setup multiprocessing --------------------------------------------------------
   
   if(nrow(templateSheet)<1){ stop("Template raster is missing") }
   

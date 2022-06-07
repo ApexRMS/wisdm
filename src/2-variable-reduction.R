@@ -14,33 +14,27 @@ source(file.path(packageDir, "02-variable-reduction-functions.R"))
 # Connect to library -----------------------------------------------------------
 
 # Active project and scenario
-myLibrary <- ssimLibrary()
 myProject <- rsyncrosim::project()
 myScenario <- scenario()
-# datasheet(myScenario)
 
 # path to ssim directories
 ssimTempDir <- ssimEnvironment()$TransferDirectory 
-ssimOutputDir <- ssimEnvironment()$OutputDirectory                                 
-resultScenario <- ssimEnvironment()$ScenarioId
 
 # Read in datasheets
 covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T, includeKey = T)
-# covariateDataSheet <- datasheet(myScenario, "CovariateData", optional = T, lookupsAsFactors = F)
 fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
 siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
 covariateSelectionSheet <- datasheet(myScenario, "wisdm_CovariateSelectionOptions", optional = T)
 covariateCorrelationSheet <- datasheet(myScenario, "wisdm_CovariateCorrelationMatrix", optional = T)
-# reducedCovariatesSheet <- datasheet(myScenario, "wisdm_ReducedCovariates", lookupsAsFactors = F, optional = T) 
 
 
 # Set defaults -----------------------------------------------------------------
 
 ## Covariate selection 
 if(nrow(covariateSelectionSheet)<1){
-  covariateSelectionSheet <- addRow(ValidationDataSheet, list(DisplayHighestCorrelations = TRUE,
-                                                              CorrelationThreshold = 0.7, 
-                                                              NumberOfPlots = 5))
+  covariateSelectionSheet <- addRow(covariateSelectionSheet, list(DisplayHighestCorrelations = TRUE,
+                                                                  CorrelationThreshold = 0.7, 
+                                                                  NumberOfPlots = 5))
 }
 if(is.na(covariateSelectionSheet$DisplayHighestCorrelations)){covariateSelectionSheet$DisplayHighestCorrelations <- TRUE}
 if(is.na(covariateSelectionSheet$CorrelationThreshold)){covariateSelectionSheet$CorrelationThreshold <- 0.7}
@@ -80,17 +74,33 @@ if(max(fieldDataSheet$Response)>1){
 covData <- select(siteData, -Response)
 options <- covariateSelectionSheet
 
-# options(shiny.launch.browser = .rs.invokeShinyWindowViewer) # .rs.invokeShinyWindowExternal
-runApp(file.path(packageDir, "02-covariate-correlation-app.R"), launch.browser = TRUE) #
+# TO DO: find better way to access default web app 
+browser.path <- NULL
+if(file.exists("C:/Program Files/Google/Chrome/Application/chrome.exe")){
+ browser.path <- "C:/Program Files/Google/Chrome/Application/chrome.exe"
+} else if(file.exists("C:/Program Files(x86)/Google/Chrome/Application/chrome.exe")){
+  browser.path <- "C:/Program Files(x86)/Google/Chrome/Application/chrome.exe"
+} else if(file.exists("C:/Program Files/Mozilla Firefox/firefox.exe")){
+  browser.path <- "C:/Program Files/Mozilla Firefox/firefox.exe"
+} else if(file.exists("C:/Program Files/Internet Explorer/iexplore.exe")){
+  browser.path <- "C:/Program Files/Internet Explorer/iexplore.exe"
+}
+
+# portable chrome - to large to store on git 
+# browser.path = file.path(packageDir,"Apps/chrome/chrome.exe")
+
+if(is.null(browser.path)){
+  runApp(appDir = file.path(packageDir, "02-covariate-correlation-app.R"),
+         launch.browser = TRUE)  
+} else {
+  runApp(appDir = file.path(packageDir, "02-covariate-correlation-app.R"),
+       launch.browser = function(shinyurl) {
+         system(paste0("\"", browser.path, "\" --app=", shinyurl, " -incognito"), wait = F)
+        })
+}
 
 
 # save reduced covariate list and image file -----------------------------------
-
-# TO Do: fix issue with covariate names not saving to datasheet
-# selectedCovariateIDs <- covariatesSheet$CovariatesID[covariatesSheet$CovariateName %in% SelectedCovariates]
-# CovariatesID <- data.frame(CovariatesID = selectedCovariateIDs)
-# reducedCovariatesSheet <- addRow(reducedCovariatesSheet, CovariatesID)
-# reducedCovariatesSheet$CovariatesID <- SelectedCovariates
 
 reducedCovariatesSheet <- data.frame(CovariatesID = SelectedCovariates)
 saveDatasheet(myScenario, reducedCovariatesSheet, "wisdm_ReducedCovariates")

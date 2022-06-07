@@ -3,6 +3,17 @@
 ## ApexRMS, March 2022       
 ## ------------------------- 
 
+# identify EPSG code 
+
+lonlat2UTM = function(lonlat) {
+  utm = (floor((lonlat[1] + 180) / 6) %% 60) + 1
+  if(lonlat[2] > 0) {
+    utm + 32600
+  } else{
+    utm + 32700
+  }
+}
+
 # Calculate Deviance function --------------------------------------------------
 
 calc.deviance <- function(obs,   # observed response
