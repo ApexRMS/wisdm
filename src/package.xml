@@ -43,6 +43,7 @@
 						<column name="Response" dataType="Integer"/>
 						<column name="UseInModelEvaluation" displayName="Use In Model Evaluation" dataType="Boolean" defaultValue="0" isOptional="True"/>
 						<column name="ModelSelectionSplit" displayName="Model Selection Split" dataType="Integer" isOptional="True"/>
+						<column name="Weight" dataType="Double" isOptional="True"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -53,8 +54,9 @@
 					  <columns>
 						<column name="FieldDataOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="EPSG" displayName="EPSG Code (optional)" dataType="Integer"/>
-						<column name="AggregateAndWeight" displayName="Aggregate and Weight Data" dataType="Boolean" isOptional="True"/>
+						<!--column name="Shapefile" displayName="Field Data Shapefile (optional)" dataType="String" isExternalFile="True" isOptional="True"/-->
+						<column name="EPSG" displayName="Authority Code (e.g., EPSG:4326)" dataType="String" isOptional="True"/>
+						<column name="AggregateAndWeight" displayName="Aggregate or Weight Data" dataType="Integer" validationType="List" formula1="0:Aggregate|1:Weight" isOptional="True"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>

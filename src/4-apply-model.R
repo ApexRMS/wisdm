@@ -153,9 +153,9 @@ if(all(is.na(templateValues))){  # if the template is completely NA values, don'
   
   } else {
   
-    temp <- data.frame(matrix(ncol = nVars, nrow = nrow(templateRaster) * ncol(templateRaster)))
+    temp <- data.frame(matrix(ncol = nrow(covData), nrow = nrow(templateRaster) * ncol(templateRaster)))
     
-    for(k in 1:nVars){
+    for(k in 1:nrow(covData)){
       rast_k <- rast(covData$RasterFilePath[k])
       if(!is.null(maskValues)){
         rast_k <- mask(rast_k, mask = maskFile, maskvalues = maskValues)
@@ -206,7 +206,7 @@ if(outputOptionsSheet$MakeMessMap){
   
   # order the training data so that we can consider the first and last row only in mess calculations
   train.dat <- trainingData[ ,match(modVars, names(trainingData))]
-  for(k in 1:nVars){ train.dat[ ,k] <- sort(train.dat[ ,k]) } 
+  for(k in 1:nrow(covData)){ train.dat[ ,k] <- sort(train.dat[ ,k]) } 
   # index <- names(train.dat)
   
   pred.rng <- rep(NA, nrow(temp))

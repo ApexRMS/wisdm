@@ -40,12 +40,14 @@ if(is.na(covariateSelectionSheet$DisplayHighestCorrelations)){covariateSelection
 if(is.na(covariateSelectionSheet$CorrelationThreshold)){covariateSelectionSheet$CorrelationThreshold <- 0.7}
 if(is.na(covariateSelectionSheet$NumberOfPlots)){covariateSelectionSheet$NumberOfPlots <- 5}
 
+saveDatasheet(myScenario, covariateSelectionSheet, "wisdm_CovariateSelectionOptions")
+
 # Prep inputs ------------------------------------------------------------------
 
 # merge field and site data
 siteDataWide <- spread(siteDataSheet, key = CovariatesID, value = "Value")
 siteDataWide <- merge(fieldDataSheet, siteDataWide, by = "SiteID")
-siteData <- select(siteDataWide, -c(SiteID, X, Y, UseInModelEvaluation, ModelSelectionSplit)) # ,Weights
+siteData <- select(siteDataWide, -c(SiteID, X, Y, UseInModelEvaluation, ModelSelectionSplit, Weight)) # 
 
 # identify categorical covariates
 if(sum(covariatesSheet$IsCategorical, na.rm = T)>0){
@@ -58,6 +60,21 @@ if(max(fieldDataSheet$Response)>1){
   modelFamily <-"poisson" 
 } else { modelFamily <- "binomial" }
 
+# Ignore background data if present
+siteData <- siteData[!siteData$Response == -9999,]
+
+# prep deviance explained data
+covData <- select(siteData, -Response)
+devExp <- vector()
+for(i in (1:ncol(covData))){
+  devExp[i] <- try(my.panel.smooth(x = covData[,i], 
+                                   y = siteData$Response,
+                                   plot.it=FALSE,
+                                   family=family),silent=TRUE)
+}
+devExp <- round(devExp,2)
+devInfo <- as.data.frame(devExp)
+devInfo$covs <- names(covData)
 
 # run pairs explore ------------------------------------------------------------
 
@@ -71,6 +88,7 @@ if(max(fieldDataSheet$Response)>1){
 
 # run shiny app ----------------------------------------------------------------
 
+# inputs
 covData <- select(siteData, -Response)
 options <- covariateSelectionSheet
 

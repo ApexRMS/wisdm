@@ -66,12 +66,15 @@
   
   # remove sites with incomplete data 
   allCases <- nrow(siteDataWide)
-  siteDataWide <- siteDataWide[complete.cases(subset(siteDataWide, select = -ModelSelectionSplit)),]
+  siteDataWide <- siteDataWide[complete.cases(subset(siteDataWide, select = c(-ModelSelectionSplit, -Weight))),]
   compCases <- nrow(siteDataWide)
   if(compCases/allCases < 0.9){warning(paste(round((1-compCases/allCases)*100,digits=2),"% of cases were removed because of missing values",sep=""))}
   
-  # add site weights
-  siteDataWide$Weight <- 1 # TO DO: build out call to site weighting
+  # set site weights to default of 1 if not already supplied
+  if(all(is.na(siteDataWide$Weight))){siteDataWide$Weight <- 1}
+  
+  # ignore background data if present
+  siteDataWide <- siteDataWide[!siteDataWide$Response == -9999,]
   
   # identify training and testing sites 
   siteDataWide$UseInModelEvaluation[is.na(siteDataWide$UseInModelEvaluation)] <- FALSE

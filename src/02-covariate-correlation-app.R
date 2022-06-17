@@ -27,8 +27,12 @@ ui <- fluidPage(
                               min = 1, max = ncol(siteData)-1, step = 1),
                  
                  # action button
-                 actionButton(inputId = "update", label = "Update")
-               
+                 actionButton(inputId = "update", label = "Update"),
+                 
+                 # action button
+                 actionButton(inputId = "close", label = "Save & Close"),
+                 tags$script( "Shiny.addCustomMessageHandler('closeWindow', 
+                              function(data) {eval(data.message)});" )
     ),
     
     # Main panel for displaying outputs ----
@@ -71,6 +75,13 @@ server <- function(input, output, session) { #
          height = "100%",
          width = "100%")
   }, deleteFile = FALSE)
+  
+  # image creates a new PNG file each time inputs change
+  observeEvent(input$close, {
+    session$sendCustomMessage(type = "closeWindow", list(message ="window.close()"))
+    # setTimeout(function(){window.close();},500)
+    stopApp()
+  })
   
   session$onSessionEnded(function() {
     stopApp()

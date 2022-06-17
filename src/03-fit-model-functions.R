@@ -11,7 +11,7 @@ fitModel <- function(dat,           # df of training data
                      out,           # out list
                      full.fit=FALSE,
                      pts=NULL,
-                     weight=NULL,
+                     # weight=NULL,
                      Fold,...){
   
   # This function was written to separate the steps involved in model fitting 
@@ -25,9 +25,9 @@ fitModel <- function(dat,           # df of training data
   if(out$modType == "glm") {
     
     # if(PsdoAbs){
-    #   #for glm sum of absence weights set equal to sum of presence weights
-    #   absWt<-sum(dat$response==1)/sum(dat$response==0)
-    #   weight[dat$response==0]<-absWt
+    #   # for glm sum of absence weights set equal to sum of presence weights
+    #   absWt <- sum(dat$Response == 1)/sum(dat$Response == 0)
+    #   dat$Weight[dat$Response == 0] <- absWt
     # }
     
     myModelGLMStep <- list()
@@ -60,10 +60,10 @@ fitModel <- function(dat,           # df of training data
     }
     
     if(out$modOptions$SelectBestPredictors){
-      myModelGLMStep <- step(glm(scopeGLM$lower,family=out$modelFamily,data=dat,weights=Weight,na.action="na.exclude"),
+      myModelGLMStep <- step(glm(scopeGLM$lower,family=out$modelFamily,data=dat,weights=dat$Weight,na.action="na.exclude"),
                              direction='both',scope=scopeGLM,k=penalty,trace=1)
     } else {
-      myModelGLMStep <- glm(scopeGLM$upper,family=out$modelFamily,data=dat,weights=Weight,na.action="na.exclude")
+      myModelGLMStep <- glm(scopeGLM$upper,family=out$modelFamily,data=dat,weights=dat$Weight,na.action="na.exclude")
     }
     
     # out$mods$final.mod <- myModelGLMStep

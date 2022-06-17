@@ -51,6 +51,9 @@ spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing"
     
     suggestedTiles <- writeStart(templateRaster, filename = file.path(ssimTransDir, "temp.tif"), overwrite = T)
     writeStop(templateRaster)
+    # tempRast <- raster::raster(templateSheet$RasterFilePath)
+    # suggestedTiles <- raster::blockSize(tempRast)$n
+    # remove(tempRast)
     
     if(abs(suggestedTiles$n-tileData$n)>2){ message(paste0("The output tiling raster includes ", 
                                                       tileData$n, " tiles when the suggested tile count is ",
@@ -58,8 +61,30 @@ spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing"
    
     
   } else {
+    # To Do: update to terra call once blockSize is supported by terra 
     tileData <- writeStart(templateRaster, filename = file.path(ssimTransDir, "temp.tif"), overwrite = T)
     writeStop(templateRaster)
+    
+    # tempRast <- raster::raster(templateSheet$RasterFilePath)
+    # tileCount <- raster::blockSize(tempRast)$n
+    # remove(tempRast)
+    # 
+    # nRow <- round(nrow(templateRaster)/tileCount, 0)
+    # startRows <- seq(1,nrow(templateRaster), by = nRow)
+    # nRows <- rep(nRow, length(startRows))
+    # 
+    # if(tail(nRows,1)+tail(startRows,1)-1 != nrow(templateRaster)){
+    #   nRows[length(nRows)] <- nrow(templateRaster)-tail(startRows,1)+1
+    #   # sum(nRows) == nrow(templateRaster)
+    # }
+    # 
+    # tileData <- list(row = startRows, 
+    #                  nrows = nRows, 
+    #                  n = tileCount)
+    
+    templateSheet$TileCount <- tileData$n
+    saveDatasheet( myScenario, templateSheet, "TemplateRaster")
+    
   }
   
   if(tileData$n > 1){
@@ -99,4 +124,7 @@ spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing"
     
     saveDatasheet(myScenario, spatialMulitprocessingSheet, "corestime_Multiprocessing")
   
-    } # end if statement: tileData$n > 1  
+    } else { # if tileData$n == 1  
+      message("The default settings suggest a tile count of 1; no tiling raster created. A tile count can be set to overide the default settings.")
+    }
+  

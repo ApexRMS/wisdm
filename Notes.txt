@@ -1,0 +1,6 @@
+- If the Field Data CRS does not match the template raster CRS, than an "Authority Code" (e.g. EPSG:4269) indicating the Field Data's CRS needs to be provided. Not all Authority Codes are supported for this conversion. The following R code can be run to view a list of supported codes:
+  > proj_db <- system.file("proj/proj.db", package = "terra") # locate PROJ database used by terra
+  > crs_table <- sf::read_sf(proj_db, "crs_view") # access the database crs table 
+  > crs_table # view table of supported crs
+
+

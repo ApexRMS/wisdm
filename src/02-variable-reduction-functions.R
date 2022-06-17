@@ -58,8 +58,9 @@ pairsExplore <- function(inputData,     # dataframe with response and covariate 
   # write.csv(devInfo, file = paste(dirname(output.file),"devInfo.csv",sep="/"))
   
   # now removing factor columns
-  if(length(factorVars)>0){ dat <- dat[,-c(factorVars)]
-  warning("The covariate correlation tool does not consider categorical predictors")
+  if(length(factorVars)>0){ 
+    dat <- select(dat, -factorVars)
+    warning("The covariate correlation tool does not consider categorical predictors")
   }
   
   #after calculating the deviance for all predictors we have to remove the excluded predictors for the following plots
