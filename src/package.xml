@@ -37,7 +37,7 @@
 					  <columns>
 						<column name="FieldDataID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="SiteID" displayName="Site" dataType="Integer"/>
+						<column name="SiteID" displayName="Site" dataType="Integer" isOptional="True"/>
 						<column name="X" dataType="Double"/>
 						<column name="Y" dataType="Double"/>
 						<column name="Response" dataType="Integer"/>

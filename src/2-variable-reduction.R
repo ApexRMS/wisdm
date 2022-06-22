@@ -51,7 +51,7 @@ siteData <- select(siteDataWide, -c(SiteID, X, Y, UseInModelEvaluation, ModelSel
 
 # identify categorical covariates
 if(sum(covariatesSheet$IsCategorical, na.rm = T)>0){
-  factorVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T)]
+  factorVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T & covariatesSheet$CovariateName %in% names(siteData))]
 } else { factorVars <- NULL }
 
 # model family 
@@ -70,11 +70,14 @@ for(i in (1:ncol(covData))){
   devExp[i] <- try(my.panel.smooth(x = covData[,i], 
                                    y = siteData$Response,
                                    plot.it=FALSE,
-                                   family=family),silent=TRUE)
+                                   family=modelFamily),silent=TRUE)
 }
 devExp <- round(devExp,2)
 devInfo <- as.data.frame(devExp)
 devInfo$covs <- names(covData)
+devInfo$covDE <- paste0(devInfo$covs, " (", devInfo$devExp, ")")
+covsDE <- devInfo$covs
+names(covsDE) <- devInfo$covDE
 
 # run pairs explore ------------------------------------------------------------
 
@@ -90,6 +93,7 @@ devInfo$covs <- names(covData)
 
 # inputs
 covData <- select(siteData, -Response)
+covsDE
 options <- covariateSelectionSheet
 
 # TO DO: find better way to access default web app 

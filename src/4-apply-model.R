@@ -59,18 +59,23 @@ if(name(myLibrary) == "Partial"){
   
   # load multiprocessing raster
   maskFile <- rast(datasheet(myScenario, "corestime_Multiprocessing")$MaskFileName)
-  # maskFile <- rast(file.choose())
+  maskExt <- ext(maskFile)
   
   # identify multiprocessing tile
   tileID <- as.numeric(strsplit(strsplit(basename(ssimEnvironment()$LibraryFilePath), split = "-")[[1]][2],"\\.")[[1]][1])
-  # tileID <- 1
-  
+ 
   # define masking values
   maskValues <- unique(maskFile)[,1]
   if(length(maskValues)>1){
     maskValues <- maskValues[!maskValues == tileID]
   } else { maskValues <- NULL }
-} else { maskValues <- NULL }
+
+  # trim tiling raster to extent of single tile
+  maskFile <- mask(x = maskFile, mask = maskFile,  maskvalues = maskValues)
+  maskFile <- trim(x = maskFile)
+ 
+  } else { maskValues <- NULL }
+  
 
 # Load model object ------------------------------------------------------------
 
@@ -80,7 +85,7 @@ mod <- readRDS(paste0(ssimOutputDir,"\\Scenario-", resultScenario,"\\wisdm_Model
 
 if(modType == "glm"){
   
-  nVars <- length(attr(terms(formula(mod)),"term.labels"))
+  # nVars <- length(attr(terms(formula(mod)),"term.labels"))
   modVars <- attr(terms(formula(mod)),"term.labels")
   # have to remove all the junk with powers and interactions for mess map production to work
   modVars <- unique(unlist(strsplit(gsub("I\\(","",gsub("\\^2)","",modVars)),":")))
@@ -138,13 +143,15 @@ if(modType == "glm"){
 
 # prep prediction data ---------------------------------------------------------
 
+# TO Do: Update scalabilty -- need to crop rasters to tile extent (not extent of tiling raster)
+
 if(nrow(templateSheet)<1){ stop("Template raster is missing") }
 
 templateRaster <- rast(templateSheet$RasterFilePath)
   
 if(!is.null(maskValues)){
-  templateRaster <- mask(templateRaster, mask = maskFile, maskvalues = maskValues)
-}
+  templateRaster <- crop(templateRaster, maskFile)
+ }
 templateValues <- values(templateRaster)
 
 if(all(is.na(templateValues))){  # if the template is completely NA values, don't read in any other data
@@ -158,7 +165,7 @@ if(all(is.na(templateValues))){  # if the template is completely NA values, don'
     for(k in 1:nrow(covData)){
       rast_k <- rast(covData$RasterFilePath[k])
       if(!is.null(maskValues)){
-        rast_k <- mask(rast_k, mask = maskFile, maskvalues = maskValues)
+        rast_k <- crop(rast_k, maskFile)
       }
       temp[,k] <- as.vector(values(rast_k))
     }
@@ -172,16 +179,13 @@ temp[is.na(templateValues),] <- NA
 # replace missing values with NA
 for(m in covData$CovariatesID){ temp[is.nan(temp[,m]),m] <- NA }
 
+# set factor data
 if(!is.null(factorVars)){
-  factor.cols <- match(names(factorVars), names(temp))
-  if(sum(!is.na(factor.cols)) > 0){
-    for(j in 1:length(factor.cols)){
-      if(!is.na(factor.cols[j])){
-        temp[,factor.cols[j]] <- factor(temp[, factor.cols[j]], levels = factorVars[[j]]$number, labels = factorVars[[j]]$class)
-      }
-    }
+  for(j in factorVars){
+    lvls <- levels(mod$data[[j]])
+    temp[,j] <- factor(temp[,j], levels = lvls)
   }
-}  
+}
 
 # create probability map -------------------------------------------------------
   
@@ -193,6 +197,7 @@ if(outputOptionsSheet$MakeProbabilityMap){
   # typeof(preds)
   
   probRaster <- rast(templateRaster, vals = preds)
+  if(!is.null(maskValues)){probRaster <- extend(probRaster, maskExt)}
   # is.int(probRaster) 
   writeRaster(x = probRaster, 
               filename = file.path(ssimTempDir, paste0(modType,"_prob_map.tif")), 
@@ -202,45 +207,52 @@ if(outputOptionsSheet$MakeProbabilityMap){
   
 # create MESS and MoD maps -----------------------------------------------------  
   
-if(outputOptionsSheet$MakeMessMap){
+if(outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap){
   
-  # order the training data so that we can consider the first and last row only in mess calculations
-  train.dat <- trainingData[ ,match(modVars, names(trainingData))]
-  for(k in 1:nrow(covData)){ train.dat[ ,k] <- sort(train.dat[ ,k]) } 
-  # index <- names(train.dat)
-  
-  pred.rng <- rep(NA, nrow(temp))
-  names(pred.rng) <- NA
-    
-  if(any(complete.cases(temp))){
-      MessVals <- CalcMESS(rast = temp[complete.cases(temp), ], train.dat = train.dat)
-      pred.rng[complete.cases(temp)] <- MessVals[ ,2]
-      names(pred.rng)[complete.cases(temp)] <- MessVals[ ,1]
-  }
-  pred.rng <- round(pred.rng,0)
-  pred.rng[is.na(pred.rng)] <- -9999
-  # typeof(pred.rng)
-  
-  messRaster <- rast(templateRaster, vals = pred.rng)
-  writeRaster(x = messRaster, 
-                filename = file.path(ssimTempDir, paste0(modType,"_mess_map.tif")), 
-                datatype = "INT4S",
-                overwrite = TRUE) 
-  # is.int(messRaster) 
-  
-  if(outputOptionsSheet$MakeModMap){ 
-    
-    if(is.null(names(pred.rng))){ names(pred.rng) <- NA }
-    vals <- as.integer(names(pred.rng))
-    vals[is.na(vals)] <- -9999
-    # typeof(vals)
-    
-    modRaster <- rast(templateRaster, vals = vals)
-    writeRaster(x = modRaster, 
-                filename = file.path(ssimTempDir, paste0(modType,"_mod_map.tif")), 
-                datatype = "INT4S", # "INT1U"
-                overwrite = TRUE) 
-    # is.int(modRaster) 
+  if(!is.null(factorVars)){ warning("MESS and MoD maps cannot be generated for models with categorical variables.")
+    } else {
+      
+      # order the training data so that we can consider the first and last row only in mess calculations
+      train.dat <- select(trainingData, modVars)
+      for(k in 1:nrow(covData)){ train.dat[ ,k] <- sort(train.dat[ ,k]) } 
+      # index <- names(train.dat)
+      
+      pred.rng <- rep(NA, nrow(temp))
+      names(pred.rng) <- NA
+        
+      if(any(complete.cases(temp))){
+          MessVals <- CalcMESS(rast = data.frame(temp[complete.cases(temp),]), train.dat = train.dat)
+          pred.rng[complete.cases(temp)] <- MessVals[ ,2]
+          names(pred.rng)[complete.cases(temp)] <- MessVals[ ,1]
+      }
+      pred.rng <- round(pred.rng,0)
+      pred.rng[is.na(pred.rng)] <- -9999
+      # typeof(pred.rng)
+      
+      if(outputOptionsSheet$MakeMessMap){ 
+      messRaster <- rast(templateRaster, vals = pred.rng)
+      if(!is.null(maskValues)){messRaster <- extend(messRaster, maskExt)}
+      writeRaster(x = messRaster, 
+                    filename = file.path(ssimTempDir, paste0(modType,"_mess_map.tif")), 
+                    datatype = "INT4S",
+                    overwrite = TRUE) 
+      # is.int(messRaster) 
+      }
+      if(outputOptionsSheet$MakeModMap){ 
+        
+        if(is.null(names(pred.rng))){ names(pred.rng) <- NA }
+        vals <- as.integer(names(pred.rng))
+        vals[is.na(vals)] <- -9999
+        # typeof(vals)
+        
+        modRaster <- rast(templateRaster, vals = vals)
+        if(!is.null(maskValues)){modRaster <- extend(modRaster, maskExt)}
+        writeRaster(x = modRaster, 
+                    filename = file.path(ssimTempDir, paste0(modType,"_mod_map.tif")), 
+                    datatype = "INT4S", # "INT1U"
+                    overwrite = TRUE) 
+        # is.int(modRaster) 
+      }
   }
 }
 
@@ -263,6 +275,7 @@ if(outputOptionsSheet$MakeMessMap){
     predv[is.na(predv)] <- - 9999
     
     residRaster <- rast(templateRaster, vals = predv)
+    if(!is.null(maskValues)){residRaster <- extend(residRaster, maskExt)}
     writeRaster(x = residRaster, 
                 filename = file.path(ssimTempDir, paste0(modType,"_resid_map.tif")), 
                 datatype = "INT4S",
@@ -281,11 +294,11 @@ if(outputOptionsSheet$MakeMessMap){
   if(outputOptionsSheet$MakeProbabilityMap){
     spatialOutputsSheet$ProbabilityRaster <- file.path(ssimTempDir,"glm_prob_map.tif")
   }
-  if(outputOptionsSheet$MakeMessMap){
+  if(outputOptionsSheet$MakeMessMap & is.null(factorVars)){
     spatialOutputsSheet$MessRaster <- file.path(ssimTempDir,"glm_mess_map.tif")
-    if(outputOptionsSheet$MakeModMap){
-      spatialOutputsSheet$ModRaster <- file.path(ssimTempDir,"glm_mod_map.tif")
-    }
+  }
+  if(outputOptionsSheet$MakeModMap & is.null(factorVars)){
+    spatialOutputsSheet$ModRaster <- file.path(ssimTempDir,"glm_mod_map.tif")
   }
   if(outputOptionsSheet$MakeResidualsMap){
     spatialOutputsSheet$ResidualsRaster <- file.path(ssimTempDir,"glm_resid_map.tif")

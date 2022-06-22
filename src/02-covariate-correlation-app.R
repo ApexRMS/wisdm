@@ -12,8 +12,8 @@ ui <- fluidPage(
                  # Input: select which variables to consider 
                  checkboxGroupInput(inputId = "show_vars", 
                                     label = "Covariates to include:",
-                                    choices = names(covData), 
-                                    selected = names(covData)),
+                                    choices = names(covData),   
+                                    selected = names(covData)), 
                  # Input: Numeric entry for minimum correlation ----
                  numericInput(inputId = "minCor",
                               label = "Correlation Threshold:",
@@ -50,13 +50,13 @@ server <- function(input, output, session) { #
   outfile <- file.path(ssimTempDir, "CovariateCorrelationMatrix.png")
   
   v <- reactiveValues(options = options, 
-                      selectedCovs = names(covData))
+                      selectedCovs = names(covData)) 
   
   # image creates a new PNG file each time inputs change
   observeEvent(input$update, {
     v$options$CorrelationThreshold <- input$minCor
     v$options$NumberOfPlots <- input$numPlots
-    SelectedCovariates <<- v$selectedCovs <- input$show_vars
+    SelectedCovariates <<- v$selectedCovs <- input$show_vars 
   })
   
   output$image <- renderImage({

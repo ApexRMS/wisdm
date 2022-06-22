@@ -9,8 +9,8 @@
   CalcMESS <- function(rast,train.dat){  
     
     # if anything is out of range, return it before calculating sums                       
-    min.train <- train.dat[1,] #because we sorted
-    max.train <- train.dat[nrow(train.dat),]
+    min.train <- data.frame(train.dat[1,]) # because we sorted
+    max.train <- data.frame(train.dat[nrow(train.dat),])
     output <- data.frame(matrix(data=NA,nrow=nrow(rast),ncol=ncol(rast)))
     for(k in 1:length(min.train)){
       output[,k] <- my.min(rast.val=rast[,k], as.numeric(min.train[,k]), as.numeric(max.train[,k]))

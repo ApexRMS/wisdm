@@ -36,7 +36,7 @@ spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing"
   # if tile count is provided
   if(!is.na(tileCount)){
     
-    nRow <- round(nrow(templateRaster)/tileCount, 0)
+    nRow <- ceiling(nrow(templateRaster)/tileCount)
     startRows <- seq(1,nrow(templateRaster), by = nRow)
     nRows <- rep(nRow, length(startRows))
   
@@ -49,15 +49,14 @@ spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing"
                    nrows = nRows, 
                    n = tileCount)
     
-    suggestedTiles <- writeStart(templateRaster, filename = file.path(ssimTransDir, "temp.tif"), overwrite = T)
-    writeStop(templateRaster)
+    # suggestedTiles <- writeStart(templateRaster, filename = file.path(ssimTransDir, "temp.tif"), overwrite = T)
+    # writeStop(templateRaster)
     # tempRast <- raster::raster(templateSheet$RasterFilePath)
     # suggestedTiles <- raster::blockSize(tempRast)$n
     # remove(tempRast)
-    
-    if(abs(suggestedTiles$n-tileData$n)>2){ message(paste0("The output tiling raster includes ", 
-                                                      tileData$n, " tiles when the suggested tile count is ",
-                                                      suggestedTiles$n, ". This may cause longer processing time."))}
+    # if(abs(suggestedTiles$n-tileData$n)>2){ message(paste0("The output tiling raster includes ", 
+    #                                                   tileData$n, " tiles when the suggested tile count is ",
+    #                                                   suggestedTiles$n, ". This may cause longer processing time."))}
    
     
   } else {
@@ -93,8 +92,8 @@ spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing"
     
     # Calculate dimensions of each tile
     tileHeight <- tileData$nrows[1]
-    tileWidth <- floor(tileSize / tileHeight)
-
+    tileWidth <- ncol(templateRaster) # floor(tileSize/tileHeight)
+    
     # Generate a string of zeros the width of one tile
     oneTileWidth <- rep(0, tileWidth)
     
@@ -110,12 +109,32 @@ spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing"
     # Write tiling to file row-by-row
     writeStart(tileRaster, filename = file.path(ssimTransDir, "tile.tif"),  overwrite=TRUE)
     for(i in seq(tileData$n)) {
-      if(tileData$nrows[i] < tileHeight)
-        oneRow <- oneRow[1:(ncol(tileRaster) * tileData$nrows[i])]
-        writeValues(x = tileRaster, v = oneRow, start = tileData$row[i], nrows = tileData$nrows[i])
-        oneRow <- oneRow + 1
+      if(tileData$nrows[i] < tileHeight){ oneRow <- oneRow[1:(ncol(tileRaster) * tileData$nrows[i])] }
+      writeValues(x = tileRaster, v = oneRow, start = tileData$row[i], nrows = tileData$nrows[i])
+      oneRow <- oneRow + 1
     }
     writeStop(tileRaster)
+    
+    # # Consolidate small tiles into larger groups
+    # # - We want a map from the original tile IDs to new consolidated tile IDs
+    # reclassification <-
+    #   # Find the number of cells in each tile ID
+    #   tabulateRaster(tileRaster, tileData) %>%
+    #   # Sort by ID to approximately group tiles by proximity
+    #   arrange(value) %>%
+    #   # Consolidate into groups up to size tileSize
+    #   transmute(
+    #     from = value,
+    #     to   = consolidateGroups(freq, tileSize)) %>%
+    #   as.matrix()
+    # 
+    # # Reclassify the tiling raster to the new consolidated IDs
+    # tileRaster <- classify(
+    #   tileRaster,
+    #   reclassification,
+    #   filename = file.path(ssimTransDir, "tile.tif"),
+    #   overwrite = T)
+    
     
     # save tiling raster to core datasheet ---------------------------------------
     

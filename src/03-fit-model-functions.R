@@ -33,7 +33,7 @@ fitModel <- function(dat,           # df of training data
     myModelGLMStep <- list()
     penalty <- if(out$modOptions$SimplificationMethod == "AIC"){2} else {log(nrow(dat))}
     
-    factor.mask <- na.omit(match(names(out$factorInputVars),out$inputVars))
+    factor.mask <- na.omit(match(out$factorInputVars,out$inputVars))
     cont.mask <- seq(1:length(out$inputVars))
     if(length(factor.mask)!=0){cont.mask<-cont.mask[-c(factor.mask)]}
     
@@ -1899,8 +1899,9 @@ response.curves <- function(out){
   
   
   # rf partial plot does something odd with the y axis
-  dat <- out$data$train[,out$finalVars]
-  resp <- out$dat$train$Response
+  dat <- data.frame(out$data$train[,out$finalVars])
+  names(dat) <- out$finalVars
+  resp <- out$data$train$Response
   Xp <- as.data.frame(matrix(NA, nc = ncol(dat), nr = nrow(dat),
                              dimnames = list(NULL, colnames(dat))))
   for (i in 1:ncol(dat)) {

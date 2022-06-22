@@ -58,7 +58,7 @@ saveDatasheet(myScenario, validationDataSheet, "wisdm_ValidationOptions")
 
 # identify categorical covariates
 if(sum(covariatesSheet$IsCategorical, na.rm = T)>0){
-  factorVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T)]
+  factorVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T & covariatesSheet$CovariateName %in% covariateDataSheet$CovariatesID)]
 } else { factorVars <- NULL }
 
 # access crs database
@@ -139,6 +139,15 @@ rastPts <- rasterize(pts2, r)
 matPts <- as.matrix(rastPts, wide=T)
 keep <- which(!is.na(matPts))
 
+# identify random background points (cells)
+# possibleBG <- which(is.na(matPts))
+# keepBG <- sample(possibleBG, round(length(keep)/2))
+# bgPts <- data.frame(terra::xyFromCell(object = rastPts, keepBG))
+# names(bgPts) <- c("X","Y")
+# bgPts$Response <- 0 # -9998
+# # plot(bgPts)
+# fieldDataSheet <- addRow(fieldDataSheet, bgPts)
+
 rIDs <- rast(r, vals = 1:(dim(r)[1]*dim(r)[2]))
 cellPerPt <- terra::extract(rIDs, pts2)
 cellPerPt$SiteID <- pts2$SiteID
@@ -185,6 +194,35 @@ siteData <- gather(data = siteData, key = CovariatesID, value = Value, -SiteID)
 
 # save site data to scenario
 saveDatasheet(myScenario, siteData, "wisdm_SiteData")
+
+# # Categorical variables --------------------------------------------------------
+# 
+# if(!is.null(factorVars)){
+#   factor.levels <- list()
+#   for (i in 1:length(factorVars)){
+#     f.col <- factorVars[i]
+#     x <- table(siteDataWide[,f.col])
+#     if(nrow(x)<2){
+#       out$bad.factor.cols <- c(out$bad.factor.cols,factorVars[i])
+#     }
+#     if(any(x<10)) {
+#       warning(paste("Some levels for the categorical predictor ",factorVars[i]," do not have at least 10 observations.\n",
+#                     "You might want to consider removing or reclassifying this predictor before continuing.\n",
+#                     "Factors with few observations can cause failure in model fitting when the data is split and cannot be reilably used in training a model.",sep=""))
+#       factor.table <- as.data.frame(x)
+#       colnames(factor.table) <- c("Factor Name","Factor Count")
+#       cat(paste("\n",factorVars[i],"\n"))
+#       print(factor.table)
+#       cat("\n\n") 
+#     }
+#   }
+# }
+# 
+# if(!is.null(out$bad.factor.cols)){
+#   capture.output(cat("\nWarning: the following categorical response variables were removed from consideration\n",
+#                      "because they had only one level:",paste(out$bad.factor.cols,collapse=","),"\n"),
+#                  file=paste0(ssimTempDir,"\\Data\\glm_output.txt"),append=T)
+# }
 
 # Aggregate or Weight sites ----------------------------------------------------
 
@@ -258,8 +296,6 @@ if(validationDataSheet$SplitData){
 }
 
 
-
-
 # Define Cross Validation folds (if specified) 
 if(validationDataSheet$CrossValidate){
   outputData <- crossValidationSplit(inputData = inputData,
@@ -267,6 +303,7 @@ if(validationDataSheet$CrossValidate){
                                      nFolds = validationDataSheet$NumberOfFolds,
                                      stratify = validationDataSheet$StratifyFolds)
 }
+
 
 updateFieldData <- select(outputData, names(fieldDataSheet))
 

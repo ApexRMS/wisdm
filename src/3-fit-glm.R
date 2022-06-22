@@ -45,6 +45,8 @@
   if(is.na(GLMSheet$ConsiderSquaredTerms)){GLMSheet$ConsiderSquaredTerms <- FALSE}
   if(is.na(GLMSheet$ConsiderInteractions)){GLMSheet$ConsiderInteractions <- FALSE}
   
+  saveDatasheet(myScenario, GLMSheet, "wisdm_GLM")
+  
   ## Validation Sheet
   if(nrow(ValidationDataSheet)<1){
     ValidationDataSheet <- addRow(ValidationDataSheet, list(SplitData = FALSE,
@@ -76,6 +78,10 @@
   # ignore background data if present
   siteDataWide <- siteDataWide[!siteDataWide$Response == -9999,]
   
+  # set categorical variable to factor
+  factorInputVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T & covariatesSheet$CovariateName %in% names(siteDataWide))]
+  siteDataWide[,factorInputVars] <- factor(siteDataWide[,factorInputVars])
+  
   # identify training and testing sites 
   siteDataWide$UseInModelEvaluation[is.na(siteDataWide$UseInModelEvaluation)] <- FALSE
   trainTestDatasets <- split(siteDataWide, f = siteDataWide[,"UseInModelEvaluation"], drop = T)
@@ -83,7 +89,7 @@
   testingData <- trainTestDatasets$`TRUE`
   
   # identify cross validation folds for model selection (if specified)
-  if(ValidationDataSheet$CrossValidate){ # TO Do: build out assigns nfold number to each training row
+  if(ValidationDataSheet$CrossValidate){ 
     CVSplitsTrain <- list()
     CVSplitsTest <- list()
     for (i in 1:(ValidationDataSheet$NumberOfFolds)){
@@ -115,7 +121,7 @@
   
   ## Candidate variables 
   out$inputVars <- reducedCovariatesSheet$CovariatesID
-  out$factorInputVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T)]
+  out$factorInputVars <- factorInputVars
   
   ## training data
   out$data$train <- trainingData
@@ -146,45 +152,13 @@
 
 # Review model data ------------------------------------------------------------
 
-  ## check categorical variables 
-  factor.names <- out$factorInputVars # out$inputVars[1]
-  factor.levels <- list()
-  if(length(factor.names)>0){
-    for (i in 1:length(factor.names)){
-      f.col <- factor.names[i]
-      x <- table(trainingData[,f.col])
-      if(nrow(x)<2){
-        out$bad.factor.cols <- c(out$bad.factor.cols,factor.names[i])
-      }
-      if(any(x<10)) {
-        warning(paste("Some levels for the categorical predictor ",factor.names[i]," do not have at least 10 observations.\n",
-                      "You might want to consider removing or reclassifying this predictor before continuing.\n",
-                      "Factors with few observations can cause failure in model fitting when the data is split and cannot be reilably used in training a model.",sep=""))
-        factor.table <- as.data.frame(x)
-        colnames(factor.table) <- c("Factor Name","Factor Count")
-        cat(paste("\n",factor.names[i],"\n"))
-        print(factor.table)
-        cat("\n\n") }
-      lc.levs <-  as.numeric(row.names(x))[x>0] # make sure there is at least one "available" observation at each level
-      lc.levs <- data.frame(number=lc.levs,class=lc.levs)
-      factor.levels[[i]] <- lc.levs
-      
-      trainingData[,f.col] <- factor(trainingData[,f.col],levels=lc.levs$number,labels=lc.levs$class)
-    }
-  }
-  if(!is.null(out$bad.factor.cols)){
-    capture.output(cat("\nWarning: the following categorical response variables were removed from consideration\n",
-                       "because they had only one level:",paste(out$bad.factor.cols,collapse=","),"\n"),
-                   file=paste0(ssimTempDir,"\\Data\\glm_output.txt"),append=T)
-  }
-  
   if(nrow(trainingData)/(length(out$inputVars)-1)<10){
     capture.output(cat(paste("\n Warning: You have approximately ", round(nrow(trainingData)/(ncol(trainingData)-1),digits=1),
                              " observations for every predictor\n consider reducing the number of predictors before continuing\n",sep="")),
                    file=paste0(ssimTempDir,"\\Data\\glm_output.txt"),append=T)
   }
 
-
+  
 # Fit model --------------------------------------------------------------------
 
   # source(file.path(packageDir, "fitModel.R")) ## GLM - code sourced and updated from model.fit.r 
@@ -198,10 +172,10 @@
   
   # add relevant model details to out 
   out$finalMod <- finalMod
-  out$nVarsFinal <- length(attr(terms(formula(finalMod)),"term.labels"))
   out$finalVars <- attr(terms(formula(finalMod)),"term.labels")
   # have to remove all the junk with powers and interactions for mess map production to work
   out$finalVars <- unique(unlist(strsplit(gsub("I\\(","",gsub("\\^2)","",out$finalVars)),":")))
+  out$nVarsFinal <- length(out$finalVars)
   
   # add relevant model details to text output 
   txt0 <- paste("\n\n","Settings:\n","\n\t model family:  ",out$modelFamily,
