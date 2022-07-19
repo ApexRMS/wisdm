@@ -93,7 +93,7 @@ names(covsDE) <- devInfo$covDE
 
 # inputs
 covData <- select(siteData, -Response)
-covsDE
+# covsDE
 options <- covariateSelectionSheet
 
 # TO DO: find better way to access default web app 

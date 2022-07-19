@@ -70,7 +70,7 @@
   allCases <- nrow(siteDataWide)
   siteDataWide <- siteDataWide[complete.cases(subset(siteDataWide, select = c(-ModelSelectionSplit, -Weight))),]
   compCases <- nrow(siteDataWide)
-  if(compCases/allCases < 0.9){warning(paste(round((1-compCases/allCases)*100,digits=2),"% of cases were removed because of missing values",sep=""))}
+  if(compCases/allCases < 0.9){updateRunLog(paste("Warning: ", round((1-compCases/allCases)*100,digits=2),"% of cases were removed because of missing values",sep=""))}
   
   # set site weights to default of 1 if not already supplied
   if(all(is.na(siteDataWide$Weight))){siteDataWide$Weight <- 1}
@@ -80,8 +80,8 @@
   
   # set categorical variable to factor
   factorInputVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T & covariatesSheet$CovariateName %in% names(siteDataWide))]
-  siteDataWide[,factorInputVars] <- factor(siteDataWide[,factorInputVars])
-  
+  if(length(factorInputVars)>0){ siteDataWide[,factorInputVars] <- factor(siteDataWide[,factorInputVars]) }
+ 
   # identify training and testing sites 
   siteDataWide$UseInModelEvaluation[is.na(siteDataWide$UseInModelEvaluation)] <- FALSE
   trainTestDatasets <- split(siteDataWide, f = siteDataWide[,"UseInModelEvaluation"], drop = T)
@@ -153,9 +153,8 @@
 # Review model data ------------------------------------------------------------
 
   if(nrow(trainingData)/(length(out$inputVars)-1)<10){
-    capture.output(cat(paste("\n Warning: You have approximately ", round(nrow(trainingData)/(ncol(trainingData)-1),digits=1),
-                             " observations for every predictor\n consider reducing the number of predictors before continuing\n",sep="")),
-                   file=paste0(ssimTempDir,"\\Data\\glm_output.txt"),append=T)
+    updateRunLog(paste("\n Warning: You have approximately ", round(nrow(trainingData)/(ncol(trainingData)-1),digits=1),
+                             " observations for every predictor\n consider reducing the number of predictors before continuing\n",sep=""))
   }
 
   
@@ -169,6 +168,7 @@
 
   # save model to temp storage
   saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\glm_model.rds"))
+  progressBar(message = "Finished with stepwise GLM")
   
   # add relevant model details to out 
   out$finalMod <- finalMod
@@ -181,13 +181,21 @@
   txt0 <- paste("\n\n","Settings:\n","\n\t model family:  ",out$modelFamily,
               "\n\t simplification method:  ",GLMSheet$SimplificationMethod,
               "\n\n\n","Results:\n\t ","number covariates in final model:  ",length(attr(terms(formula(finalMod)),"term.labels")),"\n",sep="")
-  print(finalMod$summary <- summary(finalMod))
+  
+  finalMod$summary <- summary(finalMod)
+  
+  updateRunLog("Summary of Model:\n\n")
+  updateRunLog(pander::pandoc.formula.return(finalMod$summary$call))
+  coeftbl <- finalMod$summary$coefficients
+  coeftbl <- round(coeftbl, 6) 
+  coeftbl <- cbind(rownames(coeftbl), coeftbl)
+  rownames(coeftbl) <- NULL
+  colnames(coeftbl) <- c("Variable", "Estimate", "Std. Error", "z value", "Pr(>|z|)")  
+  updateRunLog(pander::pandoc.table.return(coeftbl, style = "simple", split.tables = 100))
   
   capture.output(cat(txt0),finalMod$summary,file=paste0(ssimTempDir,"\\Data\\glm_output.txt"), append=TRUE)
-  cat("\n","Finished with stepwise GLM","\n")
-  cat("Summary of Model:","\n")
   
-  if(length(coef(finalMod))==1) stop("Null model was selected.  \nEvaluation metrics and plots will not be produced") 
+  if(length(coef(finalMod))==1) stop("Null model was selected. \nEvaluation metrics and plots will not be produced") 
 
 # Test model predictions -------------------------------------------------------
   
@@ -208,7 +216,7 @@
   if(ValidationDataSheet$CrossValidate){
     
     out <- cv.fct(out = out,
-                        nfolds = ValidationDataSheet$NumberOfFolds)
+                  nfolds = ValidationDataSheet$NumberOfFolds)
   }
   
 # Generate Model Outputs -------------------------------------------------------
@@ -231,22 +239,21 @@
                                    ModelRDS = paste0(ssimTempDir,"\\Data\\glm_model.rds"),
                                    ResponseCurves = paste0(ssimTempDir,"\\Data\\glm_ResponseCurves.png"),
                                    TextOutput = paste0(ssimTempDir,"\\Data\\glm_output.txt"),
-                                   CalibrationPlot = paste0(ssimTempDir,"\\Data\\glm_CalibrationPlot.png"), 
                                    ResidualSmoothPlot = paste0(ssimTempDir,"\\Data\\glm_ResidualSmoothPlot.png"),
-                                   ResidualSmoothRDS = paste0(ssimTempDir,"\\Data\\glm_ResidualSmoothFunction.rds"),
-                                   ROCAUCPlot = paste0(ssimTempDir,"\\Data\\glm_ROCAUCPlot.png"),
-                                   # AUCPRPlot = paste0(ssimTempDir,"\\Data\\glm_AUCPRPlot.png"),
-                                   ConfusionMatrix = paste0(ssimTempDir,"\\Data\\glm_ConfusionMatrix.png"),
-                                   VariableImportancePlot = paste0(ssimTempDir,"\\Data\\glm_VariableImportance.png"),
-                                   VariableImportanceData = paste0(ssimTempDir,"\\Data\\glm_VariableImportance.csv")))
+                                   ResidualSmoothRDS = paste0(ssimTempDir,"\\Data\\glm_ResidualSmoothFunction.rds")))
   
-  if(ValidationDataSheet$CrossValidate){
-      modelOutputsSheet$AUCPRPlot <- paste0(ssimTempDir,"\\Data\\glm_AUCPRPlot.png")
-  } 
-  if("glm_StandardResidualPlots.png" %in% tempFiles){
-    modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\glm_StandardResidualPlots.png")
+  if(out$modelFamily != "poisson"){
+    if("glm_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\glm_StandardResidualPlots.png") }
+    modelOutputsSheet$ConfusionMatrix <-  paste0(ssimTempDir,"\\Data\\glm_ConfusionMatrix.png")
+    modelOutputsSheet$VariableImportancePlot <-  paste0(ssimTempDir,"\\Data\\glm_VariableImportance.png")
+    modelOutputsSheet$VariableImportanceData <-  paste0(ssimTempDir,"\\Data\\glm_VariableImportance.csv")
+    modelOutputsSheet$ROCAUCPlot <- paste0(ssimTempDir,"\\Data\\glm_ROCAUCPlot.png")
+    modelOutputsSheet$CalibrationPlot <- paste0(ssimTempDir,"\\Data\\glm_CalibrationPlot.png")
+  } else {
+    modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\glm_PoissonResidualPlots.png")
   }
-
-
+  
+  if("glm_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- paste0(ssimTempDir,"\\Data\\glm_AUCPRPlot.png") } 
+  
   saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs")
   

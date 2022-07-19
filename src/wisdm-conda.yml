@@ -1,0 +1,17 @@
+name: wisdm_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - mkl
+  - r-base
+  - r-terra
+  - r-pander
+  - r-shiny
+  - r-tidyr
+  - r-presenceabsence
+  - r-prroc
+  - r-rocr
+  - r-ggplot2
+  - r-gbm
+

@@ -51,21 +51,20 @@ testTrainSplit <- function(inputData,             # dataframe with field data an
   if(!is.null(factorVars)){
     for (i in 1:length(factorVars)){
       factor.table <- table(dat[,factorVars[i]])
-      if(any(factor.table<10)){ warning(paste("Some levels for the categorical predictor ",factorVars[i]," do not have at least 10 observations.\n",
-                                              "You might want to consider removing or reclassifying this predictor before continuing.\n",
-                                              "Factors with few observations can cause failure in model fitting when the data is split and cannot be reilably used in training a model.",sep=""))
+      if(any(factor.table<10)){ updateRunLog(paste0("Warning: Some levels for the categorical predictor ",factorVars[i]," do not have at least 10 observations. ", 
+                                                    "Consider removing or reclassifying this predictor before continuing.\n",
+                                                    "Factors with few observations can cause failure in model fitting when the data is split and cannot be reliably used in training a model.\n\n"))
         factor.table <- as.data.frame(factor.table)
-        colnames(factor.table) <- c("Factor Name","Factor Count")
-        cat(paste("\n",factorVars[i],"\n"))
-        print(factor.table)
-        cat("\n\n")
+        colnames(factor.table)<-c("Factor Name","Factor Count")
+        updateRunLog(paste(factorVars[i],"\n"))
+        updateRunLog(pander::pandoc.table.return(factor.table, style = "rmarkdown"))
       }
     }
   }
   if(length(response)<100){ stop("A test training split is not advisable for less than 100 observations.  Consider-cross validation as an alternative.")}
   if(length(response)<200){
-    warning(paste("There are less than 200 observations. Cross-validation might be preferable to a test:",
-                  "training split \n weigh the decision while keeping in mind the number of predictors being considered: ", ncol(dat)-7,sep=""))
+    updateRunLog(paste0("Warning: There are less than 200 observations. Cross-validation might be preferable to a test/training split./n",
+                        "Weigh the decision while keeping in mind the number of predictors being considered: ", ncol(dat)-7,"/n/n"))
   }
   if(all(na.omit(response) %in% 0:1) & any(table(response)<10)){
     stop("Use of a test training split is not recommended when the dataset contains less than 10 presence or absence points")
@@ -97,9 +96,7 @@ testTrainSplit <- function(inputData,             # dataframe with field data an
       # first determine how many presence points to remove
       TotToRmv <- (sum(response>=1)-ratioPresAbs*sum(response==0))
       if(TotToRmv/sum(response>=1) > 0.5){
-      warning("******************************************\n**** Over 50% of the 
-      presence points were removed to meet the desired ratio of presence to absence
-              \n******************************************")}
+      updateRunLog("Warning: Over 50% of the presence points were removed to meet the desired ratio of presence to absence\n\n")}
       
       # determine the number of each count to remove weighted by the response and then remove these
       EachToRmv <- round(TotToRmv * table(response[response!= 0])/sum(response!= 0))
@@ -139,9 +136,7 @@ testTrainSplit <- function(inputData,             # dataframe with field data an
         TrainSplit <- c(TrainSplit, sample(which(response==i, arr.ind=TRUE), size = round(sum(response==i)*trainProp)))
       }
       if((sum(response==0)-sum(response>=1)/ratioPresAbs)/sum(response==0) > 0.5){
-      warning("******************************************\n**** Over 50% of the
-              absence points were removed to meet the desired ratio of presence to 
-              absence \n******************************************")}
+      updateRunLog("Warning: Over 50% of the absence points were removed to meet the desired ratio of presence to absence\n\n")}
       
       # sample the right number of absence points for the train split
       TrainSplit <- c(TrainSplit, sample(which(response==0, arr.ind=TRUE), size=round(sum(response>=1)*(1/ratioPresAbs)*trainProp)))
@@ -218,16 +213,14 @@ crossValidationSplit <- function(inputData,         # dataframe with field data 
   if(!is.null(factorVars)){
     for (i in 1:length(factorVars)){
       factor.table <- table(dat[,factorVars[i]])
-      if(any(factor.table<10))
-      {warning(paste("Some levels for the categorical predictor ", factorVars[i],
-                     " do not have at least 10 observations.\n",
-                     "you might want to consider removing or reclassifying this predictor before continuing.\n",
-                     "Factors with few observations can cause failure in model fitting when the data is split and cannot be reilably used in training a model.",sep=""))
+      if(any(factor.table<10)){
+        updateRunLog(paste0("Warning: Some levels for the categorical predictor ", factorVars[i], " do not have at least 10 observations.",
+                     " Consider removing or reclassifying this predictor before continuing.\n",
+                     "Factors with few observations can cause failure in model fitting when the data is split and cannot be reliably used in training a model.\n\n"))
         factor.table <- as.data.frame(factor.table)
         colnames(factor.table)<-c("Factor Name","Factor Count")
-        cat(paste("\n",factorVars[i],"\n"))
-        print(factor.table)
-        cat("\n\n")
+        updateRunLog(paste(factorVars[i],"\n"))
+        updateRunLog(pander::pandoc.table.return(factor.table, style = "rmarkdown"))
       }
     }
   }

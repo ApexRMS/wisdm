@@ -46,7 +46,7 @@ if(is.na(validationDataSheet$SplitData)){validationDataSheet$SplitData <- FALSE}
 if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}
 if(validationDataSheet$CrossValidate){
   if(is.na(validationDataSheet$NumberOfFolds)){
-    warning("Number of Folds not specified. Default value used: 10")
+    updateRunLog("Number of Folds not specified. Default value used: 10\n\n")
     validationDataSheet$NumberOfFolds <- 10
   }
   if(is.na(validationDataSheet$StratifyFolds)){validationDataSheet$StratifyFolds <- FALSE}
@@ -62,10 +62,12 @@ if(sum(covariatesSheet$IsCategorical, na.rm = T)>0){
 } else { factorVars <- NULL }
 
 # access crs database
-# projDB <- system.file("proj/proj.db", package = "terra")
-# crsTable <- sf::read_sf(projDB, "crs_view") 
+projDB <- system.file("proj/proj.db", package = "terra")
+crsTable <- sf::read_sf(projDB, "crs_view") 
+possibleCodes <- paste0(crsTable$auth_name, ":", crsTable$code)
 
 # template raster
+if(nrow(templateRasterSheet)<1){ stop("Template raster is missing. Please provide a template raster before continuing.")}
 template <- rast(templateRasterSheet$RasterFilePath)
 tempRes <- res(template)
 tempExt <- ext(template)
@@ -88,11 +90,15 @@ tempCRS <- crs(template)
   
   # load points data and update coordinates if an authority code is defined  
   if(!is.na(fieldDataOptions$EPSG)){
-    pts <- vect(fieldDataSheet, geom = c("X", "Y"), crs = fieldDataOptions$EPSG)
-    pts <- terra::project(pts, template)
-    geomPts <- geom(pts)
-    fieldDataSheet$X <- geomPts[,"x"]
-    fieldDataSheet$Y <- geomPts[,"y"]
+    if(fieldDataOptions$EPSG %in% possibleCodes){
+      pts <- vect(fieldDataSheet, geom = c("X", "Y"), crs = fieldDataOptions$EPSG)
+      pts <- terra::project(pts, template)
+      geomPts <- geom(pts)
+      fieldDataSheet$X <- geomPts[,"x"]
+      fieldDataSheet$Y <- geomPts[,"y"]
+    } else {
+     stop("Invalid CRS (authority code) provided for field data. See {documention} for a list of accepted authority codes.")
+    }
   } else {
     pts <- vect(fieldDataSheet, geom = c("X", "Y"), crs = tempCRS)
   }
@@ -128,8 +134,8 @@ pts2 <- crop(pts, extPoly)
 keepSites <- pts2$SiteID
 
 if(length(keepSites)<nrow(fieldDataSheet)){
-  warning(paste0(nrow(fieldDataSheet)-length(keepSites), " sites out of ", nrow(fieldDataSheet), 
-               " total sites in the input Field Data were outside the template extent and were REMOVED from the output Field Data."))
+  updateRunLog(paste0("Warning: ", nrow(fieldDataSheet)-length(keepSites), " sites out of ", nrow(fieldDataSheet), 
+               " total sites in the input field data were outside the template extent and were REMOVED from the output field data.\n\n"))
   fieldDataSheet <- fieldDataSheet[fieldDataSheet$SiteID %in% keepSites,]
 }
 
@@ -158,7 +164,7 @@ rPixels <- rasterize(pts2, r, field = "PixelID")
 matPixs <- as.matrix(rPixels, wide=T)
 PixelIDs <- matPixs[keep]
 
-# Prep covaraite data ----------------------------------------------------------
+# Prep covariate data ----------------------------------------------------------
 
 # TO DO: prepare raster layers to ensure layers match crs/res/extent of template layer
 ## for now code assumes layers are already processed
@@ -208,7 +214,7 @@ saveDatasheet(myScenario, siteData, "wisdm_SiteData")
 #     if(any(x<10)) {
 #       warning(paste("Some levels for the categorical predictor ",factorVars[i]," do not have at least 10 observations.\n",
 #                     "You might want to consider removing or reclassifying this predictor before continuing.\n",
-#                     "Factors with few observations can cause failure in model fitting when the data is split and cannot be reilably used in training a model.",sep=""))
+#                     "Factors with few observations can cause failure in model fitting when the data is split and cannot be reliably used in training a model.",sep=""))
 #       factor.table <- as.data.frame(x)
 #       colnames(factor.table) <- c("Factor Name","Factor Count")
 #       cat(paste("\n",factorVars[i],"\n"))
@@ -231,7 +237,7 @@ repeatPIDs <- siteDataWide$PixelID[duplicated(siteDataWide$PixelID)]
 if(!is.na(fieldDataOptions$AggregateAndWeight)){
   
   if(length(repeatPIDs)==0){
-    message("Only one field data observation is represented per pixel; no aggregation or down-weighting required.")
+    updateRunLog("Only one field data observation present per pixel; no aggregation or weighting required.\n\n")
     # fieldDataOptions$AggregateAndWeight <- NA
     # saveDatasheet(myScenario, fieldDataOptions, "wisdm_FieldDataOptions")
   } else {
@@ -277,7 +283,7 @@ if(!is.na(fieldDataOptions$AggregateAndWeight)){
         weight_i <- 1/length(sites_i)
         fieldDataSheet$Weight[fieldDataSheet$SiteID %in% sites_i] <- weight_i
       } 
-    } else { warning("Weights already provided in Field Data, new weights were NOT assigned.") }
+    } else { updateRunLog("Warning: Weights already present in field data, new weights were NOT assigned.\n\n") }
   
   } # end site weighting
   } # end else

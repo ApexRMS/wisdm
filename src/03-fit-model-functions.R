@@ -480,13 +480,12 @@ roc <- function (obs,    # observed response
   # the area
   
   if (length(obs) != length(preds))
-    stop("obs and preds must be equal lengths")
+    stop("ROC function failed - observed and predicted response must be equal lengths")
   n.x <- length(obs[obs == 0])
   n.y <- length(obs[obs == 1])
   xy <- c(preds[obs == 0], preds[obs == 1])
   rnk <- rank(xy)
-  wilc <- ((n.x * n.y) + ((n.x * (n.x + 1))/2) - sum(rnk[1:n.x]))/(n.x *
-                                                                     n.y)
+  wilc <- ((n.x * n.y) + ((n.x * (n.x + 1))/2) - sum(rnk[1:n.x]))/(n.x * n.y)
   return(round(wilc, 4))
 }
 
@@ -505,9 +504,7 @@ calibration <- function(obs,   # observed response
   pred.range <- max(preds) - min(preds)
   
   if(pred.range > 1.2 & family == "binomial") {
-    print(paste("range of response variable is ", round(pred.range, 2)), sep = "", quote = F)
-    print("check family specification", quote = F)
-    return()
+    updateRunLog(paste0("Range of response variable is ", round(pred.range, 2), ". Check family specification."))
   }
   if(family == "binomial") {
     pred <- preds + 1e-005
@@ -564,7 +561,7 @@ permute.predict <- function(inputVars, # input variables for model fitting
 
 # MODEL OUTPUT FUNCTIONS -------------------------------------------------------
 
-## Make AUC function -----------------------------------------------------------
+## Make Model Evaluation Plots -------------------------------------------------
 
 makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.plot.jpg
   
@@ -576,7 +573,7 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
   ROCAUCFile <- paste0(out$tempDir, out$modType, "_ROCAUCPlot.png")  
   AUCPRFile <- paste0(out$tempDir, out$modType, "_AUCPRPlot.png")
   calibrationFile <- paste0(out$tempDir, out$modType, "_CalibrationPlot.png")
-  residualPlotFile <- paste0(out$tempDir, out$modType, "_PoissonResidualPlot.png")
+  residualPlotFile <- paste0(out$tempDir, out$modType, "_PoissonResidualPlots.png")
 
   
   if(!out$validationOptions$SplitData & !out$validationOptions$CrossValidate){ splitType <- "none" }
@@ -895,19 +892,6 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
   
   ### Text Output ###
   
-  # capture.output(cat("\n\n============================================================",
-  #                    "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
-  # 
-  # train.stats = list()
-  # 
-  # if(splitType == "none"){ train.stats <- Stats
-  # } else {
-  #   train.stats$train=Stats$train
-  # }
-  # 
-  # capture.stats(train.stats, file.name =paste0(out$tempDir, out$modType, "_output.txt"), 
-  #               label = "train", family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
-  # 
   if(splitType == "cv/train/test"){
     
     capture.output(cat("\n\n============================================================",
@@ -947,32 +931,6 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
                   label = splitType, family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
   }
   
-  # ### getting statistics along with appropriate names into a data frame for creating the appended output
-  # parent <- dirname(out$input$output.dir)
-  # 
-  # if(out$ModelFamily %in% c("binomial", "bernoulli")){
-  #   
-  #   csv.stats <- lapply(Stats, function(lst){return(c("", "", lst$correlation, lst$pct.dev.exp,lst$Pcc, lst$auc.fit, lst$auc.pr,lst$Tss))})
-  #   stat.names <- c("Correlation Coefficient", "Percent Deviance Explained", "Percent Correctly Classified", "AUC", "AUCPR", "True Skill Stat")
-  # 
-  #   } else {
-  #     csv.stats <- lapply(Stats, function(lst){return(c("", "", lst$correlation, lst$pct.dev.exp, lst$prediction.error/100))})
-  #     stat.names <- c("Correlation Coefficient", "Percent Deviance Explained", "Prediction Error")
-  #     }
-  # 
-  # csv.vect <- c(t(t(as.vector(unlist(csv.stats["train"])))), if(splitType != "none") unlist(csv.stats[-which(names(csv.stats)== "train")]))
-  # csv.vect[seq(from = 2, by = length(csv.vect)/length(Stats), length = length(Stats))] <- if(splitType == "none"){ "Train"
-  #   } else {
-  #     c("Train", names(lst))
-  #     }
-  # x = data.frame(cbind(rep(c("", "", stat.names), times = length(Stats)), csv.vect), row.names = NULL)
-  # 
-  # Header<-cbind(c("", "Original Field Data", "Field Data Template", "PARC Output Folder", "PARC Template", "Covariate Selection Name", ""),
-  #               c(basename(out$input$output.dir), out$dat$input$OrigFieldData, out$dat$input$FieldDataTemp, out$dat$input$ParcOutputFolder,
-  #                 basename(out$dat$input$ParcTemplate), ifelse(length(out$dat$input$CovSelectName) == 0,"NONE", out$dat$input$CovSelectName), ""))
-  # 
-  # AppendOut(compile.out = out$input$Append.Dir, Header, x, out, Parm.Len = length(stat.names), parent = parent, split.type = out$dat$split.type)
-  # 
   return(out)
 }
 
@@ -1020,11 +978,13 @@ calcStat <- function(x,       # x <- out$data[[i]]
   # this isn't necessarily true for an independent evaluation set
   
   auc.fit <- roc(auc.data$pres.abs, auc.data$pred)
-  auc.pr <- pr.curve(scores.class0 = auc.data$pred, weights.class0 = auc.data$pres.abs)[[3]]
   
-  calibration.stats <- calibration(auc.data$pres.abs, auc.data$pred, family =family)
+  calibration.stats <- calibration(auc.data$pres.abs, auc.data$pred, family = family)
   
   if(family %in% c("binomial","bernoulli")){
+    
+    auc.pr <- pr.curve(scores.class0 = auc.data$pred, weights.class0 = auc.data$pres.abs)[[3]]
+    
     cmx <- cmx(auc.data,threshold=thresh)
     PCC <- pcc(cmx,st.dev=F)*100
     SENS <- sensitivity(cmx,st.dev=F)
@@ -1047,7 +1007,7 @@ calcStat <- function(x,       # x <- out$data[[i]]
                 null.dev=null.dev, dev.fit=dev.fit, dev.exp=dev.exp, 
                 pct.dev.exp=pct.dev.exp, 
                 correlation=correlation,
-                auc.data=auc.data, auc.fit=auc.fit, auc.pr=auc.pr,
+                auc.data=auc.data, auc.fit=auc.fit, # auc.pr=auc.pr,
                 prediction.error=prediction.error, calibration.stats=calibration.stats))
   }
   
@@ -1375,51 +1335,50 @@ TestTrainRocPlot <- function(dat,    # Stats$train$auc.data
 {
   if (is.data.frame(dat) == FALSE) {
     if (is.matrix(dat) == TRUE) {dat <- as.data.frame(dat)
-    } else {stop("'dat' must be either data frame or matrix")}}
+    } else {stop("Test/Train ROC failed - 'dat' must be either data frame or matrix")}}
   
   obs <- dat[, 2]
   if (length(obs[obs == 0]) == 0) { 
-    stop("no observed absences in dataset, therefore specificity does not",
-         "exist, and modeling, much less Area Under the Curve, is not very",
-         "meaningful")}
+    stop("Test/Train ROC failed - no observed absences in dataset, therefore specificity does not",
+         "exist, and modeling, much less Area Under the Curve, is not very meaningful")}
   
   if (length(obs[obs == 1]) == 0) {
-    stop("no observed presences in dataset, therefore sensitivity does not",
+    stop("Test/Train ROC failed - no observed presences in dataset, therefore sensitivity does not",
          "exist, and modeling, much less Area Under the Curve, is not very",
          "meaningful")}
   
   if (is.logical(find.auc) == FALSE) { 
-    stop("'find.auc' must be of logical type")}
+    stop("Test/Train ROC failed - 'find.auc' must be of logical type")}
   
   if (is.logical(na.rm) == FALSE) {
-    stop("'na.rm' must be of logical type")}
+    stop("Test/Train ROC failed - 'na.rm' must be of logical type")}
   
   if (is.logical(mark.numbers) == FALSE) {
-    stop("'mark.numbers' must be of logical type!")}
+    stop("Test/Train ROC failed - 'mark.numbers' must be of logical type!")}
   
   if (is.logical(add.legend) == FALSE) {
-    stop("'add.legend' must be of logical type!")}
+    stop("Test/Train ROC failed - 'add.legend' must be of logical type!")}
   
   if (is.logical(add.opt.legend) == FALSE) {
-    stop("'add.opt.legend' must be of logical type")}
+    stop("Test/Train ROC failed - 'add.opt.legend' must be of logical type")}
   
   if (is.logical(counter.diagonal) == FALSE) {
-    stop("'counter.diagonal' must be of logical type")}
+    stop("Test/Train ROC failed - 'counter.diagonal' must be of logical type")}
   
   if (length(smoothing) != 1) {
-    stop("'smoothing' must be a single number greater than or equal to 1")
+    stop("Test/Train ROC failed - 'smoothing' must be a single number greater than or equal to 1")
   } else {
     if (is.numeric(smoothing) == FALSE) {
-      stop("'smoothing' must be a single number greater than or equal to 1")
+      stop("Test/Train ROC failed - 'smoothing' must be a single number greater than or equal to 1")
     } else {
       if (smoothing < 1) {
-        stop("'smoothing' must be a single number greater than or equal to 1")
+        stop("Test/Train ROC failed - 'smoothing' must be a single number greater than or equal to 1")
       }}}
   
   if (sum(is.na(dat)) > 0) {
     if (na.rm == TRUE) {
       NA.rows <- apply(is.na(dat), 1, sum)
-      warning(length(NA.rows[NA.rows > 0]), " rows ignored due to NA values")
+      updateRunLog(paste0("Warning - Test/Train ROC: ", length(NA.rows[NA.rows > 0]), " rows of data were ignored due to NA values"))
       dat <- dat[NA.rows == 0, ]
     } else { return(NA) }}
   
@@ -1430,19 +1389,19 @@ TestTrainRocPlot <- function(dat,    # Stats$train$auc.data
   }
   
   if (obs.prev < 0 || obs.prev > 1) {
-    stop("'obs.prev' must be a number between zero and one")} 
+    stop("Test/Train ROC failed - 'obs.prev' must be a number between zero and one")} 
   
   if (obs.prev == 0) {
-    warning("because your observed prevalence was zero, results may be strange")}
+    updateRunLog("Warning - Test/Train ROC: Because the observed prevalence was zero, results may be strange")}
   
   if (obs.prev == 1) {
-    warning("because your observed prevalence was one, results may be strange")}
+    updateRunLog("Warning - Test/Train ROC: Because the observed prevalence was one, results may be strange")}
   
   if (min(which.model) < 1 || sum(round(which.model) != which.model) != 0){
-    stop("values in 'which.model' must be positive integers")}
+    stop("Test/Train ROC failed - values in 'which.model' must be positive integers")}
   
   if (max(which.model) > N.models) {
-    stop("values in 'which.model' must not be greater than number of models in 'dat'!")}
+    stop("Test/Train ROC failed - values in 'which.model' must not be greater than number of models in 'dat'!")}
   
   if (is.null(model.names) == TRUE) {
     model.names <- if (is.null(names(dat)) == FALSE) {
@@ -1452,13 +1411,13 @@ TestTrainRocPlot <- function(dat,    # Stats$train$auc.data
     }}
   
   if (N.models != length(model.names) && (length(which.model) != 1 || length(model.names) != 1)) {
-    stop("If 'model.names' is specified it must either be a single name, or a vector",
+    stop("Test/Train ROC failed - If 'model.names' is specified it must either be a single name, or a vector",
          "of the same length as the number of model predictions in 'dat'")}
   
   if (is.null(legend.text) == TRUE) { legend.text <- model.names }
   
   if (length(legend.text) != N.models) {
-    stop("'opt.legend.text' must be of same length as 'opt.methods'")}
+    stop("Test/Train ROC failed - 'opt.legend.text' must be of same length as 'opt.methods'")}
   
   dat <- dat[, c(1, 2, which.model + 2)]
   if (length(model.names) != 1) { model.names <- model.names[which.model] }
@@ -1467,7 +1426,7 @@ TestTrainRocPlot <- function(dat,    # Stats$train$auc.data
   N.dat <- ncol(dat) - 2
   if (is.null(obs.prev) == TRUE) { obs.prev <- sum(dat[, 2])/nrow(dat) }
   if (obs.prev < 0 || obs.prev > 1) {
-    stop("'obs.prev' must be a number between zero and one")}
+    stop("Test/Train ROC failed - 'obs.prev' must be a number between zero and one")}
   
   mark <- matrix(mark, length(mark), N.dat)
   if (!is.null(opt.methods) && is.null(opt.thresholds)) { opt.thresholds <- TRUE }
@@ -1484,40 +1443,40 @@ TestTrainRocPlot <- function(dat,    # Stats$train$auc.data
       N.meth <- length(opt.methods)
       if (is.numeric(opt.methods) == TRUE) {
         if (sum(opt.methods %in% (1:length(POSSIBLE.meth))) != N.meth) {
-          stop("invalid optimization method")
+          stop("Test/Train ROC failed - invalid optimization method")
         } else {
           opt.methods <- POSSIBLE.meth[opt.methods]
         }}
       
       if (sum(opt.methods %in% POSSIBLE.meth) != N.meth) {
-        stop("invalid optimization method") }
+        stop("Test/Train ROC failed - invalid optimization method") }
       
       if (is.null(opt.legend.text) == TRUE) { opt.legend.text <- opt.methods }
       
       if (length(opt.legend.text) != N.meth) {
-        stop("'opt.legend.text' must be of same length as 'opt.methods'") }
+        stop("Test/Train ROC failed - 'opt.legend.text' must be of same length as 'opt.methods'") }
       
       if ("ReqSens" %in% opt.methods) {
         if (missing(req.sens)) {
-          warning("req.sens defaults to 0.85")
+          updateRunLog("Warning - Test/Train ROC: required sensetivity defaults to 0.85")
           req.sens <- 0.85
         }}
       
       if ("ReqSpec" %in% opt.methods) {
         if (missing(req.spec)) {
-          warning("req.spec defaults to 0.85")
+          updateRunLog("Warning - Test/Train ROC: required specificity defaults to 0.85")
           req.spec <- 0.85
         }}
       
       if ("Cost" %in% opt.methods) {
         if (missing(FPC) || missing(FNC)) {
-          warning("costs assumed to be equal")
+          updateRunLog("Warning - Test/Train ROC: costs assumed to be equal")
           FPC <- 1
           FNC <- 1
         }
         if (FPC <= 0 || FNC <= 0) { stop("costs must be positive") }
         if (is.logical(cost.line) == FALSE) {
-          stop("'cost.line' must be of logical type")
+          stop("Test/Train ROC failed - 'cost.line' must be of logical type")
         }
         if (!"Cost" %in% opt.methods) { cost.line <- FALSE }
       }
@@ -1539,10 +1498,10 @@ TestTrainRocPlot <- function(dat,    # Stats$train$auc.data
   
   if (is.logical(opt.thresholds) == FALSE) {
     if (!is.numeric(opt.thresholds)) {
-      stop("'opt.thresholds' must be 'TRUE', 'FALSE', or numeric") }
+      stop("Test/Train ROC failed - 'opt.thresholds' must be 'TRUE', 'FALSE', or numeric") }
     
     if (min(opt.thresholds) < 0) { 
-      stop("'opt.thresholds' can not be negative") }
+      stop("Test/Train ROC failed - 'opt.thresholds' can not be negative") }
     
     if (max(opt.thresholds) > 1) {
       if (N.thr == 1 && round(opt.thresholds) == opt.thresholds) {
@@ -1550,7 +1509,7 @@ TestTrainRocPlot <- function(dat,    # Stats$train$auc.data
                               from = 0, to = 1)
         N.thr <- length(opt.thresholds)
       } else {
-        stop("non-interger, non-logical 'opt.thresholds' greater than 1")
+        stop("Test/Train ROC failed - non-interger, non-logical 'opt.thresholds' greater than 1")
       }}
     
     N.opt.thresh <- length(opt.thresholds)
@@ -1559,12 +1518,12 @@ TestTrainRocPlot <- function(dat,    # Stats$train$auc.data
     }
     
     if (length(opt.legend.text) != N.opt.thresh) {
-      stop("length of 'opt.legend.text' does not match number of specified thresholds") }
+      stop("Test/Train ROC failed - length of 'opt.legend.text' does not match number of specified thresholds") }
     
     if (is.null(pch)) { pch <- 1:N.opt.thresh }
     
     if (length(pch) != N.opt.thresh) {
-      stop("length of 'pch' does not match number of specified thresholds") }
+      stop("Test/Train ROC failed - length of 'pch' does not match number of specified thresholds") }
     
     mark <- matrix(opt.thresholds, length(opt.thresholds), N.dat)
     opt.thresholds = TRUE

@@ -8,20 +8,20 @@
 
 # check rsyncrosim version and install from Git if needed
 if("rsyncrosim" %in% installed.packages()[,"Package"]){
-  if (packageVersion("rsyncrosim") >= "1.3.10"){
+  if (packageVersion("rsyncrosim") >= "1.3.13"){
     library(rsyncrosim) 
     } else {
-      # stop("rsyncrosim version 1.3.10 or higher is required. Installation options can be found at https://syncrosim.github.io/rsyncrosim/index.html")
+      # stop("rsyncrosim version 1.3.13 or higher is required. Installation options can be found at https://syncrosim.github.io/rsyncrosim/index.html")
       # detach("package:rsyncrosim", unload=TRUE)  # .rs.restartR()
      remove.packages("rsyncrosim")
-     install.packages("https://github.com/syncrosim/rsyncrosim/releases/download/1.3.10/rsyncrosim_1.3.10.tar.gz", repos = NULL)
+     install.packages("https://github.com/syncrosim/rsyncrosim/releases/download/1.3.13/rsyncrosim_1.3.13.tar.gz", repos = NULL)
      library(rsyncrosim)
   }} else { 
-    install.packages("https://github.com/syncrosim/rsyncrosim/releases/download/1.3.10/rsyncrosim_1.3.10.tar.gz", repos = NULL)
+    install.packages("https://github.com/syncrosim/rsyncrosim/releases/download/1.3.13/rsyncrosim_1.3.13.tar.gz", repos = NULL)
     library(rsyncrosim)}
 
 # check remaining packages
-packagesToLoad_01 <- c("terra", "raster")
+packagesToLoad_01 <- c("terra", "raster", "pander")
 packagesToLoad_02 <- c("shiny")
 packagesToLoad_03 <- c("tidyr", "PresenceAbsence", "PRROC", "ROCR", "ggplot2", "dplyr", "splines")
 packagesToLoad_04 <- c("terra", "gbm") #, "rgdal"
@@ -33,5 +33,4 @@ packagesToInstall <- packagesToLoad[!(packagesToLoad %in% installed.packages()[,
 if(length(packagesToInstall)) install.packages(packagesToInstall)
 
 # Load packages
-lapply(packagesToLoad, library, character.only = TRUE)
-
+lapply(packagesToLoad, library, character.only = T)

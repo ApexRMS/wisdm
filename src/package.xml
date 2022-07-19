@@ -3,7 +3,11 @@
 	<transformers>
 		<!--Primary Transformer-->
 		<transformer 
-			name="Primary" isPrimary="True" isPipelineBased="True">
+			name="Primary" 
+			isPrimary="True" 
+			isPipelineBased="True"
+			condaEnv="wisdm-conda.yml"
+			isRunnable="True">
 		<include>
 			<transformer name="corestime_Runtime"/>
 			<transformer name="Global"/>
@@ -358,6 +362,7 @@
 		<layout name="coreforms_LibraryDatafeeds">
 		  <item name="core_Rconfig"/>
 		  <item name="core_Options"/>
+		  <item name="core_Condaconfig"/>
 		</layout>  
 		<!--Project Datafeeds Layout-->
 		<layout name="coreforms_ProjectDatafeeds">

@@ -71,7 +71,11 @@ if(name(myLibrary) == "Partial"){
   } else { maskValues <- NULL }
 
   # trim tiling raster to extent of single tile
-  maskFile <- mask(x = maskFile, mask = maskFile,  maskvalues = maskValues)
+  maskFile <- mask(x = maskFile, mask = maskFile,  maskvalues = maskValues) # plot(maskFile)
+  
+  maskCells <- which(!is.na(values(maskFile)))
+  startRow <- rowFromCell(maskFile, maskCells[1])
+
   maskFile <- trim(x = maskFile)
  
   } else { maskValues <- NULL }
@@ -111,7 +115,7 @@ paths <- covariateDataSheet$RasterFilePath[which(covariateDataSheet$CovariatesID
 covData <- covariateDataSheet[which(covariateDataSheet$CovariatesID %in% modVars),]
 
 # check that all tifs are present
-if(all(file.exists(paths)) == F){
+if(any(file.exists(paths)) == F){
   missingTifs <- covData$CovariatesID[!file.exists(covData$RasterFilePath)]
   stop("The following geotiff(s) are missing from Covariate Data:  ",
        paste(missingTifs, collapse=" ,"),sep="")
@@ -143,9 +147,9 @@ if(modType == "glm"){
 
 # prep prediction data ---------------------------------------------------------
 
-# TO Do: Update scalabilty -- need to crop rasters to tile extent (not extent of tiling raster)
+# TO Do: Update scalability -- need to crop rasters to tile extent (not extent of tiling raster)
 
-if(nrow(templateSheet)<1){ stop("Template raster is missing") }
+if(nrow(templateSheet)<1){ stop("Template raster is missing. Please provide a template raster before continuing.") }
 
 templateRaster <- rast(templateSheet$RasterFilePath)
   
@@ -165,13 +169,16 @@ if(all(is.na(templateValues))){  # if the template is completely NA values, don'
     for(k in 1:nrow(covData)){
       rast_k <- rast(covData$RasterFilePath[k])
       if(!is.null(maskValues)){
-        rast_k <- crop(rast_k, maskFile)
+        readStart(rast_k)
+        temp[,k] <- readValues(rast_k, row = startRow, nrows = nrow(templateRaster))
+        readStop(rast_k)
+      } else {
+        temp[,k] <- as.vector(values(rast_k))
       }
-      temp[,k] <- as.vector(values(rast_k))
     }
-  
-    names(temp) <- covData$CovariatesID
     
+    names(temp) <- covData$CovariatesID
+    remove(rast_k)
   }
 
 # Set predictor values to NA where ever the mask is NA
@@ -209,7 +216,7 @@ if(outputOptionsSheet$MakeProbabilityMap){
   
 if(outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap){
   
-  if(!is.null(factorVars)){ warning("MESS and MoD maps cannot be generated for models with categorical variables.")
+  if(!is.null(factorVars)){ updateRunLog("Warning: MESS and MoD maps cannot be generated for models with categorical variables.")
     } else {
       
       # order the training data so that we can consider the first and last row only in mess calculations
@@ -237,6 +244,7 @@ if(outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap){
                     datatype = "INT4S",
                     overwrite = TRUE) 
       # is.int(messRaster) 
+      remove(messRaster)
       }
       if(outputOptionsSheet$MakeModMap){ 
         
@@ -252,6 +260,7 @@ if(outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap){
                     datatype = "INT4S", # "INT1U"
                     overwrite = TRUE) 
         # is.int(modRaster) 
+        remove(modRaster)
       }
   }
 }
@@ -263,6 +272,7 @@ if(outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap){
     residSmooth <- readRDS(file.path(ssimEnvironment()$OutputDirectory, paste0("Scenario-",ssimEnvironment()$ScenarioId), "wisdm_ModelOutputs", modelOutputsSheet$ResidualSmoothRDS))
 
     predrast <- rast(probRaster)
+    if(!is.null(maskValues)){ predrast <- crop(predrast, maskFile)}
     ablock <- 1:(ncol(probRaster) * nrow(probRaster))
     
     p <- xyFromCell(predrast, ablock) 
@@ -278,7 +288,7 @@ if(outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap){
     if(!is.null(maskValues)){residRaster <- extend(residRaster, maskExt)}
     writeRaster(x = residRaster, 
                 filename = file.path(ssimTempDir, paste0(modType,"_resid_map.tif")), 
-                datatype = "INT4S",
+                datatype = "FLT8S", 
                 overwrite = TRUE) 
     
 }  

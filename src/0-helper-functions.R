@@ -3,57 +3,6 @@
 ## ApexRMS, March 2022       
 ## ------------------------- 
 
-# # spatial multiprocessing functions --------------------------------------------
-# 
-# ## tabulate raster -------------------------------------------------------------
-# ## Generates a table of values present in a raster and their frequency
-# # - values are assumed to be integers and the max value is known
-# 
-# tabulateRaster <- function(inputRaster, tileData) {
-#   
-#   # recommended block size of template
-#   blockInfo <- tileData
-#   readStart(inputRaster)
-#   # Calculate frequency table in each block and consolidate
-#   tables <- purrr::map(
-#     seq(blockInfo$n),
-#     ~ table(readValues(inputRaster,
-#                        row = blockInfo$row[.x],
-#                        nrows = blockInfo$nrows[.x]))) %>%
-#     purrr::map(as.data.frame) %>%
-#     do.call(rbind, .) %>% # do.call is used to convert the list of tables to a sequence of arguments for `rbind`
-#     rename(value = 1) %>%
-#     group_by(value) %>%
-#     summarize(freq = sum(Freq)) %>%
-#     ungroup() %>%
-#     mutate(value = value %>% as.character %>% as.numeric) %>% # Convert from factor to numeric
-#     return
-#   readStop(inputRaster)
-# }
-# 
-# ## consolidate groups ----------------------------------------------------------
-# # Takes a vector of sizes (input) and a maximum size per group (threshold) and
-# # returns a vector of integers assigning the inputs to groups up to size threshold
-# # - Used to consolidate tiling groups into more even groups
-# consolidateGroups <- function(input, threshold) {
-#   # Initialized counters and output
-#   counter <- 1
-#   cumulator <- 0
-#   output <- integer(length(input))
-#   
-#   # For each input, decide whether or not to start a new group
-#   # Store that decision in output
-#   for(i in seq_along(input)) {
-#     cumulator <- cumulator + input[i]
-#     if(cumulator > threshold) {
-#       cumulator<- input[i]
-#       counter <- counter + 1
-#     }
-#     output[i] <- counter
-#   }
-#   
-#   return(output)
-# }
 
 # Calculate Deviance function --------------------------------------------------
 

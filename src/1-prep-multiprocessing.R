@@ -27,7 +27,7 @@ spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing"
 
 # Setup multiprocessing --------------------------------------------------------
   
-  if(nrow(templateSheet)<1){ stop("Template raster is missing") }
+  if(nrow(templateSheet)<1){ stop("Template raster is missing.") }
   
   # load template raster
   templateRaster <- rast(templateSheet$RasterFilePath)
@@ -115,27 +115,6 @@ spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing"
     }
     writeStop(tileRaster)
     
-    # # Consolidate small tiles into larger groups
-    # # - We want a map from the original tile IDs to new consolidated tile IDs
-    # reclassification <-
-    #   # Find the number of cells in each tile ID
-    #   tabulateRaster(tileRaster, tileData) %>%
-    #   # Sort by ID to approximately group tiles by proximity
-    #   arrange(value) %>%
-    #   # Consolidate into groups up to size tileSize
-    #   transmute(
-    #     from = value,
-    #     to   = consolidateGroups(freq, tileSize)) %>%
-    #   as.matrix()
-    # 
-    # # Reclassify the tiling raster to the new consolidated IDs
-    # tileRaster <- classify(
-    #   tileRaster,
-    #   reclassification,
-    #   filename = file.path(ssimTransDir, "tile.tif"),
-    #   overwrite = T)
-    
-    
     # save tiling raster to core datasheet ---------------------------------------
     
     spatialMulitprocessingSheet <- addRow(spatialMulitprocessingSheet, 
@@ -144,6 +123,6 @@ spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing"
     saveDatasheet(myScenario, spatialMulitprocessingSheet, "corestime_Multiprocessing")
   
     } else { # if tileData$n == 1  
-      message("The default settings suggest a tile count of 1; no tiling raster created. A tile count can be set to overide the default settings.")
+      updateRunLog("The default settings suggest a tile count of 1; no tiling raster created.\nA tile count can be set to override the default settings.")
     }
   
