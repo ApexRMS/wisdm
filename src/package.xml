@@ -5,9 +5,7 @@
 		<transformer 
 			name="Primary" 
 			isPrimary="True" 
-			isPipelineBased="True"
-			condaEnv="wisdm-conda.yml"
-			isRunnable="True">
+			isPipelineBased="True">
 		<include>
 			<transformer name="corestime_Runtime"/>
 			<transformer name="Global"/>
@@ -186,7 +184,8 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="1-prep-multiprocessing.R"
-		  runContext="LocalOnly">
+		  runContext="LocalOnly"
+		  condaEnv="wisdm-conda.yml">
 			<pipeline>
 				<datafeed name="TemplateRaster" type="Input"/>
 			</pipeline>
@@ -198,7 +197,8 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="1-data-preparation.R"
-		  transformerSpecificOutput="False">
+		  transformerSpecificOutput="False"
+		  condaEnv="wisdm-conda.yml">
 		  <pipeline>
 			<datafeed name="FieldData" type="Input"/>
 			<datafeed name="FieldDataOptions" type="Input"/>
@@ -215,7 +215,8 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="2-variable-reduction.R"
-		  transformerSpecificOutput="False">
+		  transformerSpecificOutput="False"
+		  condaEnv="wisdm-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
 				<datafeed name="CovariateData" type="Input"/>
@@ -244,7 +245,8 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="3-fit-glm.R"
-		  transformerSpecificOutput="False">
+		  transformerSpecificOutput="False"
+		  condaEnv="wisdm-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
 				<datafeed name="ValidationOptions" type="Input"/>
@@ -277,7 +279,8 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="3-fit-random-forest.R"
-		  transformerSpecificOutput="False">
+		  transformerSpecificOutput="False"
+		  condaEnv="wisdm-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
 				<datafeed name="ValidationOptions" type="Input"/>
@@ -308,7 +311,8 @@
 		  programArguments="4-apply-model.R"
 		  className="SyncroSim.StochasticTime.StochasticTimeTransformer" 
 		  classAssembly="SyncroSim.StochasticTime"
-		  runContext="AllowRemote">
+		  runContext="AllowRemote"
+		  condaEnv="wisdm-conda.yml">
 			<pipeline>
 				<datafeed name="corestime_Multiprocessing" type="Input"/>
 				<datafeed name="TemplateRaster" type="Input"/>
