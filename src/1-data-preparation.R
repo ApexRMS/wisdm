@@ -304,14 +304,14 @@ if(validationDataSheet$SplitData){
 
 # Define Cross Validation folds (if specified) 
 if(validationDataSheet$CrossValidate){
-  outputData <- crossValidationSplit(inputData = inputData,
+  inputData <- crossValidationSplit(inputData = inputData,
                                      factorVars = factorVars,
                                      nFolds = validationDataSheet$NumberOfFolds,
                                      stratify = validationDataSheet$StratifyFolds)
 }
 
 
-updateFieldData <- select(outputData, names(fieldDataSheet))
+updateFieldData <- select(inputData, names(fieldDataSheet))
 
 
 # save updated field data to scenario
