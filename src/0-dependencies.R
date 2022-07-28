@@ -6,6 +6,8 @@
 # R version 4.1.1 
 # script checks for installed packages and installs missing ones
 
+options(warn=-1)
+
 # check rsyncrosim version and install from Git if needed
 if("rsyncrosim" %in% installed.packages()[,"Package"]){
   if (packageVersion("rsyncrosim") >= "1.3.13"){
@@ -33,4 +35,4 @@ packagesToInstall <- packagesToLoad[!(packagesToLoad %in% installed.packages()[,
 if(length(packagesToInstall)) install.packages(packagesToInstall)
 
 # Load packages
-lapply(packagesToLoad, library, character.only = T)
+lapply(packagesToLoad, FUN = function(x){library(x, character.only = T, warn.conflicts = F)}) 

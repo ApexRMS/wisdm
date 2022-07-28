@@ -216,11 +216,11 @@ if(outputOptionsSheet$MakeProbabilityMap){
   
 if(outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap){
   
-  if(!is.null(factorVars)){ updateRunLog("Warning: MESS and MoD maps cannot be generated for models with categorical variables.")
+  if(!is.null(factorVars)){ updateRunLog("\nWarning: MESS and MoD maps cannot be generated for models with categorical variables.\n")
     } else {
       
       # order the training data so that we can consider the first and last row only in mess calculations
-      train.dat <- select(trainingData, modVars)
+      train.dat <- select(trainingData, all_of(modVars))
       for(k in 1:nrow(covData)){ train.dat[ ,k] <- sort(train.dat[ ,k]) } 
       # index <- names(train.dat)
       
@@ -282,7 +282,7 @@ if(outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap){
   
     predv <- predict(residSmooth, blockvals)
     predv <- as.numeric(predv)
-    predv[is.na(predv)] <- - 9999
+    predv[is.na(predv)] <- -9999
     
     residRaster <- rast(templateRaster, vals = predv)
     if(!is.null(maskValues)){residRaster <- extend(residRaster, maskExt)}

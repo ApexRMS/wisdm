@@ -43,10 +43,16 @@ if(nrow(validationDataSheet)<1){
                                                           CrossValidate = FALSE))
 }
 if(is.na(validationDataSheet$SplitData)){validationDataSheet$SplitData <- FALSE}
+if(validationDataSheet$SplitData){
+  if(is.na(validationDataSheet$ProportionTrainingData)){
+    validationDataSheet$ProportionTrainingData <- 0.5
+    updateRunLog("\nTraining proportion not specified. Default value used: 0.5\n")
+  }
+}
 if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}
 if(validationDataSheet$CrossValidate){
   if(is.na(validationDataSheet$NumberOfFolds)){
-    updateRunLog("Number of Folds not specified. Default value used: 10\n\n")
+    updateRunLog("\nNumber of Folds not specified. Default value used: 10\n")
     validationDataSheet$NumberOfFolds <- 10
   }
   if(is.na(validationDataSheet$StratifyFolds)){validationDataSheet$StratifyFolds <- FALSE}
@@ -134,8 +140,8 @@ pts2 <- crop(pts, extPoly)
 keepSites <- pts2$SiteID
 
 if(length(keepSites)<nrow(fieldDataSheet)){
-  updateRunLog(paste0("Warning: ", nrow(fieldDataSheet)-length(keepSites), " sites out of ", nrow(fieldDataSheet), 
-               " total sites in the input field data were outside the template extent and were REMOVED from the output field data.\n\n"))
+  updateRunLog(paste0("\nWarning: ", nrow(fieldDataSheet)-length(keepSites), " sites out of ", nrow(fieldDataSheet), 
+               " total sites in the input field data were outside the template extent and were REMOVED from the output field data.\n"))
   fieldDataSheet <- fieldDataSheet[fieldDataSheet$SiteID %in% keepSites,]
 }
 
@@ -177,10 +183,6 @@ remove(rStack)
 
 # Extract covariate site data --------------------------------------------------
 
-# TO DO: account for every site -- current approach extracts covariate data per raster pixel containing one or more sites,
-# then stores data for only one of the sites in the pixel. Need to allow for all sites to be retained and either weight 
-# sites with spatial repetition or change them to background points
-
 PixelData <- data.frame(PixelID = PixelIDs)
 
 for(i in 1:nrow(covariateDataSheet)){
@@ -201,35 +203,6 @@ siteData <- gather(data = siteData, key = CovariatesID, value = Value, -SiteID)
 # save site data to scenario
 saveDatasheet(myScenario, siteData, "wisdm_SiteData")
 
-# # Categorical variables --------------------------------------------------------
-# 
-# if(!is.null(factorVars)){
-#   factor.levels <- list()
-#   for (i in 1:length(factorVars)){
-#     f.col <- factorVars[i]
-#     x <- table(siteDataWide[,f.col])
-#     if(nrow(x)<2){
-#       out$bad.factor.cols <- c(out$bad.factor.cols,factorVars[i])
-#     }
-#     if(any(x<10)) {
-#       warning(paste("Some levels for the categorical predictor ",factorVars[i]," do not have at least 10 observations.\n",
-#                     "You might want to consider removing or reclassifying this predictor before continuing.\n",
-#                     "Factors with few observations can cause failure in model fitting when the data is split and cannot be reliably used in training a model.",sep=""))
-#       factor.table <- as.data.frame(x)
-#       colnames(factor.table) <- c("Factor Name","Factor Count")
-#       cat(paste("\n",factorVars[i],"\n"))
-#       print(factor.table)
-#       cat("\n\n") 
-#     }
-#   }
-# }
-# 
-# if(!is.null(out$bad.factor.cols)){
-#   capture.output(cat("\nWarning: the following categorical response variables were removed from consideration\n",
-#                      "because they had only one level:",paste(out$bad.factor.cols,collapse=","),"\n"),
-#                  file=paste0(ssimTempDir,"\\Data\\glm_output.txt"),append=T)
-# }
-
 # Aggregate or Weight sites ----------------------------------------------------
 
 repeatPIDs <- siteDataWide$PixelID[duplicated(siteDataWide$PixelID)]
@@ -237,7 +210,7 @@ repeatPIDs <- siteDataWide$PixelID[duplicated(siteDataWide$PixelID)]
 if(!is.na(fieldDataOptions$AggregateAndWeight)){
   
   if(length(repeatPIDs)==0){
-    updateRunLog("Only one field data observation present per pixel; no aggregation or weighting required.\n\n")
+    updateRunLog("\nOnly one field data observation present per pixel; no aggregation or weighting required.\n")
     # fieldDataOptions$AggregateAndWeight <- NA
     # saveDatasheet(myScenario, fieldDataOptions, "wisdm_FieldDataOptions")
   } else {
@@ -283,11 +256,12 @@ if(!is.na(fieldDataOptions$AggregateAndWeight)){
         weight_i <- 1/length(sites_i)
         fieldDataSheet$Weight[fieldDataSheet$SiteID %in% sites_i] <- weight_i
       } 
-    } else { updateRunLog("Warning: Weights already present in field data, new weights were NOT assigned.\n\n") }
+    } else { updateRunLog("\nWarning: Weights already present in field data, new weights were NOT assigned.\n") }
   
   } # end site weighting
   } # end else
 } # end aggregate and weight 
+
 
 # Split data for testing/training and validation -------------------------------
 
@@ -311,8 +285,24 @@ if(validationDataSheet$CrossValidate){
 }
 
 
-updateFieldData <- select(inputData, names(fieldDataSheet))
-
+# Check categorical variables (if no validation specified)
+if(validationDataSheet$SplitData == F & validationDataSheet$CrossValidate == F){
+  if(!is.null(factorVars)){
+    for (i in 1:length(factorVars)){
+      factor.table <- table(inputData[,factorVars[i]])
+      if(any(factor.table<10)){
+        updateRunLog(paste0("\nWarning: Some levels for the categorical predictor ",factorVars[i]," do not have at least 10 observations. ", 
+                                                    "Consider removing or reclassifying this predictor before continuing.\n",
+                                                    "Factors with few observations can cause failure in model fitting when the data is split and cannot be reliably used in training a model.\n"))
+        factor.table <- as.data.frame(factor.table)
+        colnames(factor.table)<-c("Factor Name","Factor Count")
+        updateRunLog(paste("\n",factorVars[i],"\n"))
+        updateRunLog(pander::pandoc.table.return(factor.table, style = "rmarkdown"))
+      }
+    }
+  }
+}  
 
 # save updated field data to scenario
+updateFieldData <- select(inputData, names(fieldDataSheet))
 saveDatasheet(myScenario, updateFieldData, "wisdm_FieldData", append = F)

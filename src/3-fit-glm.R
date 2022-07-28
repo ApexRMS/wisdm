@@ -70,7 +70,7 @@
   allCases <- nrow(siteDataWide)
   siteDataWide <- siteDataWide[complete.cases(subset(siteDataWide, select = c(-ModelSelectionSplit, -Weight))),]
   compCases <- nrow(siteDataWide)
-  if(compCases/allCases < 0.9){updateRunLog(paste("Warning: ", round((1-compCases/allCases)*100,digits=2),"% of cases were removed because of missing values",sep=""))}
+  if(compCases/allCases < 0.9){updateRunLog(paste("\nWarning: ", round((1-compCases/allCases)*100,digits=2),"% of cases were removed because of missing values.\n",sep=""))}
   
   # set site weights to default of 1 if not already supplied
   if(all(is.na(siteDataWide$Weight))){siteDataWide$Weight <- 1}
@@ -153,7 +153,7 @@
 # Review model data ------------------------------------------------------------
 
   if(nrow(trainingData)/(length(out$inputVars)-1)<10){
-    updateRunLog(paste("\n Warning: You have approximately ", round(nrow(trainingData)/(ncol(trainingData)-1),digits=1),
+    updateRunLog(paste("\nWarning: You have approximately ", round(nrow(trainingData)/(ncol(trainingData)-1),digits=1),
                              " observations for every predictor\n consider reducing the number of predictors before continuing\n",sep=""))
   }
 
@@ -168,7 +168,6 @@
 
   # save model to temp storage
   saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\glm_model.rds"))
-  progressBar(message = "Finished with stepwise GLM")
   
   # add relevant model details to out 
   out$finalMod <- finalMod
@@ -184,8 +183,8 @@
   
   finalMod$summary <- summary(finalMod)
   
-  updateRunLog("Summary of Model:\n\n")
-  updateRunLog(pander::pandoc.formula.return(finalMod$summary$call))
+  updateRunLog("\nSummary of Model:\n")
+  # updateRunLog(pander::pandoc.formula.return(finalMod$summary$call))
   coeftbl <- finalMod$summary$coefficients
   coeftbl <- round(coeftbl, 6) 
   coeftbl <- cbind(rownames(coeftbl), coeftbl)

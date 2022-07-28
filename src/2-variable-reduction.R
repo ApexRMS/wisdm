@@ -52,7 +52,22 @@ siteData <- select(siteDataWide, -c(SiteID, X, Y, UseInModelEvaluation, ModelSel
 # identify categorical covariates
 if(sum(covariatesSheet$IsCategorical, na.rm = T)>0){
   factorVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T & covariatesSheet$CovariateName %in% names(siteData))]
-} else { factorVars <- NULL }
+  badFactors <- NULL
+  for (i in 1:length(factorVars)){
+    factor.table <- table(siteData[,factorVars[i]])
+    if(length(factor.table)<2){ badFactors <- c(badFactors, factorVars[i]) }
+  }
+  if(length(badFactors > 0)){
+    factorVars <- factorVars[-which(factorVars %in% badFactors)]
+    if(length(factorVars) == 0){ factorVars <- NULL }
+    updateRunLog(paste0("\nWarning: The following categorical response variables were removed from consideration\n",
+                          "because they had only one level: ",paste(badFactors, collapse=","),"\n"))
+  }
+} else { 
+  factorVars <- NULL
+  badFactors <- NULL
+  }
+
 
 # model family 
 # if response column contains only 1's and 0's response = presAbs
@@ -92,7 +107,7 @@ names(covsDE) <- devInfo$covDE
 # run shiny app ----------------------------------------------------------------
 
 # inputs
-covData <- select(siteData, -Response)
+covData <- select(siteData, -Response, -all_of(badFactors))
 # covsDE
 options <- covariateSelectionSheet
 
