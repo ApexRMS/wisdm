@@ -47,7 +47,7 @@ ui <- fluidPage(
 server <- function(input, output, session) { # 
   
   # create a temp file to save the output
-  outfile <- file.path(ssimTempDir, "CovariateCorrelationMatrix.png")
+  outfile <- file.path(ssimTempDir, "SelectedCovariateCorrelationMatrix.png")
   
   v <- reactiveValues(options = options, 
                       selectedCovs = names(covData)) 

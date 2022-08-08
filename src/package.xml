@@ -337,7 +337,7 @@
 		</transformer>
 		 <!--Export Transformers-->
 		<transformer
-		  name="CovariateCorrelationExportMatrixInitial" dataSheet="CovariateCorrelationMatrix" column="InitialMatrix" 
+		  name="CovariateCorrelationExportInitial" dataSheet="CovariateCorrelationMatrix" column="InitialMatrix" 
 		  isFolderExport="True" className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
 		</transformer>
 		<transformer
@@ -413,6 +413,7 @@
 				<group name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation Matrix">
 					<item name="CovariateCorrelationExportInitial" displayName="Initial Covariates"/>
 					<item name="CovariateCorrelationExportSelected" displayName="Selected Covariates"/>
+				</group>
 				<group name="ModelOutputs" displayName="Model Outputs">
 					<item name="ModelExportRDS" displayName="Model RDS"/>
 					<item name="ModelExportText" displayName="Summary Text"/>
@@ -428,19 +429,26 @@
         </layout>
 		<!--Maps Layout-->
 		<layout name="corestimeforms_Maps" displayName="Visuals">
-			<item name="CovariateCorrelationMatrix" displayName="Covariate Correlations" dataSheet="CovariateCorrelationMatrix" column="Filename"/>
-			<item name="ProbabilityMap" displayName="Probability Map" dataSheet="SpatialOutputs" column="ProbabilityRaster"/>
-			<item name="MessMap" displayName="MESS Map" dataSheet="SpatialOutputs" column="MessRaster"/>
-			<item name="ModMap" displayName="MoD Map" dataSheet="SpatialOutputs" column="ModRaster"/>
-			<item name="ResidualsMap" displayName="Residuals Map" dataSheet="SpatialOutputs" column="ResidualsRaster"/>
-			<item name="ResponseCurves" displayName="Response Curves" dataSheet="ModelOutputs" column="ResponseCurves"/>
-			<item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="ModelOutputs" column="ResidualsPlot"/>
-			<item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="ModelOutputs" column="ResidualSmoothPlot"/>	
-			<item name="CalibrationPlot" displayName="Calibration" dataSheet="ModelOutputs" column="CalibrationPlot"/>
-			<item name="ROCAUCPlot" displayName="ROC/AUC" dataSheet="ModelOutputs" column="ROCAUCPlot"/>
-			<item name="AUCPRPlot" displayName="AUCPR" dataSheet="ModelOutputs" column="AUCPRPlot"/>
-			<item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="ModelOutputs" column="ConfusionMatrix"/>
-			<item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="ModelOutputs" column="VariableImportancePlot"/>		
+			<group name="CovariateCorrelationMatrix" displayName="Covariate Correlations">
+				<item  name="InitialMatrix" displayName="Initial Matrix" dataSheet="CovariateCorrelationMatrix" column="InitialMatrix"/>
+				<item  name="SelectedMatrix" displayName="Selected Matrix" dataSheet="CovariateCorrelationMatrix" column="SelectedMatrix"/>
+			</group>
+			<group name="MapOutputs" displayName="Map Outputs">
+				<item name="ProbabilityMap" displayName="Probability" dataSheet="SpatialOutputs" column="ProbabilityRaster"/>
+				<item name="MessMap" displayName="MESS" dataSheet="SpatialOutputs" column="MessRaster"/>
+				<item name="ModMap" displayName="MoD" dataSheet="SpatialOutputs" column="ModRaster"/>
+				<item name="ResidualsMap" displayName="Residuals" dataSheet="SpatialOutputs" column="ResidualsRaster"/>
+			</group>
+			<group name="ModelOutputs" displayName="Model Outputs">
+				<item name="ResponseCurves" displayName="Response Curves" dataSheet="ModelOutputs" column="ResponseCurves"/>
+				<item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="ModelOutputs" column="ResidualsPlot"/>
+				<item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="ModelOutputs" column="ResidualSmoothPlot"/>	
+				<item name="CalibrationPlot" displayName="Calibration" dataSheet="ModelOutputs" column="CalibrationPlot"/>
+				<item name="ROCAUCPlot" displayName="ROC/AUC" dataSheet="ModelOutputs" column="ROCAUCPlot"/>
+				<item name="AUCPRPlot" displayName="AUCPR" dataSheet="ModelOutputs" column="AUCPRPlot"/>
+				<item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="ModelOutputs" column="ConfusionMatrix"/>
+				<item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="ModelOutputs" column="VariableImportancePlot"/>		
+			</group>
 		</layout>
 	</layouts>	
 </package>
