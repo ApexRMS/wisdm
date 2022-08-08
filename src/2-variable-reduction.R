@@ -1,15 +1,19 @@
 ## sdsim - variable reduction
-## ApexRMS, May 2022
+## ApexRMS, August 2022
 
-# R version 4.1.1
+# built under R version 4.1.3
 # Script pulls in site-specific covaraite data; calls shiny widget to display 
-# correlation matrix and saves  reduced dataset of user selected covariates
+# interactive correlation tool; saves reduced dataset of user selected covariates
 
 # source dependencies ----------------------------------------------------------
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "0-dependencies.R"))
 source(file.path(packageDir, "02-variable-reduction-functions.R"))
+
+library(tidyr)
+library(dplyr)
+library(shiny)
 
 # Connect to library -----------------------------------------------------------
 
@@ -60,7 +64,7 @@ if(sum(covariatesSheet$IsCategorical, na.rm = T)>0){
   if(length(badFactors > 0)){
     factorVars <- factorVars[-which(factorVars %in% badFactors)]
     if(length(factorVars) == 0){ factorVars <- NULL }
-    updateRunLog(paste0("\nWarning: The following categorical response variables were removed from consideration\n",
+    updateRunLog(paste0("\nThe following categorical response variables were removed from consideration\n",
                           "because they had only one level: ",paste(badFactors, collapse=","),"\n"))
   }
 } else { 
@@ -94,15 +98,17 @@ devInfo$covDE <- paste0(devInfo$covs, " (", devInfo$devExp, ")")
 covsDE <- devInfo$covs
 names(covsDE) <- devInfo$covDE
 
-# run pairs explore ------------------------------------------------------------
+# run pairs explore with all variables -----------------------------------------
 
-# pairsExplore(inputData = siteData,
-#              options = covariateSelectionSheet,
-#              selectedCovs = names(select(siteData, -Response)),
-#              factorVars = factorVars,
-#              family = modelFamily,
-#              outputFile = file.path(ssimTempDir, "CovariateCorrelationMatrix.png"))
-# 
+options <- covariateSelectionSheet
+options$NumberOfPlots <- ncol(select(siteData, -Response, -all_of(badFactors)))
+
+pairsExplore(inputData = siteData,
+             options = options,
+             selectedCovs = names(select(siteData, -Response, -all_of(badFactors))),
+             factorVars = factorVars,
+             family = modelFamily,
+             outputFile = file.path(ssimTempDir, "InitialCovariateCorrelationMatrix.png"))
 
 # run shiny app ----------------------------------------------------------------
 
@@ -119,8 +125,8 @@ if(file.exists("C:/Program Files/Google/Chrome/Application/chrome.exe")){
   browser.path <- "C:/Program Files(x86)/Google/Chrome/Application/chrome.exe"
 } else if(file.exists("C:/Program Files/Mozilla Firefox/firefox.exe")){
   browser.path <- "C:/Program Files/Mozilla Firefox/firefox.exe"
-} else if(file.exists("C:/Program Files/Internet Explorer/iexplore.exe")){
-  browser.path <- "C:/Program Files/Internet Explorer/iexplore.exe"
+ # } else if(file.exists("C:/Program Files/Internet Explorer/iexplore.exe")){
+ # browser.path <- "C:/Program Files/Internet Explorer/iexplore.exe"
 }
 
 # portable chrome - to large to store on git 
@@ -142,5 +148,6 @@ if(is.null(browser.path)){
 reducedCovariatesSheet <- data.frame(CovariatesID = SelectedCovariates)
 saveDatasheet(myScenario, reducedCovariatesSheet, "wisdm_ReducedCovariates")
 
-covariateCorrelationSheet <- addRow(covariateCorrelationSheet, data.frame(Filename = file.path(ssimTempDir, "CovariateCorrelationMatrix.png")))
+covariateCorrelationSheet <- addRow(covariateCorrelationSheet, data.frame(InitialMatrix = file.path(ssimTempDir, "InitialCovariateCorrelationMatrix.png"), 
+                                                                          SelectedMatrix = file.path(ssimTempDir, "SelectedCovariateCorrelationMatrix.png")))
 saveDatasheet(myScenario, covariateCorrelationSheet, "wisdm_CovariateCorrelationMatrix")

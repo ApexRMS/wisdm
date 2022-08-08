@@ -184,7 +184,6 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="1-prep-multiprocessing.R"
-		  runContext="LocalOnly"
 		  condaEnv="wisdm-conda.yml">
 			<pipeline>
 				<datafeed name="TemplateRaster" type="Input"/>
@@ -197,7 +196,6 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="1-data-preparation.R"
-		  transformerSpecificOutput="False"
 		  condaEnv="wisdm-conda.yml">
 		  <pipeline>
 			<datafeed name="FieldData" type="Input"/>
@@ -215,7 +213,6 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="2-variable-reduction.R"
-		  transformerSpecificOutput="False"
 		  condaEnv="wisdm-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
@@ -231,7 +228,8 @@
 					<datasheet name="CovariateCorrelationMatrix">
 					  <columns>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="Filename" dataType="String" isExternalFile="True" isPngImage="True"/>
+						<column name="InitialMatrix" dataType="String" isExternalFile="True" isPngImage="True"/>
+						<column name="SelectedMatrix" dataType="String" isExternalFile="True" isPngImage="True"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -245,7 +243,6 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="3-fit-glm.R"
-		  transformerSpecificOutput="False"
 		  condaEnv="wisdm-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
@@ -279,7 +276,6 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="3-fit-random-forest.R"
-		  transformerSpecificOutput="False"
 		  condaEnv="wisdm-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
@@ -341,32 +337,47 @@
 		</transformer>
 		 <!--Export Transformers-->
 		<transformer
-		  name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation" dataSheet="CovariateCorrelationMatrix" column="Filename" 
+		  name="CovariateCorrelationExportMatrixInitial" dataSheet="CovariateCorrelationMatrix" column="InitialMatrix" 
+		  isFolderExport="True" className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		</transformer>
+		<transformer
+		  name="CovariateCorrelationExportSelected" dataSheet="CovariateCorrelationMatrix" column="SelectedMatrix" 
 		  isFolderExport="True" className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
 		</transformer>
 		<transformer 
-		name="ModelExportRDS" dataSheet="ModelOutputs" column="ModelRDS" isFolderExport="True" 
-		className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		  name="ModelExportRDS" dataSheet="ModelOutputs" column="ModelRDS" isFolderExport="True" 
+		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
 		</transformer>
 		<transformer 
-		name="ModelExportText" dataSheet="ModelOutputs" column="TextOutput" isFolderExport="True"
-		className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		  name="ModelExportText" dataSheet="ModelOutputs" column="TextOutput" isFolderExport="True"
+		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
 		</transformer>
 		<transformer 
-		name="VariableImportanceExportData" dataSheet="ModelOutputs" column="VariableImportanceData" isFolderExport="True"
-		className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		  name="VariableImportanceExportData" dataSheet="ModelOutputs" column="VariableImportanceData" isFolderExport="True"
+		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
 		</transformer>
-		<!--transformer 
-		name="ResidualSmoothExportRDS" dataSheet="ModelOutputs" column="ResidualSmoothRDS" isFolderExport="True" 
-		className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer-->
+		<transformer 
+		  name="ProbMapExport" dataSheet="SpatialOutputs" column="ProbabilityRaster" isFolderExport="True" 
+		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		</transformer>
+		<transformer 
+		  name="MessMapExport" dataSheet="SpatialOutputs" column="MessRaster" isFolderExport="True" 
+		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		</transformer>
+		<transformer 
+		  name="ModMapExport" dataSheet="SpatialOutputs" column="ModRaster" isFolderExport="True" 
+		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		</transformer>
+		<transformer 
+		  name="ResidMapExport" dataSheet="SpatialOutputs" column="ResidualsRaster" isFolderExport="True" 
+		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		</transformer>
 	</transformers>
 	<layouts>
 		<!--Library Datafeeds Layout-->
 		<layout name="coreforms_LibraryDatafeeds">
 		  <item name="core_Rconfig"/>
 		  <item name="core_Options"/>
-		  <item name="core_Condaconfig"/>
 		</layout>  
 		<!--Project Datafeeds Layout-->
 		<layout name="coreforms_ProjectDatafeeds">
@@ -391,7 +402,7 @@
 		  </group>
 		  <group name="Models">
 			<item name="GLM"/>
-			<item name="RandomForest"/>
+			<!--item name="RandomForest"/-->
 		  </group>
 		<item name="OutputOptions"/>
 		</layout> 
@@ -399,12 +410,19 @@
 		<layout name="coreforms_ResultTransformers">
 			<item name="corestime_MapTransformer"/>
 			<group name="Export">
-				<item name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation Matrix"/>
+				<group name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation Matrix">
+					<item name="CovariateCorrelationExportInitial" displayName="Initial Covariates"/>
+					<item name="CovariateCorrelationExportSelected" displayName="Selected Covariates"/>
 				<group name="ModelOutputs" displayName="Model Outputs">
 					<item name="ModelExportRDS" displayName="Model RDS"/>
 					<item name="ModelExportText" displayName="Summary Text"/>
 					<item name="VariableImportanceExportData" displayName="Variable Importance"/>
-					<!--item name="ResidualSmoothExportRDS" displayName="Residual Smooth RDS"/-->	
+				</group>
+				<group name="MapOutputs" displayName="Map Outputs">
+					<item name="ProbMapExport" displayName="Probability"/>
+					<item name="MessMapExport" displayName="MESS"/>
+					<item name="ModMapExport" displayName="MoD"/>
+					<item name="ResidMapExport" displayName="Residuals"/>
 				</group>
 			</group>
         </layout>

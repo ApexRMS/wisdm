@@ -1,9 +1,9 @@
 ## -------------------------------------
 ## wisdm - prep spatial multiprocessing
-## ApexRMS, May 2022
+## ApexRMS, July 2022
 ## -------------------------------------
 
-# built under R version 4.1.1
+# built under R version 4.1.3
 # this transformer pulls in a template raster and creates a tiling raster for 
 # spatial multiprocessing 
 
@@ -11,6 +11,9 @@
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "0-dependencies.R"))
+
+library(terra)
+library(tidyr)
 
 # Connect to library -----------------------------------------------------------
 

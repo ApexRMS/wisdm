@@ -1,11 +1,13 @@
 ## --------------------
 ## wisdm - apply model
-## ApexRMS, May 2022
+## ApexRMS, August 2022
 ## --------------------
 
-# built under R version 4.1.1
+# built under R version 4.1.3
 # this transformer pulls in selected model objects and applies the models
-# to specified spatial conditions 
+# to specified spatial conditions to produce maps of occurrence probability, 
+# multivariate environmental similarity surface, most dissimilar variable, 
+# and residuals 
 
 # source dependencies ----------------------------------------------------------
 
@@ -13,6 +15,10 @@ packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "0-dependencies.R"))
 source(file.path(packageDir, "0-helper-functions.R"))
 source(file.path(packageDir, "04-apply-model-functions.R"))
+
+library(terra)
+library(dplyr)
+# library(gbm)
 
 # Connect to library -----------------------------------------------------------
 

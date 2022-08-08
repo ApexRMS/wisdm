@@ -1,14 +1,25 @@
 ## wisdm - data preparation
 ## ApexRMS, March 2022
 
-# R version 4.1.1
-# Script pulls in field data and covariate data and generates dataframe of site-specific covaraite data
+# built under R version 4.1.3
+# Script pulls in field data and covariate rasters; processes field data to insure sites are in 
+# the template CRS and extent, aggregates or weights sites by spatial distribution, and
+# splits sites into test/train or CV groupings; extracts site-specific covaraite data 
+# and generates datasheet of covariate site data.
 
 # source dependencies ----------------------------------------------------------
 
 packageDir <- (Sys.getenv("ssim_package_directory"))
 source(file.path(packageDir, "0-dependencies.R"))
 source(file.path(packageDir, "01-data-prep-functions.R"))
+
+library(terra)
+library(sf)
+library(tidyr)
+library(dplyr)
+library(pander)
+
+
 
 # Connect to library -----------------------------------------------------------
 
@@ -140,8 +151,8 @@ pts2 <- crop(pts, extPoly)
 keepSites <- pts2$SiteID
 
 if(length(keepSites)<nrow(fieldDataSheet)){
-  updateRunLog(paste0("\nWarning: ", nrow(fieldDataSheet)-length(keepSites), " sites out of ", nrow(fieldDataSheet), 
-               " total sites in the input field data were outside the template extent and were REMOVED from the output field data.\n"))
+  updateRunLog(paste0("\n", nrow(fieldDataSheet)-length(keepSites), " sites out of ", nrow(fieldDataSheet), 
+               " total sites in the input field data were outside the template extent \nand were removed from the output. ", length(keepSites), " sites were retained.\n"))
   fieldDataSheet <- fieldDataSheet[fieldDataSheet$SiteID %in% keepSites,]
 }
 
@@ -256,7 +267,7 @@ if(!is.na(fieldDataOptions$AggregateAndWeight)){
         weight_i <- 1/length(sites_i)
         fieldDataSheet$Weight[fieldDataSheet$SiteID %in% sites_i] <- weight_i
       } 
-    } else { updateRunLog("\nWarning: Weights already present in field data, new weights were NOT assigned.\n") }
+    } else { updateRunLog("\nWeights were already present in the field data, new weights were not assigned.\n") }
   
   } # end site weighting
   } # end else
@@ -291,7 +302,7 @@ if(validationDataSheet$SplitData == F & validationDataSheet$CrossValidate == F){
     for (i in 1:length(factorVars)){
       factor.table <- table(inputData[,factorVars[i]])
       if(any(factor.table<10)){
-        updateRunLog(paste0("\nWarning: Some levels for the categorical predictor ",factorVars[i]," do not have at least 10 observations. ", 
+        updateRunLog(paste0("\nSome levels for the categorical predictor ",factorVars[i]," do not have at least 10 observations. ", 
                                                     "Consider removing or reclassifying this predictor before continuing.\n",
                                                     "Factors with few observations can cause failure in model fitting when the data is split and cannot be reliably used in training a model.\n"))
         factor.table <- as.data.frame(factor.table)

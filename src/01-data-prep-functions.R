@@ -51,7 +51,7 @@ testTrainSplit <- function(inputData,             # dataframe with field data an
   if(!is.null(factorVars)){
     for (i in 1:length(factorVars)){
       factor.table <- table(dat[,factorVars[i]])
-      if(any(factor.table<10)){ updateRunLog(paste0("\nWarning: Some levels for the categorical predictor ",factorVars[i]," do not have at least 10 observations. ", 
+      if(any(factor.table<10)){ updateRunLog(paste0("\nSome levels for the categorical predictor ",factorVars[i]," do not have at least 10 observations. ", 
                                                     "Consider removing or reclassifying this predictor before continuing.\n",
                                                     "Factors with few observations can cause failure in model fitting when the data is split and cannot be reliably used in training a model.\n"))
         factor.table <- as.data.frame(factor.table)
@@ -63,7 +63,7 @@ testTrainSplit <- function(inputData,             # dataframe with field data an
   }
   if(length(response)<100){ stop("A test training split is not advisable for less than 100 observations.  Consider-cross validation as an alternative.")}
   if(length(response)<200){
-    updateRunLog(paste0("\nWarning: There are less than 200 observations. Cross-validation might be preferable to a test/training split./n",
+    updateRunLog(paste0("\nThere are less than 200 observations. Cross-validation might be preferable to a test/training split./n",
                         "Weigh the decision while keeping in mind the number of predictors being considered: ", ncol(dat)-7,"/n"))
   }
   if(all(na.omit(response) %in% 0:1) & any(table(response)<10)){
@@ -214,7 +214,7 @@ crossValidationSplit <- function(inputData,         # dataframe with field data 
     for (i in 1:length(factorVars)){
       factor.table <- table(dat[,factorVars[i]])
       if(any(factor.table<10)){
-        updateRunLog(paste0("\nWarning: Some levels for the categorical predictor ", factorVars[i], " do not have at least 10 observations.",
+        updateRunLog(paste0("\nSome levels for the categorical predictor ", factorVars[i], " do not have at least 10 observations.",
                      " Consider removing or reclassifying this predictor before continuing.\n",
                      "Factors with few observations can cause failure in model fitting when the data is split and cannot be reliably used in training a model.\n"))
         factor.table <- as.data.frame(factor.table)

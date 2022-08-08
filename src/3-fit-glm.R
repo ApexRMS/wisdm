@@ -3,6 +3,10 @@
 ## ApexRMS, April 2022
 ## -------------------
 
+# built under R version 4.1.3
+# script pulls in pre-processed field, site and covariate data; fits glm; builds
+# model diagnostic and validation plots 
+
 # source dependencies ----------------------------------------------------------
 
   packageDir <- Sys.getenv("ssim_package_directory")
@@ -10,6 +14,14 @@
   source(file.path(packageDir, "0-helper-functions.R"))
   source(file.path(packageDir, "03-fit-model-functions.R"))
 
+  library(tidyr)
+  library(dplyr)
+  library(PresenceAbsence)
+  library(PRROC)
+  library(ROCR)
+  library(ggplot2)
+  library(splines)
+  
 # Connect to library -----------------------------------------------------------
 
   # Active project and scenario
@@ -104,7 +116,7 @@
 # Model definitions ------------------------------------------------------------
 
   # create object to store intermediate model selection/evaluation inputs
-  out <-list()
+  out <- list()
   
   ## Model type
   out$modType <- modType <- "glm"
@@ -153,7 +165,7 @@
 # Review model data ------------------------------------------------------------
 
   if(nrow(trainingData)/(length(out$inputVars)-1)<10){
-    updateRunLog(paste("\nWarning: You have approximately ", round(nrow(trainingData)/(ncol(trainingData)-1),digits=1),
+    updateRunLog(paste("\nYou have approximately ", round(nrow(trainingData)/(ncol(trainingData)-1),digits=1),
                              " observations for every predictor\n consider reducing the number of predictors before continuing\n",sep=""))
   }
 

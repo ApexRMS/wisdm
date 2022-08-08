@@ -1,0 +1,81 @@
+Generalized Linear Model Results
+
+Settings:
+
+	 model family:  binomial
+	 simplification method:  AIC
+
+
+Results:
+	 number covariates in final model:  7
+
+Call:
+glm(formula = Response ~ asage_1km + I(tri_18km^2) + mix_18km + 
+    rddens_18km + I(mix_18km^2) + asage_1km:mix_18km + mix_18km:rddens_18km, 
+    family = out$modelFamily, data = dat, weights = dat$Weight, 
+    na.action = "na.exclude")
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-2.8302   0.0000   0.1510   0.5233   1.9176  
+
+Coefficients:
+                       Estimate Std. Error z value Pr(>|z|)    
+(Intercept)           2.499e-01  5.563e-01   0.449  0.65334    
+asage_1km             6.940e+00  1.473e+00   4.712 2.46e-06 ***
+I(tri_18km^2)        -3.314e-04  1.176e-04  -2.819  0.00481 ** 
+mix_18km              2.065e+03  8.195e+02   2.520  0.01173 *  
+rddens_18km          -4.802e-02  3.619e-01  -0.133  0.89444    
+I(mix_18km^2)         1.773e+04  1.040e+04   1.704  0.08835 .  
+asage_1km:mix_18km   -7.501e+02  2.628e+02  -2.855  0.00431 ** 
+mix_18km:rddens_18km -1.091e+03  4.401e+02  -2.478  0.01322 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 226.03  on 205  degrees of freedom
+Residual deviance: 134.74  on 198  degrees of freedom
+AIC: 150.74
+
+Number of Fisher Scoring iterations: 11
+
+
+
+============================================================ 
+
+Evaluation Statistics applied to Cross validation split:
+
+ 
+	 Correlation Coefficient      : 0.6320885  (sd 0.14469) 
+	 NULL Deviance                : 1.0772 (sd 0.13323)
+	 Fit Deviance                 : 0.66119 (sd 0.10219)
+	 Explained Deviance           : 0.41601 (sd 0.2021)
+	 Percent Deviance Explained   : 37.415 (sd 14.342)
+
+  Threshold Methods based on 
+	 Mean Threshold               : 0.7 (sd 0.040373) 
+
+	 Confusion Matrix: 
+
+         observed
+predicted   1   0
+        1 125   8
+        0  32  41
+
+	 AUC                          :  0.8848667  (sd 0.051666) 
+	 AUC-pr                       :  0.9634092  (sd 0.015191) 
+	 Percent Correctly Classified :  80.19608  (sd 6.7112) 
+	 Sensitivity                  :  0.7955088  (sd 0.048222) 
+	 Specificity                  :  0.8089226  (sd 0.1331) 
+	 Kappa                        :  0.5171765  (sd 0.18095) 
+	 True Skill Statistic         :  0.6044313  (sd 0.17657) 
+
+
+   Calibration Statistics 
+	 Intercept (general calibration)                            :  -0.02643108  (sd 0.68853) 
+	 Slope   (direction and variation in fit)                   :  1.054254  (sd 0.38536) 
+	 Testa0b1 (overall reliability of predictors)               :  0.585699  (sd 0.26825) 
+	 Testa0|b1(incorrect calibration given correct refinement)  :  0.4539897  (sd 0.23554) 
+	 Testb1|a (refinement given correct calibration)            :  0.6179171  (sd 0.30097) 
+
