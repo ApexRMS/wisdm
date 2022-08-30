@@ -1,5 +1,7 @@
-## sdsim - variable reduction functions
+## -------------------------------------
+## wisdm - variable reduction functions
 ## ApexRMS, May 2022
+## -------------------------------------
 
 # pairs explore function -------------------------------------------------------
 

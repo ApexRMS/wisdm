@@ -5,6 +5,8 @@ channels:
 dependencies:
   - mkl
   - r-base=4.1.3
+  - r-codetools=0.2_18
+  - r-rsyncrosim=1.4.0
   - r-terra=1.5_21
   - r-sf=1.0_7
   - r-pander=0.6.5

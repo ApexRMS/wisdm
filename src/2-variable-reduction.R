@@ -1,19 +1,21 @@
-## sdsim - variable reduction
+## ---------------------------
+## wisdm - variable reduction
 ## ApexRMS, August 2022
+## ---------------------------
 
-# built under R version 4.1.3
-# Script pulls in site-specific covaraite data; calls shiny widget to display 
+# built under R version 4.1.3 & SyncroSim version 2.4.0
+# Script pulls in site-specific covariate data; calls shiny widget to display 
 # interactive correlation tool; saves reduced dataset of user selected covariates
 
 # source dependencies ----------------------------------------------------------
 
-packageDir <- Sys.getenv("ssim_package_directory")
-source(file.path(packageDir, "0-dependencies.R"))
-source(file.path(packageDir, "02-variable-reduction-functions.R"))
-
+library(rsyncrosim)
 library(tidyr)
 library(dplyr)
 library(shiny)
+
+packageDir <- Sys.getenv("ssim_package_directory")
+source(file.path(packageDir, "02-variable-reduction-functions.R"))
 
 # Connect to library -----------------------------------------------------------
 

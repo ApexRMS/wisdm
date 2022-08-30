@@ -1,7 +1,9 @@
+## -------------------------
 ## wisdm - data preparation
 ## ApexRMS, March 2022
+## -------------------------
 
-# built under R version 4.1.3
+# built under R version 4.1.3 & SyncroSim version 2.4.0
 # Script pulls in field data and covariate rasters; processes field data to insure sites are in 
 # the template CRS and extent, aggregates or weights sites by spatial distribution, and
 # splits sites into test/train or CV groupings; extracts site-specific covaraite data 
@@ -9,17 +11,15 @@
 
 # source dependencies ----------------------------------------------------------
 
-packageDir <- (Sys.getenv("ssim_package_directory"))
-source(file.path(packageDir, "0-dependencies.R"))
-source(file.path(packageDir, "01-data-prep-functions.R"))
-
+library(rsyncrosim)
 library(terra)
 library(sf)
 library(tidyr)
 library(dplyr)
 library(pander)
 
-
+packageDir <- (Sys.getenv("ssim_package_directory"))
+source(file.path(packageDir, "01-data-prep-functions.R"))
 
 # Connect to library -----------------------------------------------------------
 

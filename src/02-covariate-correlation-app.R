@@ -1,3 +1,8 @@
+## ----------------------------------------
+## wisdm - covariate correlation shiny app
+## ApexRMS, May 2022
+## ----------------------------------------
+
 ui <- fluidPage(
   
   # App title ----

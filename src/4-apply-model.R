@@ -1,9 +1,9 @@
-## --------------------
+## ---------------------
 ## wisdm - apply model
 ## ApexRMS, August 2022
-## --------------------
+## ---------------------
 
-# built under R version 4.1.3
+# built under R version 4.1.3 & SyncroSim version 2.4.0
 # this transformer pulls in selected model objects and applies the models
 # to specified spatial conditions to produce maps of occurrence probability, 
 # multivariate environmental similarity surface, most dissimilar variable, 
@@ -11,14 +11,14 @@
 
 # source dependencies ----------------------------------------------------------
 
-packageDir <- Sys.getenv("ssim_package_directory")
-source(file.path(packageDir, "0-dependencies.R"))
-source(file.path(packageDir, "0-helper-functions.R"))
-source(file.path(packageDir, "04-apply-model-functions.R"))
-
+library(rsyncrosim)
 library(terra)
 library(dplyr)
 # library(gbm)
+
+packageDir <- Sys.getenv("ssim_package_directory")
+source(file.path(packageDir, "0-helper-functions.R"))
+source(file.path(packageDir, "04-apply-model-functions.R"))
 
 # Connect to library -----------------------------------------------------------
 

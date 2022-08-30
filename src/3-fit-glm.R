@@ -1,19 +1,15 @@
-## -------------------
+## --------------------
 ## wisdm - fit glm
 ## ApexRMS, April 2022
-## -------------------
+## --------------------
 
-# built under R version 4.1.3
+# built under R version 4.1.3 & SyncroSim version 2.4.0
 # script pulls in pre-processed field, site and covariate data; fits glm; builds
 # model diagnostic and validation plots 
 
 # source dependencies ----------------------------------------------------------
-
-  packageDir <- Sys.getenv("ssim_package_directory")
-  source(file.path(packageDir, "0-dependencies.R"))
-  source(file.path(packageDir, "0-helper-functions.R"))
-  source(file.path(packageDir, "03-fit-model-functions.R"))
-
+  
+  library(rsyncrosim)
   library(tidyr)
   library(dplyr)
   library(PresenceAbsence)
@@ -21,6 +17,10 @@
   library(ROCR)
   library(ggplot2)
   library(splines)
+  
+  packageDir <- Sys.getenv("ssim_package_directory")
+  source(file.path(packageDir, "0-helper-functions.R"))
+  source(file.path(packageDir, "03-fit-model-functions.R"))
   
 # Connect to library -----------------------------------------------------------
 

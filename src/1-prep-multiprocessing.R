@@ -3,15 +3,13 @@
 ## ApexRMS, July 2022
 ## -------------------------------------
 
-# built under R version 4.1.3
+# built under R version 4.1.3 & SyncroSim version 2.4.0
 # this transformer pulls in a template raster and creates a tiling raster for 
 # spatial multiprocessing 
 
 # source dependencies ----------------------------------------------------------
 
-packageDir <- Sys.getenv("ssim_package_directory")
-source(file.path(packageDir, "0-dependencies.R"))
-
+library(rsyncrosim)
 library(terra)
 library(tidyr)
 

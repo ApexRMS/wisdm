@@ -56,7 +56,6 @@
 					  <columns>
 						<column name="FieldDataOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<!--column name="Shapefile" displayName="Field Data Shapefile (optional)" dataType="String" isExternalFile="True" isOptional="True"/-->
 						<column name="EPSG" displayName="Authority Code (e.g., EPSG:4326)" dataType="String" isOptional="True"/>
 						<column name="AggregateAndWeight" displayName="Aggregate or Weight Data" dataType="Integer" validationType="List" formula1="0:Aggregate|1:Weight" isOptional="True"/>
 					  </columns>
@@ -402,7 +401,6 @@
 		  </group>
 		  <group name="Models">
 			<item name="GLM"/>
-			<!--item name="RandomForest"/-->
 		  </group>
 		<item name="OutputOptions"/>
 		</layout> 
