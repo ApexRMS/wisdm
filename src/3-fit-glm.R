@@ -19,7 +19,7 @@
   library(splines)
   
   packageDir <- Sys.getenv("ssim_package_directory")
-  source(file.path(packageDir, "0-helper-functions.R"))
+  source(file.path(packageDir, "00-helper-functions.R"))
   source(file.path(packageDir, "03-fit-model-functions.R"))
   
 # Connect to library -----------------------------------------------------------

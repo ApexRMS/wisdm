@@ -1,4 +1,4 @@
-name: wisdm_env
+name: wisdm-r-env
 channels:
   - conda-forge
   - defaults

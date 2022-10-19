@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.0">
+<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.1">
 	<transformers>
 		<!--Primary Transformer-->
 		<transformer 
@@ -10,6 +10,7 @@
 			<transformer name="corestime_Runtime"/>
 			<transformer name="Global"/>
 			<transformer name="PrepMultiprocessing"/>
+			<transformer name="SpatialDataPreparation"/>
 			<transformer name="DataPreparation"/>
 			<transformer name="VariableReduction"/>
 			<transformer name="GLM"/>
@@ -70,6 +71,8 @@
 						<column name="ScenarioID" dataType="Integer"/>
 						<column name="CovariatesID" displayName="Covariate" dataType="Integer" validationType="Datasheet" formula1="Covariates"/>
 						<column name="RasterFilePath" displayName="Raster File" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="ResampleMethod" displayName="Resample Method" dataType="Integer" validationType="List" formula1="0:Nearest Neighbor|1:Bilinear|2:Cubic|3:Cubic Spline|4:Lanczos" isOptional="True" />
+						<column name="AggregationMethod" displayName="Aggregation Method" dataType="Integer" validationType="List" formula1="0:Mean|1:Max|2:Min|3:Majority" isOptional="True" />
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -179,23 +182,37 @@
 		<!--Prepare Multiprocessing Transformer-->
 		<transformer
 		  name="PrepMultiprocessing"
-		  displayName ="1 - Prepare Multiprocessing"
+		  displayName ="0 - Prepare Multiprocessing"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="1-prep-multiprocessing.R"
-		  condaEnv="wisdm-conda.yml">
+		  programArguments="0-prep-multiprocessing.R"
+		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="TemplateRaster" type="Input"/>
 			</pipeline>
 		</transformer>	
-		<!--Data Preparation Transformer-->
+		<!--Spatial Data Preparation Transformer-->
+		<transformer
+		  name="SpatialDataPreparation"
+		  displayName ="1.1 - Spatial Data Preparation"
+		  isRunnable="True"
+		  programName="Python"
+		  programArguments="1-spatial-data-preparation.py"
+		  condaEnv="wisdm-py-conda.yml"
+		  runContext="AllowRemote">
+		  <pipeline>
+			<datafeed name="TemplateRaster" type="Input"/>
+			<datafeed name="CovariateData"/>
+		  </pipeline>
+		</transformer>
+		<!--Non-Spatial Data Preparation Transformer-->
 		<transformer
 		  name="DataPreparation"
-		  displayName ="1 - Data Preparation"
+		  displayName ="1.2 - Data Preparation (Non-Spatial)"
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="1-data-preparation.R"
-		  condaEnv="wisdm-conda.yml">
+		  condaEnv="wisdm-r-conda.yml">
 		  <pipeline>
 			<datafeed name="FieldData" type="Input"/>
 			<datafeed name="FieldDataOptions" type="Input"/>
@@ -212,7 +229,7 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="2-variable-reduction.R"
-		  condaEnv="wisdm-conda.yml">
+		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
 				<datafeed name="CovariateData" type="Input"/>
@@ -242,7 +259,7 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="3-fit-glm.R"
-		  condaEnv="wisdm-conda.yml">
+		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
 				<datafeed name="ValidationOptions" type="Input"/>
@@ -275,7 +292,7 @@
 		  isRunnable="True"
 		  programName="RScript"
 		  programArguments="3-fit-random-forest.R"
-		  condaEnv="wisdm-conda.yml">
+		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
 				<datafeed name="ValidationOptions" type="Input"/>
@@ -307,7 +324,7 @@
 		  className="SyncroSim.StochasticTime.StochasticTimeTransformer" 
 		  classAssembly="SyncroSim.StochasticTime"
 		  runContext="AllowRemote"
-		  condaEnv="wisdm-conda.yml">
+		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="corestime_Multiprocessing" type="Input"/>
 				<datafeed name="TemplateRaster" type="Input"/>
@@ -376,6 +393,8 @@
 		<!--Library Datafeeds Layout-->
 		<layout name="coreforms_LibraryDatafeeds">
 		  <item name="core_Rconfig"/>
+		  <item name="core_Pyconfig"/>
+		  <item name="core_Condaconfig"/>
 		  <item name="core_Options"/>
 		</layout>  
 		<!--Project Datafeeds Layout-->

@@ -1,0 +1,112 @@
+"","Package","Imports","License","Tier"
+"1",proxy,stats, utils,GPL-2,4
+"2",fs,methods,MIT + file LICENSE,4
+"3",rappdirs,NA,MIT + file LICENSE,4
+"4",lattice,grid, grDevices, graphics, stats, utils,GPL (>= 2),4
+"5",colorspace,graphics, grDevices, stats,BSD_3_clause + file LICENSE,4
+"6",bitops,NA,GPL (>= 2),4
+"7",fansi,grDevices, utils,GPL-2 | GPL-3,3
+"8",pkgconfig,utils,MIT + file LICENSE,3
+"9",cli,glue (>= 1.6.0), utils,MIT + file LICENSE,3
+"10",utf8,NA,Apache License (== 2.0) | file LICENSE,3
+"11",bit64,NA,GPL-2 | GPL-3,3
+"12",blob,methods, rlang, vctrs (>= 0.2.1),MIT + file LICENSE,3
+"13",memoise,rlang (>= 0.4.10), cachem,MIT + file LICENSE,3
+"14",e1071,graphics, grDevices, class, stats, methods, utils, proxy,GPL-2 | GPL-3,3
+"15",class,MASS,GPL-2 | GPL-3,3
+"16",KernSmooth,NA,Unlimited,3
+"17",wk,NA,MIT + file LICENSE,3
+"18",base64enc,NA,GPL-2 | GPL-3,3
+"19",sass,fs, rlang (>= 0.4.10), htmltools (>= 0.5.1), R6, rappdirs,MIT + file LICENSE,3
+"20",jquerylib,htmltools,MIT + file LICENSE,3
+"21",Matrix,methods, graphics, grid, stats, utils, lattice,GPL (>= 2) | file LICENCE,3
+"22",farver,NA,MIT + file LICENSE,3
+"23",labeling,stats, graphics,MIT + file LICENSE | Unlimited,3
+"24",munsell,colorspace, methods,MIT + file LICENSE,3
+"25",RColorBrewer,NA,Apache License 2.0,3
+"26",viridisLite,NA,MIT + file LICENSE,3
+"27",caTools,bitops,GPL-3,3
+"28",utils,NA,Part of R 4.1.3,2
+"29",grDevices,NA,Part of R 4.1.3,2
+"30",graphics,grDevices,Part of R 4.1.3,2
+"31",methods,utils, stats,Part of R 4.1.3,2
+"32",digest,utils,GPL (>= 2),2
+"33",tools,NA,Part of R 4.1.3,2
+"34",Rcpp,methods, utils,GPL (>= 2),2
+"35",generics,methods,MIT + file LICENSE,2
+"36",glue,methods,MIT + file LICENSE,2
+"37",lifecycle,glue, rlang (>= 0.4.10),MIT + file LICENSE,2
+"38",magrittr,NA,MIT + file LICENSE,2
+"39",R6,NA,MIT + file LICENSE,2
+"40",rlang,utils,MIT + file LICENSE,2
+"41",tibble,fansi (>= 0.4.0), lifecycle (>= 1.0.0), magrittr, methods,
+pillar (>= 1.7.0), pkgconfig, rlang (>= 1.0.2), utils, vctrs
+(>= 0.3.8),MIT + file LICENSE,2
+"42",tidyselect,ellipsis, glue (>= 1.3.0), purrr (>= 0.3.2), rlang (>= 1.0.1),
+vctrs (>= 0.3.0),MIT + file LICENSE,2
+"43",vctrs,cli (>= 3.2.0), glue, rlang (>= 1.0.2),MIT + file LICENSE,2
+"44",pillar,cli (>= 2.3.0), fansi, glue, lifecycle, rlang (>= 1.0.2), utf8
+(>= 1.1.0), utils, vctrs (>= 0.3.8),MIT + file LICENSE,2
+"45",DBI,NA,LGPL (>= 2.1),2
+"46",RSQLite,bit64, blob (>= 1.2.0), DBI (>= 1.1.0), memoise, methods,
+pkgconfig, Rcpp (>= 1.0.7),LGPL (>= 2.1),2
+"47",raster,Rcpp, methods, terra (>= 1.5-12),GPL (>= 3),2
+"48",gtools,NA,GPL-2,2
+"49",classInt,grDevices, stats, graphics, e1071, class, KernSmooth,GPL (>= 2),2
+"50",grid,grDevices, utils,Part of R 4.1.3,2
+"51",s2,Rcpp, wk (>= 0.6.0),Apache License (== 2.0),2
+"52",units,Rcpp,GPL-2,2
+"53",ellipsis,rlang (>= 0.3.0),MIT + file LICENSE,2
+"54",purrr,magrittr (>= 1.5), rlang (>= 0.3.1),GPL-3 | file LICENSE,2
+"55",httpuv,Rcpp (>= 1.0.7), utils, R6, promises, later (>= 0.8.0),GPL (>= 2) | file LICENSE,2
+"56",mime,tools,GPL,2
+"57",jsonlite,NA,MIT + file LICENSE,2
+"58",xtable,stats, utils,GPL (>= 2),2
+"59",fontawesome,rlang (>= 0.4.10), htmltools (>= 0.5.1.1),MIT + file LICENSE,2
+"60",htmltools,utils, digest, grDevices, base64enc, rlang (>= 0.4.10),
+fastmap (>= 1.1.0),GPL (>= 2),2
+"61",sourcetools,NA,MIT + file LICENSE,2
+"62",later,Rcpp (>= 0.12.9), rlang,MIT + file LICENSE,2
+"63",promises,R6, Rcpp, later, rlang, stats, magrittr,MIT + file LICENSE,2
+"64",crayon,grDevices, methods, utils,MIT + file LICENSE,2
+"65",fastmap,NA,MIT + file LICENSE,2
+"66",withr,graphics, grDevices, stats,MIT + file LICENSE,2
+"67",commonmark,NA,BSD_2_clause + file LICENSE,2
+"68",bslib,grDevices, htmltools (>= 0.5.2), jsonlite, sass (>= 0.4.0),
+jquerylib (>= 0.1.3), rlang, cachem, memoise,MIT + file LICENSE,2
+"69",cachem,rlang, fastmap,MIT + file LICENSE,2
+"70",gtable,grid,GPL-2,2
+"71",isoband,grid, utils,MIT + file LICENSE,2
+"72",MASS,methods,GPL-2 | GPL-3,2
+"73",mgcv,methods, stats, graphics, Matrix, splines, utils,GPL (>= 2),2
+"74",scales,farver (>= 2.0.3), labeling, lifecycle, munsell (>= 0.5), R6,
+RColorBrewer, rlang (>= 1.0.0), viridisLite,MIT + file LICENSE,2
+"75",gplots,gtools, stats, caTools, KernSmooth, methods,GPL-2,2
+"76",stats,utils, grDevices, graphics,Part of R 4.1.3,1
+"77",pander,grDevices, graphics, methods, utils, stats, digest, tools,
+Rcpp,AGPL-3 | file LICENSE,1
+"78",dplyr,generics, glue (>= 1.3.2), lifecycle (>= 1.0.1), magrittr (>=
+1.5), methods, R6, rlang (>= 1.0.2), tibble (>= 2.1.3),
+tidyselect (>= 1.1.1), utils, vctrs (>= 0.4.1), pillar (>=
+1.5.1),MIT + file LICENSE,1
+"79",rsyncrosim,methods, DBI, RSQLite, raster, gtools, lifecycle,MIT + file LICENSE,1
+"80",sf,classInt (>= 0.4-1), DBI (>= 0.8), graphics, grDevices, grid,
+magrittr, Rcpp (>= 0.12.18), s2 (>= 1.0.7), stats, tools, units
+(>= 0.7-0), utils,GPL-2 | MIT + file LICENSE,1
+"81",terra,methods, Rcpp,GPL (>= 3),1
+"82",tidyr,dplyr (>= 1.0.0), ellipsis (>= 0.1.0), glue, lifecycle,
+magrittr, purrr, rlang, tibble (>= 2.1.1), tidyselect (>=
+1.1.0), utils, vctrs (>= 0.3.7),MIT + file LICENSE,1
+"83",shiny,utils, grDevices, httpuv (>= 1.5.2), mime (>= 0.3), jsonlite
+(>= 0.9.16), xtable, fontawesome (>= 0.2.1), htmltools (>=
+0.5.2), R6 (>= 2.0), sourcetools, later (>= 1.0.0), promises
+(>= 1.1.0), tools, crayon, rlang (>= 0.4.10), fastmap (>=
+1.1.0), withr, commonmark (>= 1.7), glue (>= 1.3.2), bslib (>=
+0.3.0), cachem, ellipsis, lifecycle (>= 0.2.0),GPL-3 | file LICENSE,1
+"84",ggplot2,digest, glue, grDevices, grid, gtable (>= 0.1.1), isoband,
+MASS, mgcv, rlang (>= 0.4.10), scales (>= 0.5.0), stats,
+tibble, withr (>= 2.0.0),MIT + file LICENSE,1
+"85",PresenceAbsence,NA,Unlimited,1
+"86",PRROC,NA,GPL-3,1
+"87",ROCR,methods, graphics, grDevices, gplots, stats,GPL (>= 2),1
+"88",splines,graphics, stats,Part of R 4.1.3,1
