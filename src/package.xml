@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.1">
+<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.2">
 	<transformers>
 		<!--Primary Transformer-->
 		<transformer 
@@ -202,7 +202,10 @@
 		  runContext="AllowRemote">
 		  <pipeline>
 			<datafeed name="TemplateRaster" type="Input"/>
+			<datafeed name="FieldData" type="Input"/>
+			<datafeed name="FieldDataOptions" type="Input"/>
 			<datafeed name="CovariateData"/>
+			<datafeed name="SiteData" type="Output"/>
 		  </pipeline>
 		</transformer>
 		<!--Non-Spatial Data Preparation Transformer-->

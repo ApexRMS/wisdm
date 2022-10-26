@@ -12,11 +12,13 @@
 # source dependencies ----------------------------------------------------------
 
 library(rsyncrosim)
+library(gdalUtils)
 library(terra)
 library(sf)
 library(tidyr)
 library(dplyr)
 library(pander)
+
 
 packageDir <- (Sys.getenv("ssim_package_directory"))
 source(file.path(packageDir, "01-data-prep-functions.R"))
@@ -76,6 +78,7 @@ saveDatasheet(myScenario, validationDataSheet, "wisdm_ValidationOptions")
 # identify categorical covariates
 if(sum(covariatesSheet$IsCategorical, na.rm = T)>0){
   factorVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T & covariatesSheet$CovariateName %in% covariateDataSheet$CovariatesID)]
+  if(length(factorVars)<1){ factorVars <- NULL }
 } else { factorVars <- NULL }
 
 # access crs database
@@ -83,8 +86,12 @@ projDB <- system.file("proj/proj.db", package = "terra")
 crsTable <- sf::read_sf(projDB, "crs_view") 
 possibleCodes <- paste0(crsTable$auth_name, ":", crsTable$code)
 
-# template raster
+# template raster ## TO DO: fix loading -- likely need to allow multiprocessing here
 if(nrow(templateRasterSheet)<1){ stop("Template raster is missing. Please provide a template raster before continuing.")}
+# templateInfo <- gdalinfo(templateRasterSheet$RasterFilePath, raw_output = F)
+# tempRes <- c(templateInfo$res.x, templateInfo$res.y)
+# crsText <- templateInfo$bbox
+
 template <- rast(templateRasterSheet$RasterFilePath)
 tempRes <- res(template)
 tempExt <- ext(template)
