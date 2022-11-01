@@ -44,7 +44,7 @@
 						<column name="X" dataType="Double"/>
 						<column name="Y" dataType="Double"/>
 						<column name="Response" dataType="Integer"/>
-						<column name="UseInModelEvaluation" displayName="Use In Model Evaluation" dataType="Boolean" defaultValue="0" isOptional="True"/>
+						<column name="UseInModelEvaluation" displayName="Use In Model Evaluation" dataType="Boolean" isOptional="True"/>
 						<column name="ModelSelectionSplit" displayName="Model Selection Split" dataType="Integer" isOptional="True"/>
 						<column name="Weight" dataType="Double" isOptional="True"/>
 					  </columns>

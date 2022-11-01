@@ -33,7 +33,9 @@ spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing"
   # load template raster
   templateRaster <- rast(templateSheet$RasterFilePath)
   tileCount <- templateSheet$TileCount
-  
+   
+  # check that template crs is valid [To Do]
+
   # if tile count is provided
   if(!is.na(tileCount)){
     
@@ -124,6 +126,6 @@ spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing"
     saveDatasheet(myScenario, spatialMulitprocessingSheet, "corestime_Multiprocessing")
   
     } else { # if tileData$n == 1  
-      updateRunLog("/nThe default settings suggest a tile count of 1; no tiling raster created./nA tile count can be set to override the default settings./n")
+      updateRunLog("\nThe default settings suggest a tile count of 1; no tiling raster created./nA tile count can be set to override the default settings.\n")
     }
   
