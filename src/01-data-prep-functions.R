@@ -200,7 +200,7 @@ crossValidationSplit <- function(inputData,         # dataframe with field data 
     stop("Cross Validation requires absence data.")
   }
     
-  # ignore background data that might (if present)
+  # ignore background data (if present)
   bg.dat <- dat[response ==-9999,]
   
   if(dim(bg.dat)[1]!=0){

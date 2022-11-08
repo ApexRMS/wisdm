@@ -162,7 +162,7 @@ templateRaster <- rast(templateSheet$RasterFilePath)
 if(!is.null(maskValues)){
   templateRaster <- crop(templateRaster, maskFile)
  }
-templateValues <- values(templateRaster)
+templateValues <- values(templateRaster, dataframe=T)
 
 if(all(is.na(templateValues))){  # if the template is completely NA values, don't read in any other data
   
@@ -203,8 +203,8 @@ if(!is.null(factorVars)){
 # create probability map -------------------------------------------------------
   
 if(outputOptionsSheet$MakeProbabilityMap){
-  
-  preds <- t(matrix(predictFct(model = mod, x = temp), ncol = ncol(templateRaster), byrow = T))
+  preds <- matrix(predictFct(model = mod, x = temp), ncol = ncol(templateRaster), byrow = T)
+  # preds <- t(matrix(predictFct(model = mod, x = temp), ncol = ncol(templateRaster), byrow = T))
   preds <- round((preds*100), 0)
   preds[is.na(preds)] <- -9999
   # typeof(preds)

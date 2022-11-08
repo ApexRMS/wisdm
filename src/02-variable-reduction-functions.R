@@ -46,8 +46,9 @@ pairsExplore <- function(inputData,     # dataframe with response and covariate 
   
   ## Marking factor columns as such after calculating deviance these will be removed
   if(length(factorVars)>0){
-    if(factorVars %in% selectedCovs){
-      for(i in factorVars) dat[,i] <- factor(dat[,i])
+    if(any(factorVars %in% selectedCovs)){
+      selectedFactors <- factorVars[factorVars %in% selectedCovs]
+      for(i in selectedFactors) dat[,i] <- factor(dat[,i])
     }}
   
   devExp <- vector()
@@ -62,9 +63,10 @@ pairsExplore <- function(inputData,     # dataframe with response and covariate 
   
   # now removing factor columns
   if(length(factorVars)>0){
-    if(factorVars %in% selectedCovs){
-      dat <- select(dat, -factorVars)
-      updateRunLog("/nWarning: The covariate correlation tool does not consider categorical predictors./n")
+    if(any(factorVars %in% selectedCovs)){
+      selectedFactors <- factorVars[factorVars %in% selectedCovs]
+      dat <- select(dat, -selectedFactors)
+      updateRunLog("\nWarning: The covariate correlation tool does not consider categorical predictors.\n")
     }}
   
   # after calculating the deviance for all predictors we have to remove the excluded predictors for the following plots

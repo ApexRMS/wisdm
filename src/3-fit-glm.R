@@ -80,7 +80,7 @@
   
   # remove sites with incomplete data 
   allCases <- nrow(siteDataWide)
-  siteDataWide <- siteDataWide[complete.cases(subset(siteDataWide, select = c(-ModelSelectionSplit, -Weight))),]
+  siteDataWide <- siteDataWide[complete.cases(subset(siteDataWide, select = c(-UseInModelEvaluation, -ModelSelectionSplit, -Weight))),]
   compCases <- nrow(siteDataWide)
   if(compCases/allCases < 0.9){updateRunLog(paste("\nWarning: ", round((1-compCases/allCases)*100,digits=2),"% of cases were removed because of missing values.\n",sep=""))}
   
@@ -92,10 +92,14 @@
   
   # set categorical variable to factor
   factorInputVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T & covariatesSheet$CovariateName %in% names(siteDataWide))]
-  if(length(factorInputVars)>0){ siteDataWide[,factorInputVars] <- factor(siteDataWide[,factorInputVars]) }
+  if(length(factorInputVars)>0){ 
+    for (i in factorInputVars){
+      siteDataWide[,i] <- factor(siteDataWide[,i])
+    }
+  }
  
   # identify training and testing sites 
-  siteDataWide$UseInModelEvaluation[is.na(siteDataWide$UseInModelEvaluation)] <- FALSE
+  # siteDataWide$UseInModelEvaluation[is.na(siteDataWide$UseInModelEvaluation)] <- FALSE
   trainTestDatasets <- split(siteDataWide, f = siteDataWide[,"UseInModelEvaluation"], drop = T)
   trainingData <- trainTestDatasets$`FALSE`
   testingData <- trainTestDatasets$`TRUE`
@@ -267,4 +271,5 @@
   if("glm_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- paste0(ssimTempDir,"\\Data\\glm_AUCPRPlot.png") } 
   
   saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs")
+  
   

@@ -70,6 +70,107 @@ fitModel <- function(dat,           # df of training data
     # if(full.fit) return(out) else 
     return(myModelGLMStep)
   }
+  #================================================================
+  #                        RF
+  #=================================================================
+  if(out$modType == "rf"){
+    
+    # set defaults
+    n.trees=1000
+    mtry=NULL
+    samp.replace=FALSE
+    sampsize=NULL
+    nodesize=NULL
+    maxnodes=NULL
+    importance=FALSE
+    localImp=FALSE
+    nPerm=1
+    proximity=NULL
+    oob.prox=proximity
+    norm.votes=TRUE
+    keep.forest=NULL
+    keep.inbag=FALSE
+    xtest=NULL
+    ytest=NULL
+
+    psd.abs <- dat[dat$Response == 0,]
+    rf.full <- list()
+    mtry.vect <- vector()
+    
+
+    for(i in 1:out$validationOptions$NumberOfFolds){
+      # tune the mtry parameter - this controls the number of covariates randomly subset for each split #
+      cat("\ntuning mtry parameter\n")
+      x = dat[dat$ModelSelectionSplit == i,-c(1:7)]  # rbind(psd.abs[psd.abs$ModelSelectionSplit == i,-c(1:7)], dat[dat$Response>=1,-1])
+      y = factor(dat$Response[dat$ModelSelectionSplit == i])# factor(c(psd.abs[i==Split,1],dat[dat$Response>=1,1]))
+      #x=rbind(dat[dat$response==1,-1],psd.abs[i==Split,-1])
+      #y=c(dat[dat$response==1,1],psd.abs[i==Split,1])
+      if(is.null(mtry)){
+        mtr <- tuneRF(x = x, y = y,
+                      mtryStart = 3,
+                      importance = TRUE,
+                      ntreeTry = 100,
+                      replace=FALSE, 
+                      doBest=F,
+                      plot=F)
+        mtry.vect[i] <- mtr[mtr[,2] == min(mtr[,2]),1][1]
+        
+      } else { mtry.vect[i] <- mtry }
+      cat("\nnow fitting full random forest model using mtry=",mtry,"\n")
+      #
+      rf.full[[i]] <- randomForest(x = x, y = y, xtest = xtest, ytest = ytest, importance = TRUE, ntree = n.trees,
+                                   mtry = mtry.vect[i], replace = samp.replace, 
+                                   sampsize = ifelse(is.null(sampsize),(ifelse(samp.replace,nrow(x),ceiling(.632*nrow(x)))),sampsize),
+                                   nodesize = ifelse(is.null(nodesize),(if (!is.null(y) && !is.factor(y)) 5 else 1),nodesize),
+                                   maxnodes = maxnodes, localImp = localImp, nPerm = nPerm, 
+                                   keep.forest = ifelse(is.null(keep.forest),!is.null(y) && is.null(xtest),keep.forest),
+                                   corr.bias = corr.bias, keep.inbag = keep.inbag)
+      if(i == 1){ 
+        model.summary <- importance(rf.full[[i]])
+      } else {
+        model.summary <- model.summary + importance(rf.full[[i]])
+      } 
+    }
+    
+    n.pres <- sum(dat$Response == 1)
+    out$mods$parms$mtry=mean(unlist(lapply(rf.full,FUN=function(lst){lst$mtry})))
+    #Reduce("combine",rf.full)
+    out$mods$final.mod <- rf.full
+
+    # if(PsdoAbs){
+    #   votes<-rep(NA,times=nrow(dat))
+    # 
+    #   #these should be oob votes for the absence in a fairly random order
+    #   if(num.splits==1) votes[dat$response==0]<-apply(do.call("rbind",lapply(lapply(rf.full,predict,type="vote"),"[",1:sum(dat$response==0),2)),2,mean)
+    #   else for(i in 1:num.splits){
+    #     votes[which(i==Split,arr.ind=TRUE)]<-as.vector(apply(do.call("rbind",
+    #                                                                  lapply(lapply(rf.full[-c(i)],predict,newdata=psd.abs[i==Split,-1],type="vote"),"[",,2)),2,mean))
+    #   }
+    # 
+    #   #putting in pres votes
+    #   pres.votes<-matrix(nrow=sum(dat$response>=1),ncol=num.splits)
+    #   for(i in 1:num.splits)
+    #     pres.votes[,i] <- predict(rf.full[[i]],type="vote")[rf.full[[i]]$y==1,2]
+    #   votes[dat$response==1]<-apply(pres.votes,1,mean)
+    # 
+    #   votes[votes==1]<-max(votes[votes<1])
+    #   votes[votes==0]<-min(votes[votes>0]) #from the original SAHM these can't be equal to 0 or 1 otherwise deviance can't be caluclated
+    #   #though I'm not sure deviance makes sense for RF anyway
+    #   #confusion matrix oob error and class error currently don't show up for used available but I think they should
+    #   response<-c(0,1)[factor(votes>.5)]
+    #   confusion.mat<-table(dat$response,response)
+    #   oob.error<-100*(1-sum(diag(confusion.mat))/sum(confusion.mat))
+    #   class.error<-c(confusion.mat[1,2],confusion.mat[2,1])/(apply(confusion.mat,1,sum))
+    #   out$mods$predictions<-votes
+    # } else { 
+      out$mods$predictions <- predict(out$mods$final.mod[[1]],type="vote")[,2]
+    # }
+
+    model.summary <- 1/num.splits*model.summary[order(model.summary[,3],decreasing=T),]
+    out$mods$summary <- model.summary
+    if(full.fit) return(out)
+    else return(rf.full)
+  }
   # #================================================================
   # #                        MAXENT
   # #================================================================= 
@@ -224,76 +325,10 @@ fitModel <- function(dat,           # df of training data
   #   }
   #   else return(final.mod)
   # }
-  # #================================================================
-  # #                        RF
-  # #================================================================= 
-  # if(Model=="rf"){
-  #   
-  #   psd.abs<-dat[dat$response==0,]
-  #   rf.full<-list()
-  #   mtry.vect<-vector()
-  #   
-  #   for(i in 1:length(table(Split))){
-  #     # tune the mtry parameter - this controls the number of covariates randomly subset for each split #
-  #     cat("\ntuning mtry parameter\n")
-  #     x=rbind(psd.abs[i==Split,-1],dat[dat$response>=1,-1])
-  #     y=factor(c(psd.abs[i==Split,1],dat[dat$response>=1,1]))
-  #     #x=rbind(dat[dat$response==1,-1],psd.abs[i==Split,-1])
-  #     #y=c(dat[dat$response==1,1],psd.abs[i==Split,1])
-  #     if(is.null(mtry)){
-  #       mtr <- tuneRF(x=x,y=y,mtryStart=3,importance=TRUE,ntreeTry=100,
-  #                     replace=FALSE, doBest=F, plot=F)
-  #       mtry.vect[i] <- mtr[mtr[,2]==min(mtr[,2]),1][1]
-  #       t2 <- unclass(Sys.time())
-  #     } else mtry.vect[i]<-mtry
-  #     cat("\nnow fitting full random forest model using mtry=",mtry,"\n")
-  #     #
-  #     rf.full[[i]] <- randomForest(x=x,y=y,xtest=xtest,ytest=ytest,importance=TRUE, ntree=n.trees,
-  #                                  mtry=mtry.vect[i],replace=samp.replace,sampsize=ifelse(is.null(sampsize),(ifelse(samp.replace,nrow(x),ceiling(.632*nrow(x)))),sampsize),
-  #                                  nodesize=ifelse(is.null(nodesize),(if (!is.null(y) && !is.factor(y)) 5 else 1),nodesize),maxnodes=maxnodes,
-  #                                  localImp=localImp, nPerm=nPerm, keep.forest=ifelse(is.null(keep.forest),!is.null(y) && is.null(xtest),keep.forest),
-  #                                  corr.bias=corr.bias, keep.inbag=keep.inbag)
-  #     if(i==1)model.summary<-importance(rf.full[[i]])
-  #     else model.summary<-model.summary+importance(rf.full[[i]])
-  #   }
-  #   n.pres<-sum(dat$response==1)
-  #   out$mods$parms$mtry=mean(unlist(lapply(rf.full,FUN=function(lst){lst$mtry})))
-  #   #Reduce("combine",rf.full)
-  #   out$mods$final.mod <- rf.full
-  #   
-  #   if(PsdoAbs){
-  #     votes<-rep(NA,times=nrow(dat))
-  #     
-  #     #these should be oob votes for the absence in a fairly random order
-  #     if(num.splits==1) votes[dat$response==0]<-apply(do.call("rbind",lapply(lapply(rf.full,predict,type="vote"),"[",1:sum(dat$response==0),2)),2,mean)
-  #     else for(i in 1:num.splits){
-  #       votes[which(i==Split,arr.ind=TRUE)]<-as.vector(apply(do.call("rbind",
-  #                                                                    lapply(lapply(rf.full[-c(i)],predict,newdata=psd.abs[i==Split,-1],type="vote"),"[",,2)),2,mean))
-  #     }
-  #     
-  #     #putting in pres votes
-  #     pres.votes<-matrix(nrow=sum(dat$response>=1),ncol=num.splits)
-  #     for(i in 1:num.splits)
-  #       pres.votes[,i] <- predict(rf.full[[i]],type="vote")[rf.full[[i]]$y==1,2]
-  #     votes[dat$response==1]<-apply(pres.votes,1,mean)
-  #     
-  #     votes[votes==1]<-max(votes[votes<1])                      
-  #     votes[votes==0]<-min(votes[votes>0]) #from the original SAHM these can't be equal to 0 or 1 otherwise deviance can't be caluclated
-  #     #though I'm not sure deviance makes sense for RF anyway
-  #     #confusion matrix oob error and class error currently don't show up for used available but I think they should
-  #     response<-c(0,1)[factor(votes>.5)]
-  #     confusion.mat<-table(dat$response,response)
-  #     oob.error<-100*(1-sum(diag(confusion.mat))/sum(confusion.mat))
-  #     class.error<-c(confusion.mat[1,2],confusion.mat[2,1])/(apply(confusion.mat,1,sum))
-  #     out$mods$predictions<-votes
-  #   } else out$mods$predictions<-predict(out$mods$final.mod[[1]],type="vote")[,2] 
-  #   
-  #   model.summary<-1/num.splits*model.summary[order(model.summary[,3],decreasing=T),]
-  #   out$mods$summary <- model.summary
-  #   if(full.fit) return(out)
-  #   else return(rf.full)
-  # }
 }
+
+## Tune RF Function ------------------------------------------------------------
+
 
 
 # MODEL SELECTION AND VALIDATION FUNCTIONS -------------------------------------

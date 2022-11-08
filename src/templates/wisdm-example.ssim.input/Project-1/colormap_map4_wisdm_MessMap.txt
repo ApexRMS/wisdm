@@ -1,0 +1,4 @@
+# Syncrosim Generated MESS Color Map (QGIS-compatible),,,,,
+INTERPOLATION:DISCRETE
+-0.0001,64,0,128,255,Negative
+10000,255,165,0,255,Positive

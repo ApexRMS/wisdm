@@ -11,17 +11,19 @@
 
 #%% Source dependencies ----------------------------------------------------------
 
-from typing_extensions import dataclass_transform
 import pysyncrosim as ps     
 import numpy as np          
 import pandas as pd          
 import os
 import rioxarray
+import xarray
 import rasterio
-import psutil
 import geopandas as gpd
 import shapely
+import dask
+# import spatialUtils
 
+from dask.distributed import Client, Lock
 from shapely.geometry import Point #, shape
 from rasterio.enums import Resampling #, MergeAlg
 
@@ -43,9 +45,21 @@ covariateDataSheet = myScenario.datasheets("CovariateData")
 fieldDataSheet = myScenario.datasheets("FieldData")
 fieldDataOptions = myScenario.datasheets("FieldDataOptions")
 templateRasterSheet = myScenario.datasheets("TemplateRaster")
+multiprocessingSheet = myScenario.datasheets("core_Multiprocessing")
 
 # outputs
 outputCovariateSheet = myScenario.datasheets("CovariateData", empty = True)
+
+#%% set up dask client
+if multiprocessingSheet.EnableMultiprocessing.item() == "Yes":
+    num_threads = multiprocessingSheet.MaximumJobs.item()
+else:
+    num_threads = 1
+
+# Note: Follow link in output to view progress
+dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space')})
+client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
+# client
 
 #%% Check inputs and set defaults ---------------------------------------------
 
@@ -80,9 +94,12 @@ covariateDataSheet["rioAggregate"] = covariateDataSheet.AggregationMethod.replac
 
 #%% Load template raster ----------------------------------------------------------------
 
+# set defualt chunk dimensions
+chunkDims = 4096 #1024
+
 templatePath = ssimInputDir + "\\wisdm_TemplateRaster\\" + templateRasterSheet.RasterFilePath.item()
-templateRaster = rioxarray.open_rasterio(templatePath, chunks=True, masked=True)
-templateMask = rasterio.open(templatePath).read(1, masked=True).mask
+templateRaster = rioxarray.open_rasterio(templatePath, chunks={'x': chunkDims, 'y': chunkDims}, masked=True)
+templateMask = templateRaster.to_masked_array().mask[0]
 
 # Get information about template
 templateCRS = templateRaster.rio.crs
@@ -107,8 +124,7 @@ if rasterio.dtypes.is_ndarray(templateMask):
         # need to keep it a Multi throughout
         if templatePolygons.type == 'Polygon':
             templatePolygons = shapely.geometry.MultiPolygon([templatePolygons])
-    # TO DO: save to geodataframe with mathcin transform etc as template....   
-         
+          
     templatePolygons = gpd.GeoDataFrame({'geometry':templatePolygons}, crs=templateCRS)
 else:
     print('The template raster does not include a "No Data" mask.', 
@@ -118,7 +134,7 @@ else:
     templatePolygons = []
 
 
-#%% Loop through and "PARC" covariate rasters -------------------------------------------
+# Loop through and "PARC" covariate rasters -------------------------------------------
 
 # %%First check that all rasters have a valid crs
 invalidCRS = []
@@ -139,15 +155,7 @@ for i in range(len(covariateDataSheet.CovariatesID)):
 
     #%% Load and process covariate rasters
     covariatePath = ssimInputDir + "\\wisdm_CovariateData\\" + covariateDataSheet.RasterFilePath[i]
-    covariateRaster = rioxarray.open_rasterio(covariatePath, chunks=True)
-    
-    # check if raster mem is larger then availble mem - if yes, assign mem appropriate chunk sizes
-    if covariateRaster.nbytes > psutil.virtual_memory()[1]:
-        if 1024*1024 < psutil.virtual_memory()[1]:
-            chunkDims = 1024
-        if 2290*2290 < psutil.virtual_memory()[1]:
-            chunkDims = 2290
-        covariateRaster = rioxarray.open_rasterio(covariatePath, chunks={'x': chunkDims, 'y': chunkDims})        
+    covariateRaster = rioxarray.open_rasterio(covariatePath, chunks={'x': chunkDims, 'y': chunkDims})        
     outputCovariatePath = os.path.join(ssimTempDir, os.path.basename(covariatePath))
 
     #%% check if covariate extent fully overlaps template extent: [left, bottom, right, top]
@@ -176,6 +184,16 @@ for i in range(len(covariateDataSheet.CovariatesID)):
     else:
         rioResampleMethod = covariateDataSheet.rioResample[i] 
         dropResAggCol = "AggregationMethod"
+
+    #%% reproject covariate raster ## TO DO - build out memory save version of reproject-match
+    # spatialUtils.parc(inputFile=covariatePath, 
+    #                 templateRaster=templateRaster, 
+    #                 outputFile=outputCovariatePath,
+    #                 chunks = {'x': chunkDims, 'y': chunkDims},
+    #                 resampling=Resampling[rioResampleMethod],
+    #                 transform=covAffine,
+    #                 mask = templatePolygons.geometry,
+    #                 client=client)
 
     #%% reproject/resample/clip covariate raster to match template 
     covariateRaster = covariateRaster.rio.reproject_match(templateRaster,
@@ -245,41 +263,25 @@ if nFinal < nInitial:
         "total sites in the input field data were outside the template extent \nand were removed from the output.",
         nFinal, "sites were retained.\n")
 
-#%% Create an index raster from template
-baseArray = np.array(np.arange(0,templateRaster.rio.height*templateRaster.rio.width,1))
-baseArray.shape = templateRaster.rio.height,templateRaster.rio.width 
-band = baseArray
-baseArray = band[np.newaxis,:,:]
-indexRaster = templateRaster
-indexRaster.values = baseArray
-
-# Set raster output parameters
-raster_params = {
-    'driver': 'GTiff',
-    'width': templateRaster.rio.width,
-    'height': templateRaster.rio.height,
-    'count': 1,
-    'dtype': indexRaster.dtype, 
-    'compress': 'lzw',
-    'crs': templateCRS,
-    'transform': templateTransform
-    }
-        
-# Write raster to file
-tempOutputPath = os.path.join(ssimTempDir, "indexRaster.tif")
-with rasterio.open(tempOutputPath, mode="w", **raster_params,
-                    masked= True, tiled=True, windowed=True, overwrite=True) as src:
-    src.write(indexRaster)
+#%% Update xy to match geometry
+sites.X = sites.geometry.apply(lambda p: p.x)
+sites.Y = sites.geometry.apply(lambda p: p.y)
 
 #%% Extract raster ids for each point
-with rasterio.open(tempOutputPath) as indexRast:
-    rasterCellIDs = []
+rasterCellIDs = []
+rasterRows = []
+rasterCols = []
+with rasterio.open(templatePath) as src:
     for point in sites.geometry:
         x = point.xy[0][0]
         y = point.xy[1][0]
-        row, col = indexRast.index(x,y)
-        rasterCellIDs.append(indexRast.read(1)[row,col])
-        
+        row, col = src.index(x,y)
+        rasterCellIDs.append((row,col))
+        rasterRows.append(row)
+        rasterCols.append(col)
+
+sites["RasterRow"] = rasterRows
+sites["RasterCol"] = rasterCols
 sites["RasterCellID"] = rasterCellIDs
 
 #%% If there are multiple points per cell - Aggregate or Weight sites
@@ -293,7 +295,8 @@ if pd.notnull(fieldDataOptions.AggregateAndWeight[0]):
                 dupes.append(x)
             else:
                 seen.add(x)
-        dupes = np.unique(dupes).tolist()
+        dupes = list(set(dupes)) # get unsorted unique list of tuples
+
         # if Aggregate sites is selected       
         if fieldDataOptions.AggregateAndWeight[0] == "Aggregate":
             # if presence absence data
@@ -336,54 +339,26 @@ myScenario.save_datasheet(name="FieldData", data=outputFieldDataSheet)
 #%% Drop sites with repeat cell repeats  
 dropInd = sites.index[sites.Response == -9999].tolist()
 sites = sites.drop(dropInd)
-sitesOut = sites[["SiteID", "RasterCellID"]]
+
+# Write sites to file (for testing)
+# tempOutputPath = os.path.join(ssimTempDir, "sites.shp")
+# sites.to_file(tempOutputPath)
+
+# Create index arrays (note in xarray x=col and y=row from geodataframe)
+yLoc = xarray.DataArray(sites.RasterRow, dims =["loc"])
+xLoc = xarray.DataArray(sites.RasterCol, dims =["loc"])
+sitesOut = sites[["SiteID"]] #, "RasterCellID"
 
 #%% Extract covariate values for each site
-# for i in range(len(covariateDataSheet.CovariatesID)):
-#     # Load processed covariate rasters and extract site values
-#     outputCovariatePath = os.path.join(ssimTempDir, covariateDataSheet.RasterFilePath[i])
-#     with rasterio.open(outputCovariatePath) as r:
-#         rastValues = []
-#         for point in sites.geometry:
-#             x = point.xy[0][0]
-#             y = point.xy[1][0]
-#             row, col = r.index(x,y)
-#             rastValues.append(r.read(1)[row,col])
-            
-#     sites[covariateDataSheet.CovariatesID[i]] = rastValues
-#
-# siteData = sites.iloc[:,[0] + list(range(9,len(sites.columns)))]
-
-#%% Create binary raster indicating raster cells with sites
-binaryRaster = indexRaster.isin(rasterCellIDs).astype(int) 
-
-# Write raster to file (for testing)
-# tempOutputPath = os.path.join(ssimTempDir, "binarySitesRaster.tif")
-# with rasterio.open(tempOutputPath, mode="w", **raster_params,
-#                    masked= True, tiled=True, windowed=True, overwrite=True) as src:
-#    src.write(binaryRaster)
-
-#%% Extract covariate values for each cell with site data
-siteData = binaryRaster*indexRaster
-siteData = siteData.values.flatten()
-siteData = pd.DataFrame(siteData, columns=["RasterCellID"])
-
 for i in range(len(covariateDataSheet.CovariatesID)):
     # Load processed covariate rasters and extract site values
     outputCovariatePath = os.path.join(ssimTempDir, covariateDataSheet.RasterFilePath[i])
     covariateRaster = rioxarray.open_rasterio(outputCovariatePath, chunks=True)
-    data_i = binaryRaster*covariateRaster
-    data_i = data_i.values.flatten()
-    siteData[covariateDataSheet.CovariatesID[i]] = data_i
-
-#%% Merge and trim to Site data
-siteData = pd.merge(sitesOut, siteData, on="RasterCellID")
-siteData = siteData.drop(columns=["RasterCellID"])
+    sitesOut[covariateDataSheet.CovariatesID[i]] = covariateRaster[0].isel(x=xLoc,y=yLoc).values.tolist()
 
 #%% Convert site data to long format
-siteData = pd.melt(siteData, id_vars= "SiteID", value_vars=siteData.columns[1:], var_name="CovariatesID", value_name="Value")
+siteData = pd.melt(sitesOut, id_vars= "SiteID", value_vars=sitesOut.columns[1:], var_name="CovariatesID", value_name="Value")
 
 #%% Save site data to scenario 
 myScenario.save_datasheet(name="SiteData", data=siteData) 
-
 
