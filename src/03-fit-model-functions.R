@@ -11,7 +11,7 @@ fitModel <- function(dat,           # df of training data
                      out,           # out list
                      full.fit=FALSE,
                      pts=NULL,
-                     # weight=NULL,
+                     weight=NULL,
                      Fold,...){
   
   # This function was written to separate the steps involved in model fitting 
@@ -76,33 +76,53 @@ fitModel <- function(dat,           # df of training data
   if(out$modType == "rf"){
     
     # set defaults
-    n.trees=1000
-    mtry=NULL
-    samp.replace=FALSE
+    n.trees = out$modOptions$NumberOfTrees
+    importance = out$modOptions$EvaluateCovariateImportance
+    localImp = out$modOptions$CalculateCasewiseImportance
+    samp.replace = out$modOptions$SampleWithReplacement
+    norm.votes = out$modOptions$NormalizeVotes
+    
+    if(is.na(out$modOptions$NumberOfVariablesSampled)){
+      mtry = NULL } else { mtry = out$modOptions$NumberOfVariablesSampled }
+    if(is.na(out$modOptions$NodeSize)){
+     nodesize = NULL } else { nodesize = out$modOptions$NodeSize }
+    if(is.na(out$modOptions$MaximumNodes)){
+      maxnodes = NULL } else { maxnodes = out$modOptions$MaximumNodes }
+    if(is.na(out$modOptions$CalculateProximity)){
+      proximity = NULL } else { proximity = out$modOptions$CalculateProximity }
+    
     sampsize=NULL
-    nodesize=NULL
-    maxnodes=NULL
-    importance=FALSE
-    localImp=FALSE
     nPerm=1
-    proximity=NULL
     oob.prox=proximity
-    norm.votes=TRUE
     keep.forest=NULL
     keep.inbag=FALSE
     xtest=NULL
     ytest=NULL
 
+    if("predicted" %in% names(dat)){ dat <- select(dat, -predicted)}
     psd.abs <- dat[dat$Response == 0,]
+    
     rf.full <- list()
     mtry.vect <- vector()
+    # pred.vect <- vector()
     
-
-    for(i in 1:out$validationOptions$NumberOfFolds){
+    if(out$validationOptions$CrossValidate == T){
+      splits <- unique(dat$ModelSelectionSplit)
+      num.splits <- length(splits)
+    } else { 
+      splits <- 1
+      num.splits <- 1 }
+      # dat.lst <- list(out$data$train) }
+    
+    for(i in 1:num.splits){
+    # for(i in 1:length(dat.lst)){
+      # dat <- dat.lst[[i]]
       # tune the mtry parameter - this controls the number of covariates randomly subset for each split #
       cat("\ntuning mtry parameter\n")
-      x = dat[dat$ModelSelectionSplit == i,-c(1:7)]  # rbind(psd.abs[psd.abs$ModelSelectionSplit == i,-c(1:7)], dat[dat$Response>=1,-1])
-      y = factor(dat$Response[dat$ModelSelectionSplit == i])# factor(c(psd.abs[i==Split,1],dat[dat$Response>=1,1]))
+      x = rbind(psd.abs[psd.abs$ModelSelectionSplit == splits[i],-c(1:7)], dat[dat$Response>=1,-c(1:7)])
+      y = factor(c(psd.abs[psd.abs$ModelSelectionSplit == splits[i],"Response"],dat[dat$Response>=1,"Response"]))
+      # x = dat[,-c(1:7)]  
+      # y = factor(dat$Response)
       #x=rbind(dat[dat$response==1,-1],psd.abs[i==Split,-1])
       #y=c(dat[dat$response==1,1],psd.abs[i==Split,1])
       if(is.null(mtry)){
@@ -118,7 +138,7 @@ fitModel <- function(dat,           # df of training data
       } else { mtry.vect[i] <- mtry }
       cat("\nnow fitting full random forest model using mtry=",mtry,"\n")
       #
-      rf.full[[i]] <- randomForest(x = x, y = y, xtest = xtest, ytest = ytest, importance = TRUE, ntree = n.trees,
+      rf.full[[i]] <- randomForest(x = x, y = y, xtest = xtest, ytest = ytest, importance = importance, ntree = n.trees,
                                    mtry = mtry.vect[i], replace = samp.replace, 
                                    sampsize = ifelse(is.null(sampsize),(ifelse(samp.replace,nrow(x),ceiling(.632*nrow(x)))),sampsize),
                                    nodesize = ifelse(is.null(nodesize),(if (!is.null(y) && !is.factor(y)) 5 else 1),nodesize),
@@ -132,44 +152,66 @@ fitModel <- function(dat,           # df of training data
       } 
     }
     
-    n.pres <- sum(dat$Response == 1)
-    out$mods$parms$mtry=mean(unlist(lapply(rf.full,FUN=function(lst){lst$mtry})))
-    #Reduce("combine",rf.full)
-    out$mods$final.mod <- rf.full
-
-    # if(PsdoAbs){
-    #   votes<-rep(NA,times=nrow(dat))
-    # 
-    #   #these should be oob votes for the absence in a fairly random order
-    #   if(num.splits==1) votes[dat$response==0]<-apply(do.call("rbind",lapply(lapply(rf.full,predict,type="vote"),"[",1:sum(dat$response==0),2)),2,mean)
-    #   else for(i in 1:num.splits){
-    #     votes[which(i==Split,arr.ind=TRUE)]<-as.vector(apply(do.call("rbind",
-    #                                                                  lapply(lapply(rf.full[-c(i)],predict,newdata=psd.abs[i==Split,-1],type="vote"),"[",,2)),2,mean))
-    #   }
-    # 
-    #   #putting in pres votes
-    #   pres.votes<-matrix(nrow=sum(dat$response>=1),ncol=num.splits)
-    #   for(i in 1:num.splits)
-    #     pres.votes[,i] <- predict(rf.full[[i]],type="vote")[rf.full[[i]]$y==1,2]
-    #   votes[dat$response==1]<-apply(pres.votes,1,mean)
-    # 
-    #   votes[votes==1]<-max(votes[votes<1])
-    #   votes[votes==0]<-min(votes[votes>0]) #from the original SAHM these can't be equal to 0 or 1 otherwise deviance can't be caluclated
-    #   #though I'm not sure deviance makes sense for RF anyway
-    #   #confusion matrix oob error and class error currently don't show up for used available but I think they should
-    #   response<-c(0,1)[factor(votes>.5)]
-    #   confusion.mat<-table(dat$response,response)
-    #   oob.error<-100*(1-sum(diag(confusion.mat))/sum(confusion.mat))
-    #   class.error<-c(confusion.mat[1,2],confusion.mat[2,1])/(apply(confusion.mat,1,sum))
-    #   out$mods$predictions<-votes
-    # } else { 
-      out$mods$predictions <- predict(out$mods$final.mod[[1]],type="vote")[,2]
-    # }
-
-    model.summary <- 1/num.splits*model.summary[order(model.summary[,3],decreasing=T),]
-    out$mods$summary <- model.summary
-    if(full.fit) return(out)
-    else return(rf.full)
+    if(full.fit){
+      
+      out$modOptions$NumberOfVariablesSampled = mean(unlist(lapply(rf.full,FUN=function(lst){lst$mtry})))
+      # Reduce("combine",rf.full)
+      out$finalMod <- rf.full
+  
+      # if(PsdoAbs){
+      #   votes<-rep(NA,times=nrow(dat))
+      # 
+      #   #these should be oob votes for the absence in a fairly random order
+      #   if(num.splits==1) votes[dat$Response==0]<-apply(do.call("rbind",lapply(lapply(rf.full,predict,type="vote"),"[",1:sum(dat$Response==0),2)),2,mean)
+      #   else for(i in 1:num.splits){
+      #     votes[which(dat$Response==0 & dat$ModelSelectionSplit==i, arr.ind=TRUE)]<-as.vector(apply(do.call("rbind",
+      #                                                                  lapply(lapply(rf.full[-c(i)],predict,newdata=psd.abs[psd.abs$ModelSelectionSplit == i,-c(1:7)],type="vote"),"[",,2)),2,mean))
+      #   }
+      # 
+      #   #putting in pres votes
+      #   pres.votes<-matrix(nrow=sum(dat$Response>=1),ncol=num.splits)
+      #   for(i in 1:num.splits)
+      #     pres.votes[,i] <- predict(rf.full[[i]],type="vote")[rf.full[[i]]$y==1,2]
+      #   votes[dat$Response==1]<-apply(pres.votes,1,mean)
+      # 
+      #   votes[votes==1]<-max(votes[votes<1])
+      #   votes[votes==0]<-min(votes[votes>0]) #from the original SAHM these can't be equal to 0 or 1 otherwise deviance can't be calculated
+      #   #though I'm not sure deviance makes sense for RF anyway
+      #   #confusion matrix oob error and class error currently don't show up for used available but I think they should
+      #   response<-c(0,1)[factor(votes>.5)]
+      #   confusion.mat<-table(dat$response,response)
+      #   oob.error<-100*(1-sum(diag(confusion.mat))/sum(confusion.mat))
+      #   class.error<-c(confusion.mat[1,2],confusion.mat[2,1])/(apply(confusion.mat,1,sum))
+      #   out$mods$predictions<-votes
+      # } else { 
+      # out$mod1TrainPredictions <- predict(rf.full[[1]],type="vote")[,2]
+      
+      votes <- rep(NA,times=nrow(dat))
+      
+      # putting in abs votes
+      if(num.splits==1){
+        votes[dat$Response==0]<-apply(do.call("rbind",lapply(lapply(rf.full,predict,type="vote"),"[",1:sum(dat$Response==0),2)),2,mean)
+      } else {
+        for(i in 1:num.splits){
+          votes[which(dat$Response==0 & dat$ModelSelectionSplit==splits[i], arr.ind=TRUE)] <- as.vector(apply(
+            do.call("rbind", lapply(lapply(rf.full[-c(i)],predict,newdata=psd.abs[psd.abs$ModelSelectionSplit == splits[i],-c(1:7)],type="vote"),"[",,2)),2,mean))
+        }}
+      # putting in pres votes
+      pres.votes <- matrix(nrow=sum(dat$Response>=1),ncol=num.splits)
+      for(i in 1:num.splits){
+        pres.votes[,i] <- predict(rf.full[[i]],type="vote")[rf.full[[i]]$y==1,2]
+        }
+      votes[dat$Response==1] <- apply(pres.votes,1,mean)
+      
+      out$data$train$predicted <- votes # out$trainModPredicted <- votes
+      # }
+  
+      model.summary <- 1/out$validationOptions$NumberOfFolds*model.summary[order(model.summary[,3],decreasing=T),]
+      out$modSummary <- model.summary
+      
+      return(out)
+      } else { return(rf.full) }
+      # if(full.fit){return(out)} else { return(rf.full)}
   }
   # #================================================================
   # #                        MAXENT
@@ -326,9 +368,6 @@ fitModel <- function(dat,           # df of training data
   #   else return(final.mod)
   # }
 }
-
-## Tune RF Function ------------------------------------------------------------
-
 
 
 # MODEL SELECTION AND VALIDATION FUNCTIONS -------------------------------------
@@ -1061,17 +1100,18 @@ VariableImportance <- function(out,  # out list
   
   cor.mat <- matrix(nrow = length(out$inputVars), ncol = length(auc))
   
-  # # remove the response column
-  # if(out$modType == "rf") {
-  #   trainPred <- pred.fct(model=out$mods$final,x=out$dat$ma$train$dat,Model=out$input$script.name)
-  #   auc$train<-roc(out$dat$ma$train$dat[,1],trainPred)
-  # } else 
+  if(out$modType == "rf"){ # remove the response column
+    trainPred <- pred.fct(mod = out$finalMod, x = out$data$train, modType = out$modType)
+    auc$train <- roc(out$dat$train$Response,trainPred)
+  } else {
+    trainPred <- out$data$train$predicted
+  }
   
   # add 1 to the drop in AUC to ensure it's greater than zero then I can normalize
   
   cor.mat[,1] <- unlist(auc$train) - permute.predict(inputVars = out$inputVars,
                                                      dat = out$data$train, 
-                                                     preds = out$data$train$predicted,
+                                                     preds = trainPred,
                                                      obs = out$data$train$Response,
                                                      mod = out$finalMod, 
                                                      modType = out$modType)
@@ -1884,9 +1924,9 @@ capture.stats <- function(Stats.lst,  # stats or lst output from calcStat functi
 
 response.curves <- function(out){
   
-  # if(out$modType %in% c("brt","mars","rf")){ nVars <- nrow(out$mod$summary)
+  # if(out$modType %in% c("brt","mars")){ nVars <- nrow(out$mod$summary)
   # if(out$modType %in% c("maxent","udc")) nVars <- out$mods$n.vars.final
-  if(out$modType == "glm"){ nVars <- out$nVarsFinal  }
+  if(out$modType %in% c("glm", "rf")){ nVars <- out$nVarsFinal  }
   
   pcol <- ceiling(sqrt(nVars))
   prow <- ceiling(nVars/pcol)

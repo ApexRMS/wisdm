@@ -1,6 +1,6 @@
 ## --------------------
 ## wisdm - fit rf
-## ApexRMS, April 2022
+## ApexRMS, December 2022
 ## --------------------
 
 # built under R version 4.1.3 & SyncroSim version 2.4.0
@@ -46,19 +46,25 @@
   
 #  Set defaults ----------------------------------------------------------------  
   
-  # ## RF Sheet
-  # if(nrow(RFSheet)<1){
-  #   GLMSheet <- addRow(GLMSheet, list(SelectBestPredictors = FALSE,
-  #                                     SimplificationMethod = "AIC",
-  #                                     ConsiderSquaredTerms = FALSE,
-  #                                     ConsiderInteractions = FALSE))
-  # }
-  # if(is.na(GLMSheet$SelectBestPredictors)){GLMSheet$SelectBestPredictors <- FALSE}
-  # if(is.na(GLMSheet$SimplificationMethod)){ValidationDataSheet$SplitData <- "AIC"}
-  # if(is.na(GLMSheet$ConsiderSquaredTerms)){GLMSheet$ConsiderSquaredTerms <- FALSE}
-  # if(is.na(GLMSheet$ConsiderInteractions)){GLMSheet$ConsiderInteractions <- FALSE}
-  # 
-  # saveDatasheet(myScenario, GLMSheet, "wisdm_RandomForest")
+  ## RF Sheet
+  if(nrow(RFSheet)<1){
+    RFSheet <- addRow(RFSheet, list(EvaluateCovariateImportance = TRUE,         # importance
+                                    CalculateCasewiseImportance = FALSE,        # localImp
+                                    NumberOfVariablesSampled = NA,              # mtry
+                                    MaximumNodes = NA,                          # maxnodes
+                                    NumberOfTrees = 1000,                       # n.trees
+                                    NodeSize = NA,                              # nodesize
+                                    NormalizeVotes = TRUE,                      # norm.votes
+                                    CalculateProximity = NA,                    # proximity
+                                    SampleWithReplacement = FALSE))             # samp.replace
+  }
+  if(is.na(RFSheet$EvaluateCovariateImportance)){RFSheet$EvaluateCovariateImportance <- TRUE}
+  if(is.na(RFSheet$CalculateCasewiseImportance)){RFSheet$CalculateCasewiseImportance <- FALSE}
+  if(is.na(RFSheet$NumberOfTrees)){RFSheet$NumberOfTrees <- 1000}
+  if(is.na(RFSheet$NormalizeVotes)){RFSheet$NormalizeVotes <- TRUE}
+  if(is.na(RFSheet$SampleWithReplacement)){RFSheet$SampleWithReplacement <- FALSE}
+  
+  saveDatasheet(myScenario, RFSheet, "wisdm_RandomForest")
   
   ## Validation Sheet
   if(nrow(ValidationDataSheet)<1){
@@ -144,6 +150,7 @@
   out$data$train <- trainingData
   
   ## testing data
+  testingData$ModelSelectionSplit <- FALSE
   out$data$test <- testingData
   
   # CV splits
@@ -179,46 +186,50 @@
 
   # source(file.path(packageDir, "fitModel.R")) ## GLM - code sourced and updated from model.fit.r 
 
-  finalMod <- fitModel(dat = trainingData, 
-                      out = out,         
-                      modType = modType)
-
+  out <- fitModel(dat = trainingData, 
+                  out = out,
+                  modType = modType,
+                  full.fit = T)
+  
+  finalMod <- out$finalMod
+  
+  # store output model option
+  outModOptions <- out$modOptions
+  outModOptions$thresholdOptimization <- NULL
+  saveDatasheet(myScenario, outModOptions, "wisdm_RandomForest")
+  
+  out$modOptions$NumberOfVariablesSampled <- NA
+  
   # save model to temp storage
   saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\rf_model.rds"))
   
   # add relevant model details to out 
-  out$finalMod <- finalMod
-  out$finalVars <- attr(terms(formula(finalMod)),"term.labels")
-  # have to remove all the junk with powers and interactions for mess map production to work
-  out$finalVars <- unique(unlist(strsplit(gsub("I\\(","",gsub("\\^2)","",out$finalVars)),":")))
+  out$finalVars <- out$inputVars # random forest doesn't drop variables
   out$nVarsFinal <- length(out$finalVars)
   
-  # add relevant model details to text output 
-  txt0 <- paste("\n\n","Settings:\n","\n\t model family:  ",out$modelFamily,
-              "\n\t simplification method:  ",GLMSheet$SimplificationMethod,
-              "\n\n\n","Results:\n\t ","number covariates in final model:  ",length(attr(terms(formula(finalMod)),"term.labels")),"\n",sep="")
+  txt0 <- paste("\n\n","Settings:",
+                # "\n\trandom seed used                       : ",out$input$seed,
+                "\n\tn covariates considered at each split  : ", mean(unlist(lapply(out$finalMod,"[",14))),
+                if(out$pseudoAbs==TRUE) "\n\t   (averaged over each used available split)\n",
+                "\n\tn trees                                : ",out$modOptions$NumberOfTrees,
+                if(out$pseudoAbs==TRUE) "\n\t   (for each used available split)\n",
+                sep="")
+  txt1 <- "\n\nRelative performance of predictors in final model:\n\n"
   
-  finalMod$summary <- summary(finalMod)
+  capture.output(cat(txt0),cat(txt1),print(round(out$modSummary,4)),file=paste0(ssimTempDir,"\\Data\\rf_output.txt"),append=TRUE) 
   
   updateRunLog("\nSummary of Model:\n")
-  # updateRunLog(pander::pandoc.formula.return(finalMod$summary$call))
-  coeftbl <- finalMod$summary$coefficients
+  coeftbl <- out$modSummary
   coeftbl <- round(coeftbl, 6) 
   coeftbl <- cbind(rownames(coeftbl), coeftbl)
   rownames(coeftbl) <- NULL
-  colnames(coeftbl) <- c("Variable", "Estimate", "Std. Error", "z value", "Pr(>|z|)")  
+  colnames(coeftbl)[1] <- "Variable"  
   updateRunLog(pander::pandoc.table.return(coeftbl, style = "simple", split.tables = 100))
   
-  capture.output(cat(txt0),finalMod$summary,file=paste0(ssimTempDir,"\\Data\\glm_output.txt"), append=TRUE)
-  
-  if(length(coef(finalMod))==1) stop("Null model was selected. \nEvaluation metrics and plots will not be produced") 
-
 # Test model predictions -------------------------------------------------------
   
-  #Just for the training set for Random Forest we have to take out of bag predictions rather than the regular predictions
-  # if(Model=="rf") out$dat$ma$train$pred<-tweak.p(out$mods$predictions) 
-  
-  out$data$train$predicted <- pred.fct(x=out$data$train, mod=finalMod, modType=modType)
+  # Just for the training set for Random Forest we have to take out of bag predictions rather than the regular predictions
+  out$data$train$predicted <- tweak.p(out$data$train$predicted) # out$trainModPredicted
   
   if(ValidationDataSheet$SplitData){
     out$data$test$predicted <- pred.fct(x=testingData, mod=finalMod, modType=modType)
@@ -255,24 +266,24 @@
   # add model Outputs to datasheet
   modelOutputsSheet <- addRow(modelOutputsSheet, 
                               list(ModelType = modType, 
-                                   ModelRDS = paste0(ssimTempDir,"\\Data\\glm_model.rds"),
-                                   ResponseCurves = paste0(ssimTempDir,"\\Data\\glm_ResponseCurves.png"),
-                                   TextOutput = paste0(ssimTempDir,"\\Data\\glm_output.txt"),
-                                   ResidualSmoothPlot = paste0(ssimTempDir,"\\Data\\glm_ResidualSmoothPlot.png"),
-                                   ResidualSmoothRDS = paste0(ssimTempDir,"\\Data\\glm_ResidualSmoothFunction.rds")))
+                                   ModelRDS = paste0(ssimTempDir,"\\Data\\rf_model.rds"),
+                                   ResponseCurves = paste0(ssimTempDir,"\\Data\\rf_ResponseCurves.png"),
+                                   TextOutput = paste0(ssimTempDir,"\\Data\\rf_output.txt"),
+                                   ResidualSmoothPlot = paste0(ssimTempDir,"\\Data\\rf_ResidualSmoothPlot.png"),
+                                   ResidualSmoothRDS = paste0(ssimTempDir,"\\Data\\rf_ResidualSmoothFunction.rds")))
   
   if(out$modelFamily != "poisson"){
-    if("glm_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\glm_StandardResidualPlots.png") }
-    modelOutputsSheet$ConfusionMatrix <-  paste0(ssimTempDir,"\\Data\\glm_ConfusionMatrix.png")
-    modelOutputsSheet$VariableImportancePlot <-  paste0(ssimTempDir,"\\Data\\glm_VariableImportance.png")
-    modelOutputsSheet$VariableImportanceData <-  paste0(ssimTempDir,"\\Data\\glm_VariableImportance.csv")
-    modelOutputsSheet$ROCAUCPlot <- paste0(ssimTempDir,"\\Data\\glm_ROCAUCPlot.png")
-    modelOutputsSheet$CalibrationPlot <- paste0(ssimTempDir,"\\Data\\glm_CalibrationPlot.png")
+    if("rf_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\rf_StandardResidualPlots.png") }
+    modelOutputsSheet$ConfusionMatrix <-  paste0(ssimTempDir,"\\Data\\rf_ConfusionMatrix.png")
+    modelOutputsSheet$VariableImportancePlot <-  paste0(ssimTempDir,"\\Data\\rf_VariableImportance.png")
+    modelOutputsSheet$VariableImportanceData <-  paste0(ssimTempDir,"\\Data\\rf_VariableImportance.csv")
+    modelOutputsSheet$ROCAUCPlot <- paste0(ssimTempDir,"\\Data\\rf_ROCAUCPlot.png")
+    modelOutputsSheet$CalibrationPlot <- paste0(ssimTempDir,"\\Data\\rf_CalibrationPlot.png")
   } else {
-    modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\glm_PoissonResidualPlots.png")
+    modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\rf_PoissonResidualPlots.png")
   }
   
-  if("glm_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- paste0(ssimTempDir,"\\Data\\glm_AUCPRPlot.png") } 
+  if("rf_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- paste0(ssimTempDir,"\\Data\\rf_AUCPRPlot.png") } 
   
   saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs")
   
