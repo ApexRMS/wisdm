@@ -18,4 +18,5 @@ dependencies:
   - r-ggplot2=3.3.6
   - r-dplyr=1.0.9
   - r-gbm=2.1.8
+  - r-randomforest=4.7_1.1
 

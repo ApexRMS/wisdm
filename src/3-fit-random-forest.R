@@ -46,6 +46,11 @@
   
 #  Set defaults ----------------------------------------------------------------  
   
+  # if response column contains only 1's and 0's response = presAbs
+  if(max(fieldDataSheet$Response)>1){
+    modelFamily <-"poisson" 
+  } else { modelFamily <- "binomial" }
+  
   ## RF Sheet
   if(nrow(RFSheet)<1){
     RFSheet <- addRow(RFSheet, list(EvaluateCovariateImportance = TRUE,         # importance
@@ -55,16 +60,29 @@
                                     NumberOfTrees = 1000,                       # n.trees
                                     NodeSize = NA,                              # nodesize
                                     NormalizeVotes = TRUE,                      # norm.votes
-                                    CalculateProximity = NA,                    # proximity
+                                    CalculateProximity = FALSE,                    # proximity
                                     SampleWithReplacement = FALSE))             # samp.replace
   }
+  
   if(is.na(RFSheet$EvaluateCovariateImportance)){RFSheet$EvaluateCovariateImportance <- TRUE}
   if(is.na(RFSheet$CalculateCasewiseImportance)){RFSheet$CalculateCasewiseImportance <- FALSE}
+  if(is.na(RFSheet$NodeSize)){
+    if(modelFamily == "poisson"){RFSheet$NodeSize <- 5}
+    if(modelFamily == "binomial"){RFSheet$NodeSize <- 1}
+  }
   if(is.na(RFSheet$NumberOfTrees)){RFSheet$NumberOfTrees <- 1000}
   if(is.na(RFSheet$NormalizeVotes)){RFSheet$NormalizeVotes <- TRUE}
+  if(is.na(RFSheet$CalculateProximity)){RFSheet$CalculateProximity <- FALSE}
   if(is.na(RFSheet$SampleWithReplacement)){RFSheet$SampleWithReplacement <- FALSE}
   
   saveDatasheet(myScenario, RFSheet, "wisdm_RandomForest")
+  
+  if(!is.na(RFSheet$NumberOfVariablesSampled)){
+    if(RFSheet$NumberOfVariablesSampled > nrow(reducedCovariatesSheet)){
+      stop(paste0("The number of variables sampled must be between 1 and the total number of variables used in model fitting (in this case ", 
+      nrow(reducedCovariatesSheet),"). If left blank, this input will be optimized by the tuneRF funciton."))
+    }
+  }
   
   ## Validation Sheet
   if(nrow(ValidationDataSheet)<1){
@@ -139,7 +157,8 @@
   ## Model family 
   # if response column contains only 1's and 0's response = presAbs
   if(max(fieldDataSheet$Response)>1){
-     stop("Random Forest not implemented for count data")
+     # stop("Random Forest not implemented for count data")
+    out$modelFamily <-"poisson" 
   } else { out$modelFamily <- "binomial" }
   
   ## Candidate variables 

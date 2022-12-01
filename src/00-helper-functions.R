@@ -65,7 +65,7 @@ pred.fct <- function(mod,      # mod = the model fit object
       y[complete.cases(x)]<-try(apply(do.call("rbind",lst.preds),2,mean))
       y[y==1]<-max(y[y<1],na.rm=TRUE)
       y[y==0]<-min(y[y>0],na.rm=TRUE)
-    }  else{
+    } else {
       y[complete.cases(x)] <- try(as.vector(predict(mod, newdata=x[complete.cases(x),], type="vote")[,2]), silent=TRUE)
     }
   }

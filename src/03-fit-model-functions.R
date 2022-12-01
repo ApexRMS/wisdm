@@ -77,20 +77,18 @@ fitModel <- function(dat,           # df of training data
     
     # set defaults
     n.trees = out$modOptions$NumberOfTrees
+    nodesize = out$modOptions$NodeSize
     importance = out$modOptions$EvaluateCovariateImportance
     localImp = out$modOptions$CalculateCasewiseImportance
     samp.replace = out$modOptions$SampleWithReplacement
     norm.votes = out$modOptions$NormalizeVotes
+    proximity = out$modOptions$CalculateProximity 
     
     if(is.na(out$modOptions$NumberOfVariablesSampled)){
       mtry = NULL } else { mtry = out$modOptions$NumberOfVariablesSampled }
-    if(is.na(out$modOptions$NodeSize)){
-     nodesize = NULL } else { nodesize = out$modOptions$NodeSize }
     if(is.na(out$modOptions$MaximumNodes)){
       maxnodes = NULL } else { maxnodes = out$modOptions$MaximumNodes }
-    if(is.na(out$modOptions$CalculateProximity)){
-      proximity = NULL } else { proximity = out$modOptions$CalculateProximity }
-    
+
     sampsize=NULL
     nPerm=1
     oob.prox=proximity
@@ -100,32 +98,64 @@ fitModel <- function(dat,           # df of training data
     ytest=NULL
 
     if("predicted" %in% names(dat)){ dat <- select(dat, -predicted)}
-    psd.abs <- dat[dat$Response == 0,]
     
     rf.full <- list()
-    mtry.vect <- vector()
-    # pred.vect <- vector()
+    num.splits <- NULL
     
-    if(out$validationOptions$CrossValidate == T){
+    if(out$validationOptions$CrossValidate == T){ # Cross Validation
       splits <- unique(dat$ModelSelectionSplit)
+      splits  <- splits[order(splits)]
       num.splits <- length(splits)
-    } else { 
-      splits <- 1
-      num.splits <- 1 }
-      # dat.lst <- list(out$data$train) }
+      
+      mtry.vect <- vector()
+      split.votes <- matrix(nrow=nrow(dat),ncol=num.splits)
+      
+      for(i in 1:num.splits){
+        # tune the mtry parameter - this controls the number of covariates randomly subset for each split #
+        cat("\ntuning mtry parameter\n")
+        x = dat[dat$ModelSelectionSplit %in% splits[-i], -c(1:7)] # rbind(psd.abs[psd.abs$ModelSelectionSplit %in% splits[-i],-c(1:7)], dat[dat$Response>=1,-c(1:7)]) 
+        if(out$modelFamily == "poisson"){ 
+          y = dat[dat$ModelSelectionSplit %in% splits[-i], "Response"]
+        } else { y = factor(dat[dat$ModelSelectionSplit %in% splits[-i], "Response"])}
+        if(is.null(mtry)){
+          mtr <- tuneRF(x = x, y = y,
+                      mtryStart = 3,
+                      importance = TRUE,
+                      ntreeTry = 100,
+                      replace=FALSE, 
+                      doBest=F,
+                      plot=F)
+          mtry.vect[i] <- mtr[mtr[,2] == min(mtr[,2]),1][1]
+          } else { mtry.vect[i] <- mtry }
+        cat("\nnow fitting full random forest model using mtry=",mtry,"\n")
+        
+        rf.full[[i]] <- randomForest(x = x, y = y, xtest = xtest, ytest = ytest, importance = importance, ntree = n.trees,
+                                   mtry = mtry.vect[i], replace = samp.replace, 
+                                   sampsize = ifelse(is.null(sampsize),(ifelse(samp.replace,nrow(x),ceiling(.632*nrow(x)))),sampsize),
+                                   nodesize = nodesize, # ifelse(is.null(nodesize),(if (!is.null(y) && !is.factor(y)) 5 else 1),nodesize),
+                                   maxnodes = maxnodes, localImp = localImp, nPerm = nPerm, 
+                                   keep.forest = ifelse(is.null(keep.forest),!is.null(y) && is.null(xtest),keep.forest),
+                                   corr.bias = corr.bias, keep.inbag = keep.inbag)
+        if(i == 1){ 
+          model.summary <- importance(rf.full[[i]])
+        } else {
+          model.summary <- model.summary + importance(rf.full[[i]])
+        } 
+        split.votes[dat$ModelSelectionSplit %in% splits[-i],i] <- predict(rf.full[[i]],type="vote")[,2]
+      }
+      votes <- apply(split.votes,1, mean, na.rm = T)
+      model.summary <- 1/out$validationOptions$NumberOfFolds*model.summary[order(model.summary[,3],decreasing=T),]
+      
+    } else { # No Cross Validation
     
-    for(i in 1:num.splits){
-    # for(i in 1:length(dat.lst)){
-      # dat <- dat.lst[[i]]
+      x = dat[, -c(1:7)] 
+      if(out$modelFamily == "poisson"){ 
+        y = dat$Response
+      } else { y = factor(dat$Response) }
+      
       # tune the mtry parameter - this controls the number of covariates randomly subset for each split #
-      cat("\ntuning mtry parameter\n")
-      x = rbind(psd.abs[psd.abs$ModelSelectionSplit == splits[i],-c(1:7)], dat[dat$Response>=1,-c(1:7)])
-      y = factor(c(psd.abs[psd.abs$ModelSelectionSplit == splits[i],"Response"],dat[dat$Response>=1,"Response"]))
-      # x = dat[,-c(1:7)]  
-      # y = factor(dat$Response)
-      #x=rbind(dat[dat$response==1,-1],psd.abs[i==Split,-1])
-      #y=c(dat[dat$response==1,1],psd.abs[i==Split,1])
       if(is.null(mtry)){
+        cat("\ntuning mtry parameter\n")
         mtr <- tuneRF(x = x, y = y,
                       mtryStart = 3,
                       importance = TRUE,
@@ -133,23 +163,24 @@ fitModel <- function(dat,           # df of training data
                       replace=FALSE, 
                       doBest=F,
                       plot=F)
-        mtry.vect[i] <- mtr[mtr[,2] == min(mtr[,2]),1][1]
-        
-      } else { mtry.vect[i] <- mtry }
+        mtry <- mtr[mtr[,2] == min(mtr[,2]),1][1]
+      }
       cat("\nnow fitting full random forest model using mtry=",mtry,"\n")
-      #
-      rf.full[[i]] <- randomForest(x = x, y = y, xtest = xtest, ytest = ytest, importance = importance, ntree = n.trees,
-                                   mtry = mtry.vect[i], replace = samp.replace, 
+      rf.full[[1]] <- randomForest(x = x, y = y, xtest = xtest, ytest = ytest, importance = importance, ntree = n.trees,
+                                   mtry = mtry, replace = samp.replace, 
                                    sampsize = ifelse(is.null(sampsize),(ifelse(samp.replace,nrow(x),ceiling(.632*nrow(x)))),sampsize),
-                                   nodesize = ifelse(is.null(nodesize),(if (!is.null(y) && !is.factor(y)) 5 else 1),nodesize),
+                                   nodesize = nodesize, # ifelse(is.null(nodesize),(if (!is.null(y) && !is.factor(y)) 5 else 1),nodesize),
                                    maxnodes = maxnodes, localImp = localImp, nPerm = nPerm, 
                                    keep.forest = ifelse(is.null(keep.forest),!is.null(y) && is.null(xtest),keep.forest),
                                    corr.bias = corr.bias, keep.inbag = keep.inbag)
-      if(i == 1){ 
-        model.summary <- importance(rf.full[[i]])
+      
+      model.summary <- importance(rf.full[[1]])
+      
+      if(out$modelFamily == "poisson"){
+        votes <- predict(rf.full[[1]])[,2]
       } else {
-        model.summary <- model.summary + importance(rf.full[[i]])
-      } 
+        votes <- predict(rf.full[[1]],type="vote")[,2]
+      }  
     }
     
     if(full.fit){
@@ -158,7 +189,7 @@ fitModel <- function(dat,           # df of training data
       # Reduce("combine",rf.full)
       out$finalMod <- rf.full
   
-      # if(PsdoAbs){
+      # if(PsdoAbs){ ## Not sure why this was only run for psuedo abs... I expanded the above code to predict for all types of training data
       #   votes<-rep(NA,times=nrow(dat))
       # 
       #   #these should be oob votes for the absence in a fairly random order
@@ -185,28 +216,9 @@ fitModel <- function(dat,           # df of training data
       #   out$mods$predictions<-votes
       # } else { 
       # out$mod1TrainPredictions <- predict(rf.full[[1]],type="vote")[,2]
-      
-      votes <- rep(NA,times=nrow(dat))
-      
-      # putting in abs votes
-      if(num.splits==1){
-        votes[dat$Response==0]<-apply(do.call("rbind",lapply(lapply(rf.full,predict,type="vote"),"[",1:sum(dat$Response==0),2)),2,mean)
-      } else {
-        for(i in 1:num.splits){
-          votes[which(dat$Response==0 & dat$ModelSelectionSplit==splits[i], arr.ind=TRUE)] <- as.vector(apply(
-            do.call("rbind", lapply(lapply(rf.full[-c(i)],predict,newdata=psd.abs[psd.abs$ModelSelectionSplit == splits[i],-c(1:7)],type="vote"),"[",,2)),2,mean))
-        }}
-      # putting in pres votes
-      pres.votes <- matrix(nrow=sum(dat$Response>=1),ncol=num.splits)
-      for(i in 1:num.splits){
-        pres.votes[,i] <- predict(rf.full[[i]],type="vote")[rf.full[[i]]$y==1,2]
-        }
-      votes[dat$Response==1] <- apply(pres.votes,1,mean)
-      
-      out$data$train$predicted <- votes # out$trainModPredicted <- votes
+      out$data$train$predicted <- votes 
       # }
   
-      model.summary <- 1/out$validationOptions$NumberOfFolds*model.summary[order(model.summary[,3],decreasing=T),]
       out$modSummary <- model.summary
       
       return(out)
@@ -376,7 +388,7 @@ fitModel <- function(dat,           # df of training data
 
 cv.fct <- function(out,         # out list 
                    nfolds,      # number of cross validation folds
-                   sp.no = 1, 
+                   # sp.no = 1, 
                    prev.stratify = F)
 {
   # function to perform k-fold cross validation
@@ -445,11 +457,15 @@ cv.fct <- function(out,         # out list
     # assign("species.subset", obs[model.mask], pos = 1)
     # assign("predictor.subset", xdat[model.mask, ], pos = 1)
     
-    # fit new model 
-    cv.final.mod <- fitModel(dat = data[model.mask,],
-                             out = out,
-                             weight = site.weights[model.mask],
-                             Fold=i)                       
+    if(out$modType == "rf"){ # STOPPED HERE SEE IF THIS MAKES SENSE -- seems it should as we have already run a model for each CV split -- but may need to be set up differently 
+      cv.final.mod <- out$finalMod[[i]]
+    } else {
+      # fit new model 
+      cv.final.mod <- fitModel(dat = data[model.mask,],
+                               out = out,
+                               weight = site.weights[model.mask],
+                               Fold=i)
+    }
     
     fitted.values[pred.mask] <- pred.fct(mod = cv.final.mod,
                                          x = xdat[pred.mask,],

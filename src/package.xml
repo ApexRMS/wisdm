@@ -309,7 +309,7 @@
 						<column name="ScenarioID" dataType="Integer"/>
 						<column name="EvaluateCovariateImportance" displayName="Evaluate covariate importance" dataType="Boolean"/>
 						<column name="CalculateCasewiseImportance" displayName="Calculate casewise importance" dataType="Boolean"/>
-						<column name="NumberOfVariablesSampled" displayName="Number of variables sampled at split" dataType="Integer"/>
+						<column name="NumberOfVariablesSampled" displayName="Number of variables sampled at split" dataType="Double"/>
 						<column name="MaximumNodes" displayName="Maximum number of nodes" dataType="Integer"/>
 						<column name="NumberOfTrees" displayName="Number of trees" dataType="Integer"/>
 						<column name="NodeSize" displayName="Node size" dataType="Integer"/>
