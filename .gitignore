@@ -4,5 +4,6 @@
 .Ruserdata
 /demo
 /devFiles
+/packageVersions
 .bak
 .gitattributes
