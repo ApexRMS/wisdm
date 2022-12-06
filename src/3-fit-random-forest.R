@@ -139,6 +139,8 @@
       CVSplitsTrain[[i]] <- trainingData[trainingData$ModelSelectionSplit %in% tfolds,]
       CVSplitsTest[[i]] <- trainingData[trainingData$ModelSelectionSplit == i,]
     }
+  } else {
+    trainingData$ModelSelectionSplit <- FALSE
   }
   
 
@@ -167,9 +169,11 @@
   
   ## training data
   out$data$train <- trainingData
-  
+ 
   ## testing data
-  testingData$ModelSelectionSplit <- FALSE
+  if(!is.null(testingData)){
+    testingData$ModelSelectionSplit <- FALSE
+  }
   out$data$test <- testingData
   
   # CV splits
@@ -211,6 +215,7 @@
                   full.fit = T)
   
   finalMod <- out$finalMod
+  finalMod[["trainingData"]] <- out$data$train
   
   # store output model option
   outModOptions <- out$modOptions
@@ -221,6 +226,7 @@
   
   # save model to temp storage
   saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\rf_model.rds"))
+  finalMod[["trainingData"]] <- NULL
   
   # add relevant model details to out 
   out$finalVars <- out$inputVars # random forest doesn't drop variables

@@ -202,8 +202,8 @@
 		  runContext="LocalOnly">
 		  <pipeline>
 			<datafeed name="TemplateRaster" type="Input"/>
-			<datafeed name="FieldData" type="Input"/>
 			<datafeed name="FieldDataOptions" type="Input"/>
+			<datafeed name="FieldData"/>
 			<datafeed name="CovariateData"/>
 			<datafeed name="SiteData" type="Output"/>
 		  </pipeline>
@@ -265,7 +265,7 @@
 				<datafeed name="ValidationOptions" type="Input"/>
 				<datafeed name="ReducedCovariates" type="Input"/>
 				<datafeed name="SiteData" type="Input"/>
-				<datafeed name="GLM" dataScope="Input"/>
+				<datafeed name="GLM"/>
 				<datafeed name="ModelOutputs" type="Output"/>
 			</pipeline>	
 			<datafeeds>
@@ -298,6 +298,7 @@
 				<datafeed name="ValidationOptions" type="Input"/>
 				<datafeed name="ReducedCovariates" type="Input"/>
 				<datafeed name="SiteData" type="Input"/>
+				<datafeed name="RandomForest"/>
 				<datafeed name="ModelOutputs" type="Output"/>
 			</pipeline>
 			<datafeeds>
@@ -428,7 +429,7 @@
 		  </group>
 		  <group name="Models">
 			<item name="GLM"/>
-			<!--item name="RandomForest" displayName="Random Forest"/-->
+			<item name="RandomForest" displayName="Random Forest"/>
 		  </group>
 		<item name="OutputOptions"/>
 		</layout> 

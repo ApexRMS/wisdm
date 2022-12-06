@@ -219,7 +219,7 @@ fitModel <- function(dat,           # df of training data
       out$data$train$predicted <- votes 
       # }
   
-      out$modSummary <- model.summary
+      out$modSummary <- model.summary[order(model.summary[,3],decreasing=T),]
       
       return(out)
       } else { return(rf.full) }
@@ -1116,7 +1116,7 @@ VariableImportance <- function(out,  # out list
   
   cor.mat <- matrix(nrow = length(out$inputVars), ncol = length(auc))
   
-  if(out$modType == "rf"){ # remove the response column
+  if(out$modType == "rf"){ 
     trainPred <- pred.fct(mod = out$finalMod, x = out$data$train, modType = out$modType)
     auc$train <- roc(out$dat$train$Response,trainPred)
   } else {

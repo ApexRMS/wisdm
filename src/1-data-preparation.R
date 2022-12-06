@@ -94,7 +94,6 @@ if(validationDataSheet$CrossValidate){
                                      stratify = validationDataSheet$StratifyFolds)
 }
 
-
 # Check categorical variables and update field data sheet (if no validation specified)
 if(validationDataSheet$SplitData == F & validationDataSheet$CrossValidate == F){
   if(!is.null(factorVars)){
