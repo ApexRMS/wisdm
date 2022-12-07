@@ -34,6 +34,18 @@
 					</datasheet>
 				  </datasheets>
 				</datafeed>
+				<!--datafeed name="Models" dataScope="Project">
+				  <datasheets>
+					<datasheet name="Models" valueMember="ModelsID" displayMember="ModelName">
+					  <columns>
+						<column name="ModelsID" dataType="Integer" isPrimary="True"/>
+						<column name="ProjectID" dataType="Integer"/>
+						<column name="ModelName" displayName="Name" dataType="String"/>
+						<column name="ModelType" displayName="Tag" dataType="String"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed-->
 				<datafeed name="FieldData" displayName="Field Data" dataScope="Scenario">
 				  <datasheets>
 					<datasheet  name="FieldData" displayName="Field Data">
@@ -348,6 +360,7 @@
 					<datasheet name="SpatialOutputs" spatialMultiProcessing="True">
 					  <columns>
 					  	<column name="ScenarioID" dataType="Integer"/>
+						<!--column name="ModelsID" dataType= "Integer"/-->
 						<column name="ModelType" dataType= "String"/>
 						<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
 						<column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
@@ -409,6 +422,7 @@
 		<!--Project Datafeeds Layout-->
 		<layout name="coreforms_ProjectDatafeeds">
 		  <item name="Covariates"/>
+		  <!--item name="Models"/-->
 		</layout> 
 		<!--Scenario Datafeeds Layout-->
 		<layout name="coreforms_ScenarioDatafeeds">

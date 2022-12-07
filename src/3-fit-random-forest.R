@@ -31,6 +31,13 @@
   myScenario <- scenario()
   # datasheet(myScenario)
   
+  # # check that only one model has been selected in the pipeline
+  # pipeline <- datasheet(myScenario, "core_Pipeline")
+  # pipeline$stage <- unlist(lapply(strsplit(as.character(pipeline$StageNameID), " - "),"[",1))
+  # if(sum(pipeline$stage==3)>1){
+  #   stop("Only one model can be fit per scenario. Ensure that only one model is selected in the scenario pipeline before continuing.")
+  # }
+  
   # Path to ssim temporary directory
   ssimTempDir <- Sys.getenv("ssim_temp_directory")
   
@@ -41,7 +48,7 @@
   reducedCovariatesSheet <- datasheet(myScenario, "wisdm_ReducedCovariates", lookupsAsFactors = F)
   siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
   RFSheet <- datasheet(myScenario, "wisdm_RandomForest")
-  modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T)
+  modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T, empty = T)
 
   
 #  Set defaults ----------------------------------------------------------------  
@@ -60,7 +67,7 @@
                                     NumberOfTrees = 1000,                       # n.trees
                                     NodeSize = NA,                              # nodesize
                                     NormalizeVotes = TRUE,                      # norm.votes
-                                    CalculateProximity = FALSE,                    # proximity
+                                    CalculateProximity = FALSE,                 # proximity
                                     SampleWithReplacement = FALSE))             # samp.replace
   }
   
@@ -222,7 +229,7 @@
   outModOptions$thresholdOptimization <- NULL
   saveDatasheet(myScenario, outModOptions, "wisdm_RandomForest")
   
-  out$modOptions$NumberOfVariablesSampled <- NA
+  out$modOptions$NumberOfVariablesSampled <- RFSheet$NumberOfVariablesSampled
   
   # save model to temp storage
   saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\rf_model.rds"))
@@ -262,7 +269,8 @@
   
   if(ValidationDataSheet$CrossValidate){
      for(i in 1:length(out$data$cvSplits$test)){
-       out$data$cvSplits$test[[i]]$predicted <- pred.fct(x=out$data$cvSplits$test[[i]], mod=finalMod, modType=modType)
+       # out$data$cvSplits$test[[i]]$predicted <- pred.fct(x=out$data$cvSplits$test[[i]], mod=finalMod[[i]], modType=modType)   # cv test predictions for each split based only on that splits model
+       out$data$cvSplits$test[[i]]$predicted <- pred.fct(x=out$data$cvSplits$test[[i]], mod=finalMod, modType=modType)      # cv test predictions for each split based on full model (i.e., predicted average across all cv splits)
      }
   }
  
@@ -297,19 +305,21 @@
                                    ResidualSmoothPlot = paste0(ssimTempDir,"\\Data\\rf_ResidualSmoothPlot.png"),
                                    ResidualSmoothRDS = paste0(ssimTempDir,"\\Data\\rf_ResidualSmoothFunction.rds")))
   
+  outputRow <- which(modelOutputsSheet$ModelType == "rf")
+  
   if(out$modelFamily != "poisson"){
-    if("rf_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\rf_StandardResidualPlots.png") }
-    modelOutputsSheet$ConfusionMatrix <-  paste0(ssimTempDir,"\\Data\\rf_ConfusionMatrix.png")
-    modelOutputsSheet$VariableImportancePlot <-  paste0(ssimTempDir,"\\Data\\rf_VariableImportance.png")
-    modelOutputsSheet$VariableImportanceData <-  paste0(ssimTempDir,"\\Data\\rf_VariableImportance.csv")
-    modelOutputsSheet$ROCAUCPlot <- paste0(ssimTempDir,"\\Data\\rf_ROCAUCPlot.png")
-    modelOutputsSheet$CalibrationPlot <- paste0(ssimTempDir,"\\Data\\rf_CalibrationPlot.png")
+    if("rf_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot[outputRow] <- paste0(ssimTempDir,"\\Data\\rf_StandardResidualPlots.png") }
+    modelOutputsSheet$ConfusionMatrix[outputRow] <-  paste0(ssimTempDir,"\\Data\\rf_ConfusionMatrix.png")
+    modelOutputsSheet$VariableImportancePlot[outputRow] <-  paste0(ssimTempDir,"\\Data\\rf_VariableImportance.png")
+    modelOutputsSheet$VariableImportanceData[outputRow] <-  paste0(ssimTempDir,"\\Data\\rf_VariableImportance.csv")
+    modelOutputsSheet$ROCAUCPlot[outputRow] <- paste0(ssimTempDir,"\\Data\\rf_ROCAUCPlot.png")
+    modelOutputsSheet$CalibrationPlot[outputRow] <- paste0(ssimTempDir,"\\Data\\rf_CalibrationPlot.png")
   } else {
-    modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\rf_PoissonResidualPlots.png")
+    modelOutputsSheet$ResidualsPlot[outputRow] <- paste0(ssimTempDir,"\\Data\\rf_PoissonResidualPlots.png")
   }
   
-  if("rf_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- paste0(ssimTempDir,"\\Data\\rf_AUCPRPlot.png") } 
+  if("rf_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot[outputRow] <- paste0(ssimTempDir,"\\Data\\rf_AUCPRPlot.png") } 
   
-  saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs")
+  saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs", append = T)
   
   

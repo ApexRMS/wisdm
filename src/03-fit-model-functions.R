@@ -1807,7 +1807,13 @@ smoothdist <- function(preds, obs) {
                   weights=rep(1, length(preds)), 
                   family=binomial),silent=TRUE)
   
-  if("try-error" %in% class(gam1)){
+  # if("try-error" %in% class(gam1) | !gam1$converged){
+  #   gam1 <- try(glm(obs ~ ns(preds, df=3), 
+  #                   weights=rep(1, length(preds)), 
+  #                   family=binomial),silent=TRUE)
+  # }
+  
+  if("try-error" %in% class(gam1) | !gam1$converged){
     gam1 <- try(glm(obs ~ ns(preds, df=1), 
                     weights=rep(1, length(preds)), 
                     family=binomial),silent=TRUE)
