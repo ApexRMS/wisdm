@@ -110,17 +110,13 @@ for (i in 1:nrow(modelOutputsSheet)){
   
   if(modType == "glm"){
     
-    # nVars <- length(attr(terms(formula(mod)),"term.labels"))
     modVars <- attr(terms(formula(mod)),"term.labels")
     # have to remove all the junk with powers and interactions for mess map production to work
     modVars <- unique(unlist(strsplit(gsub("I\\(","",gsub("\\^2)","",modVars)),":")))
     
     trainingData <-  mod$data
-    if(outputOptionsSheet$MakeResidualsMap){
-      # trainingData$predicted <- pred.fct(x=trainingData, mod=mod, modType=modType)
-      if(max(trainingData$Response)>1){ modFamily <-"poisson" 
-      } else { modFamily <- "binomial" }
-    }
+    if(max(trainingData$Response)>1){ modFamily <-"poisson" 
+    } else { modFamily <- "binomial" }
   }
   
   if(modType == "rf"){
@@ -128,12 +124,8 @@ for (i in 1:nrow(modelOutputsSheet)){
     modVars <- rownames(mod$importance)
     
     trainingData <-  mod$trainingData
-    # mod$trainingData <- NULL
-    
-    if(outputOptionsSheet$MakeResidualsMap){
-      if(max(trainingData$Response)>1){ modFamily <-"poisson" 
-      } else { modFamily <- "binomial" }
-    }
+    if(max(trainingData$Response)>1){ modFamily <-"poisson" 
+    } else { modFamily <- "binomial" }
   }
   
   # identify factor variables
@@ -232,10 +224,8 @@ for (i in 1:nrow(modelOutputsSheet)){
     
   if(outputOptionsSheet$MakeProbabilityMap){
     preds <- matrix(predictFct(model = mod, x = temp), ncol = ncol(templateRaster), byrow = T)
-    # preds <- t(matrix(predictFct(model = mod, x = temp), ncol = ncol(templateRaster), byrow = T))
     preds <- round((preds*100), 0)
-    preds[is.na(preds)] <- -9999
-    # typeof(preds)
+    preds[is.na(preds)] <- -9999  # typeof(preds)
     
     probRaster <- rast(templateRaster, vals = preds)
     if(!is.null(maskValues)){probRaster <- extend(probRaster, maskExt)}
@@ -269,8 +259,7 @@ for (i in 1:nrow(modelOutputsSheet)){
             names(pred.rng)[complete.cases(temp)] <- MessVals[ ,1]
         }
         pred.rng <- round(pred.rng,0)
-        pred.rng[is.na(pred.rng)] <- -9999
-        # typeof(pred.rng)
+        pred.rng[is.na(pred.rng)] <- -9999  # typeof(pred.rng)
         
         if(outputOptionsSheet$MakeMessMap){ 
         messRaster <- rast(templateRaster, vals = pred.rng)
@@ -278,24 +267,23 @@ for (i in 1:nrow(modelOutputsSheet)){
         writeRaster(x = messRaster, 
                       filename = file.path(ssimTempDir, paste0(modType,"_mess_map.tif")), 
                       datatype = "INT4S",
-                      overwrite = TRUE) 
-        # is.int(messRaster) 
+                      overwrite = TRUE)  # is.int(messRaster) 
+        
         remove(messRaster)
         }
         if(outputOptionsSheet$MakeModMap){ 
           
           if(is.null(names(pred.rng))){ names(pred.rng) <- NA }
           vals <- as.integer(names(pred.rng))
-          vals[is.na(vals)] <- -9999
-          # typeof(vals)
+          vals[is.na(vals)] <- -9999  # typeof(vals)
           
           modRaster <- rast(templateRaster, vals = vals)
           if(!is.null(maskValues)){modRaster <- extend(modRaster, maskExt)}
           writeRaster(x = modRaster, 
                       filename = file.path(ssimTempDir, paste0(modType,"_mod_map.tif")), 
                       datatype = "INT4S", # "INT1U"
-                      overwrite = TRUE) 
-          # is.int(modRaster) 
+                      overwrite = TRUE)  # is.int(modRaster) 
+          
           remove(modRaster)
         }
     }
@@ -335,7 +323,7 @@ for (i in 1:nrow(modelOutputsSheet)){
     # add model Outputs to datasheet
     spatialOutputsSheet <- addRow(spatialOutputsSheet, 
                                   list( # Iteration = 1, Timestep = 0,
-                                    ModelsID = modelsSheet$ModelsID[modelsSheet$ModelType == modType])) #, ModelType = modType))
+                                    ModelsID = modelsSheet$ModelsID[modelsSheet$ModelType == modType])) 
   
     outputRow <- which(spatialOutputsSheet$ModelsID == modelsSheet$ModelsID[modelsSheet$ModelType == modType])
                               

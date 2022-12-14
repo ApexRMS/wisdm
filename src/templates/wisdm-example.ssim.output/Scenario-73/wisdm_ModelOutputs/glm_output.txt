@@ -1,0 +1,78 @@
+Generalized Linear Model Results
+
+Settings:
+
+	 model family:  binomial
+	 simplification method:  AIC
+
+
+Results:
+	 number covariates in final model:  5
+
+Call:
+glm(formula = Response ~ I(cfrst_18km^2) + asage_1km + bio6 + 
+    mix_18km + asage_1km:bio6, family = out$modelFamily, data = dat, 
+    weights = dat$Weight, na.action = "na.exclude")
+
+Deviance Residuals: 
+     Min        1Q    Median        3Q       Max  
+-3.07935   0.03211   0.20356   0.51057   1.93603  
+
+Coefficients:
+                Estimate Std. Error z value Pr(>|z|)    
+(Intercept)     -0.13774    1.15104  -0.120   0.9047    
+I(cfrst_18km^2) -6.19115    1.54439  -4.009  6.1e-05 ***
+asage_1km       -6.61335    6.10054  -1.084   0.2783    
+bio6            -0.09358    0.09137  -1.024   0.3057    
+mix_18km        65.12648   63.04343   1.033   0.3016    
+asage_1km:bio6  -0.81060    0.48903  -1.658   0.0974 .  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 224.2  on 206  degrees of freedom
+Residual deviance: 129.5  on 201  degrees of freedom
+AIC: 141.5
+
+Number of Fisher Scoring iterations: 7
+
+
+
+============================================================ 
+
+Evaluation Statistics applied to Cross validation split:
+
+ 
+	 Correlation Coefficient      : 0.5861198  (sd 0.12011) 
+	 NULL Deviance                : 1.0824 (sd 0.021531)
+	 Fit Deviance                 : 1.3257 (sd 1.1085)
+	 Explained Deviance           : -0.24323 (sd 1.1246)
+	 Percent Deviance Explained   : -23.741 (sd 106.2)
+
+  Threshold Methods based on 
+	 Mean Threshold               : 0.772 (sd 0.046984) 
+
+	 Confusion Matrix: 
+
+         observed
+predicted   1   0
+        1 122  11
+        0  37  37
+
+	 AUC                          :  0.84448  (sd 0.076564) 
+	 AUC-pr                       :  0.9350113  (sd 0.044972) 
+	 Percent Correctly Classified :  76.86121  (sd 9.3749) 
+	 Sensitivity                  :  0.7681452  (sd 0.12139) 
+	 Specificity                  :  0.7711111  (sd 0.16341) 
+	 Kappa                        :  0.4625856  (sd 0.18188) 
+	 True Skill Statistic         :  0.5392563  (sd 0.18183) 
+
+
+   Calibration Statistics 
+	 Intercept (general calibration)                            :  -0.098  (sd 1.3719) 
+	 Slope   (direction and variation in fit)                   :  0.9186032  (sd 0.90778) 
+	 Testa0b1 (overall reliability of predictors)               :  0.1637471  (sd 0.2257) 
+	 Testa0|b1(incorrect calibration given correct refinement)  :  0.2757402  (sd 0.27587) 
+	 Testb1|a (refinement given correct calibration)            :  0.1773656  (sd 0.33232) 
+

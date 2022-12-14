@@ -123,29 +123,11 @@
   }
  
   # identify training and testing sites 
-  # siteDataWide$UseInModelEvaluation[is.na(siteDataWide$UseInModelEvaluation)] <- FALSE
   trainTestDatasets <- split(siteDataWide, f = siteDataWide[,"UseInModelEvaluation"], drop = T)
   trainingData <- trainTestDatasets$`FALSE`
   if(!ValidationDataSheet$CrossValidate){trainingData$ModelSelectionSplit <- FALSE}
   testingData <- trainTestDatasets$`TRUE`
   
-  # identify cross validation folds for model selection (if specified)
-  # if(ValidationDataSheet$CrossValidate){ 
-   # CVSplitsTrain <- trainingData
-   # CVSplitsTest <- testingData
-    # CVSplitsTrain <- list()
-    # CVSplitsTest <- list()
-    # for (i in 1:(ValidationDataSheet$NumberOfFolds)){
-    #   folds <- 1:ValidationDataSheet$NumberOfFolds
-    #   tfolds <- folds[-i]
-    #   CVSplitsTrain[[i]] <- trainingData[trainingData$ModelSelectionSplit %in% tfolds,]
-    #   CVSplitsTest[[i]] <- trainingData[trainingData$ModelSelectionSplit == i,]
-    # }
-  #} else {
-  #  trainingData$ModelSelectionSplit <- FALSE
-  #}
-  
-
 # Model definitions ------------------------------------------------------------
 
   # create object to store intermediate model selection/evaluation inputs
@@ -177,12 +159,6 @@
     testingData$ModelSelectionSplit <- FALSE
   }
   out$data$test <- testingData
-  
-  # CV splits
-  # if(ValidationDataSheet$CrossValidate){
-  #  out$data$cvSplits$train <- CVSplitsTrain
-  #  out$data$cvSplits$test <- CVSplitsTest
-  # }
   
   ## pseudo absence  
   out$pseudoAbs <- FALSE # To Do: build out call to pseudo absence 
@@ -216,7 +192,6 @@
   
   # save model to temp storage
   saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
-  # finalMod[["trainingData"]] <- NULL
   
   # save output model options
   RFSheet$NumberOfVariablesSampled <- finalMod$mtry
@@ -254,7 +229,7 @@
   # For the training set for Random Forest take out of bag predictions rather than the regular predictions
   if(out$modelFamily == "poisson"){ out$data$train$predicted <- finalMod$predicted
   } else { out$data$train$predicted <- tweak.p(finalMod$votes[,2]) } # tweak predictions to remove 1/0 so that calc deviance doesn't produce NA/Inf values 
-  
+ 
   if(ValidationDataSheet$SplitData){
     out$data$test$predicted <- pred.fct(x=out$data$test, mod=finalMod, modType=modType)
   }
@@ -284,7 +259,6 @@
   # add model Outputs to datasheet
   modelOutputsSheet <- addRow(modelOutputsSheet, 
                               list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
-                                   # ModelType = modType,
                                    ModelRDS = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"),
                                    ResponseCurves = paste0(ssimTempDir,"\\Data\\", modType, "_ResponseCurves.png"),
                                    TextOutput = paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),

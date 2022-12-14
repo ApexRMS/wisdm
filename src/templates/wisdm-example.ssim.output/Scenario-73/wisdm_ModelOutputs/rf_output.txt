@@ -1,0 +1,54 @@
+Random Forest Results
+
+Settings:
+	n covariates considered at each split  : 2
+	n trees                                : 1000
+
+Relative performance of predictors in final model:
+
+                  0       1 MeanDecreaseAccuracy MeanDecreaseGini
+cfrst_18km   0.1512  0.0409               0.0655          13.6411
+asage_1km    0.0695  0.0206               0.0317          10.6488
+ndvi_270     0.0344  0.0200               0.0232           7.5663
+bio6         0.0074  0.0132               0.0118           5.8017
+mix_18km     0.0470 -0.0111               0.0020           4.2126
+rddens_18km -0.0040 -0.0032              -0.0035           4.6342
+
+
+============================================================ 
+
+Evaluation Statistics applied to Cross validation split:
+
+ 
+	 Correlation Coefficient      : 0.6162015  (sd 0.14837) 
+	 NULL Deviance                : 1.0824 (sd 0.021531)
+	 Fit Deviance                 : 0.79567 (sd 0.29121)
+	 Explained Deviance           : 0.28676 (sd 0.29447)
+	 Percent Deviance Explained   : 26.419 (sd 26.75)
+
+  Threshold Methods based on 
+	 Mean Threshold               : 0.518 (sd 0.0044721) 
+
+	 Confusion Matrix: 
+
+         observed
+predicted   1   0
+        1 147  22
+        0  12  26
+
+	 AUC                          :  0.8536  (sd 0.088359) 
+	 AUC-pr                       :  0.9361649  (sd 0.047918) 
+	 Percent Correctly Classified :  83.56156  (sd 6.8497) 
+	 Sensitivity                  :  0.9247984  (sd 0.078297) 
+	 Specificity                  :  0.54  (sd 0.14795) 
+	 Kappa                        :  0.5043898  (sd 0.18418) 
+	 True Skill Statistic         :  0.4647984  (sd 0.16677) 
+
+
+   Calibration Statistics 
+	 Intercept (general calibration)                            :  -0.02529677  (sd 0.86202) 
+	 Slope   (direction and variation in fit)                   :  0.9054153  (sd 0.60082) 
+	 Testa0b1 (overall reliability of predictors)               :  0.3110213  (sd 0.33367) 
+	 Testa0|b1(incorrect calibration given correct refinement)  :  0.3562432  (sd 0.19224) 
+	 Testb1|a (refinement given correct calibration)            :  0.2879386  (sd 0.3794) 
+

@@ -98,26 +98,12 @@
   }
  
   # identify training and testing sites 
-  # siteDataWide$UseInModelEvaluation[is.na(siteDataWide$UseInModelEvaluation)] <- FALSE
   trainTestDatasets <- split(siteDataWide, f = siteDataWide[,"UseInModelEvaluation"], drop = T)
   trainingData <- trainTestDatasets$`FALSE`
   if(!ValidationDataSheet$CrossValidate){trainingData$ModelSelectionSplit <- FALSE}
   testingData <- trainTestDatasets$`TRUE`
   
-  # # identify cross validation folds for model selection (if specified)
-  # if(ValidationDataSheet$CrossValidate){ 
-  #   CVSplitsTrain <- list()
-  #   CVSplitsTest <- list()
-  #   for (i in 1:(ValidationDataSheet$NumberOfFolds)){
-  #     folds <- 1:ValidationDataSheet$NumberOfFolds
-  #     tfolds <- folds[-i]
-  #     CVSplitsTrain[[i]] <- trainingData[trainingData$ModelSelectionSplit %in% tfolds,]
-  #     CVSplitsTest[[i]] <- trainingData[trainingData$ModelSelectionSplit == i,]
-  #   }
-  # }
-  # 
-
-# Model definitions ------------------------------------------------------------
+ # Model definitions ------------------------------------------------------------
 
   # create object to store intermediate model selection/evaluation inputs
   out <- list()
@@ -148,12 +134,6 @@
   }
   out$data$test <- testingData
   
-  # # CV splits
-  # if(ValidationDataSheet$CrossValidate){
-  #   out$data$cvSplits$train <- CVSplitsTrain
-  #   out$data$cvSplits$test <- CVSplitsTest
-  # }
-  
   ## pseudo absence  
   out$pseudoAbs <- FALSE # To Do: build out call to pseudo absence 
   
@@ -178,8 +158,6 @@
 
   
 # Fit model --------------------------------------------------------------------
-
-  # source(file.path(packageDir, "fitModel.R")) ## GLM - code sourced and updated from model.fit.r 
 
   finalMod <- fitModel(dat = trainingData, 
                       out = out)
@@ -221,12 +199,6 @@
     out$data$test$predicted <- pred.fct(x=out$data$test, mod=finalMod, modType=modType)
   }
   
-  # if(ValidationDataSheet$CrossValidate){
-  #    for(i in 1:length(out$data$cvSplits$test)){
-  #      out$data$cvSplits$test[[i]]$predicted <- pred.fct(x=out$data$cvSplits$test[[i]], mod=finalMod, modType=modType)
-  #    }
-  # }
- 
 # Run Cross Validation (if specified) ------------------------------------------
   
   if(ValidationDataSheet$CrossValidate){
@@ -252,7 +224,6 @@
   # add model Outputs to datasheet
   modelOutputsSheet <- addRow(modelOutputsSheet, 
                               list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
-                                   # ModelType = modType, 
                                    ModelRDS = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"),
                                    ResponseCurves = paste0(ssimTempDir,"\\Data\\", modType, "_ResponseCurves.png"),
                                    TextOutput = paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),
