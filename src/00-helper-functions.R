@@ -52,23 +52,25 @@ pred.fct <- function(mod,      # mod = the model fit object
   y <- rep(NA,nrow(x))
   
   if(modType %in% c("glm","mars")){
-    if("list" %in% class(mod)){
-      y <- try(as.vector(predict(mod, x, type="response")),silent=TRUE)
-    } else { y <- try(as.vector(predict(mod, x, type="response")),silent=TRUE) }
-  } 
+    # if("list" %in% class(mod)){
+    #  y <- try(as.vector(predict(mod, x, type="response")),silent=TRUE)
+  # } else { 
+      y <- try(as.vector(predict(mod, x, type="response")), silent=TRUE) 
+  }
+  # } 
   if(modType == "rf"){
     # retrieve key items from the global environment #
     # make predictions from complete data only #
-    if(class(mod[[1]])=="randomForest"){
-      # getting the predictions from each split of the data then taking out one column and getting the average
-      lst.preds <- try(lapply(lapply(mod, FUN = predict, newdata=x[complete.cases(x),],type="vote"), FUN = "[",,2))
-      y[complete.cases(x)]<-try(apply(do.call("rbind",lst.preds),2,mean))
-      y[y==1]<-max(y[y<1],na.rm=TRUE)
-      y[y==0]<-min(y[y>0],na.rm=TRUE)
-    } else {
+    # if(class(mod[[1]])=="randomForest"){
+    #   # getting the predictions from each split of the data then taking out one column and getting the average
+    #   lst.preds <- try(lapply(lapply(mod, FUN = predict, newdata=x[complete.cases(x),],type="vote"), FUN = "[",,2))
+    #   y[complete.cases(x)]<-try(apply(do.call("rbind",lst.preds),2,mean))
+    #   y[y==1]<-max(y[y<1],na.rm=TRUE)
+    #   y[y==0]<-min(y[y>0],na.rm=TRUE)
+    # } else {
       y[complete.cases(x)] <- try(as.vector(predict(mod, newdata=x[complete.cases(x),], type="vote")[,2]), silent=TRUE)
     }
-  }
+  # }
   # if(modType=="brt"){
   #   # retrieve key items from the global environment #
   #   # make predictions from complete data only #
@@ -120,15 +122,8 @@ rf.predict <- function(model, x){
   # retrieve key items from the global environment #
   # make predictions from complete data only #
   y <- rep(NA,nrow(x))
-  if(class(mod[[1]])=="randomForest"){
-    # getting the predictions from each split of the data then taking out one column and getting the average
-    lst.preds <- try(lapply(lapply(model, FUN = predict, newdata=x[complete.cases(x),],type="vote"), FUN = "[",,2))
-    y[complete.cases(x)]<-try(apply(do.call("rbind",lst.preds),2,mean))
-    y[y==1]<-max(y[y<1],na.rm=TRUE)
-    y[y==0]<-min(y[y>0],na.rm=TRUE)
-  } else {
-    y[complete.cases(x)] <- try(as.vector(predict(mod, newdata=x[complete.cases(x),], type="vote")[,2]), silent=TRUE)
-  }
+  y[complete.cases(x)] <- try(as.vector(predict(mod, newdata=x[complete.cases(x),], type="vote")[,2]), silent=TRUE)
+  
   # return predictions.
   return(y)
 }

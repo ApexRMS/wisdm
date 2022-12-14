@@ -26,29 +26,21 @@
 # Connect to library -----------------------------------------------------------
 
   # Active project and scenario
-  myLibrary <- ssimLibrary()
-  myProject <- rsyncrosim::project()
   myScenario <- scenario()
   # datasheet(myScenario)
-  
-  # # check that only one model has been selected in the pipeline
-  # pipeline <- datasheet(myScenario, "core_Pipeline")
-  # pipeline$stage <- unlist(lapply(strsplit(as.character(pipeline$StageNameID), " - "),"[",1))
-  # if(sum(pipeline$stage==3)>1){
-  #   stop("Only one model can be fit per scenario. Ensure that only one model is selected in the scenario pipeline before continuing.")
-  # }
   
   # Path to ssim temporary directory
   ssimTempDir <- Sys.getenv("ssim_temp_directory")
   
   # Read in datasheets
-  covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
+  covariatesSheet <- datasheet(myScenario, "wisdm_Covariates", optional = T)
+  modelsSheet <- datasheet(myScenario, "wisdm_Models")
   fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
   ValidationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
   reducedCovariatesSheet <- datasheet(myScenario, "wisdm_ReducedCovariates", lookupsAsFactors = F)
   siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
   RFSheet <- datasheet(myScenario, "wisdm_RandomForest")
-  modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T, empty = T)
+  modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T, empty = T, lookupsAsFactors = F)
 
   
 #  Set defaults ----------------------------------------------------------------  
@@ -134,21 +126,24 @@
   # siteDataWide$UseInModelEvaluation[is.na(siteDataWide$UseInModelEvaluation)] <- FALSE
   trainTestDatasets <- split(siteDataWide, f = siteDataWide[,"UseInModelEvaluation"], drop = T)
   trainingData <- trainTestDatasets$`FALSE`
+  if(!ValidationDataSheet$CrossValidate){trainingData$ModelSelectionSplit <- FALSE}
   testingData <- trainTestDatasets$`TRUE`
   
   # identify cross validation folds for model selection (if specified)
-  if(ValidationDataSheet$CrossValidate){ 
-    CVSplitsTrain <- list()
-    CVSplitsTest <- list()
-    for (i in 1:(ValidationDataSheet$NumberOfFolds)){
-      folds <- 1:ValidationDataSheet$NumberOfFolds
-      tfolds <- folds[-i]
-      CVSplitsTrain[[i]] <- trainingData[trainingData$ModelSelectionSplit %in% tfolds,]
-      CVSplitsTest[[i]] <- trainingData[trainingData$ModelSelectionSplit == i,]
-    }
-  } else {
-    trainingData$ModelSelectionSplit <- FALSE
-  }
+  # if(ValidationDataSheet$CrossValidate){ 
+   # CVSplitsTrain <- trainingData
+   # CVSplitsTest <- testingData
+    # CVSplitsTrain <- list()
+    # CVSplitsTest <- list()
+    # for (i in 1:(ValidationDataSheet$NumberOfFolds)){
+    #   folds <- 1:ValidationDataSheet$NumberOfFolds
+    #   tfolds <- folds[-i]
+    #   CVSplitsTrain[[i]] <- trainingData[trainingData$ModelSelectionSplit %in% tfolds,]
+    #   CVSplitsTest[[i]] <- trainingData[trainingData$ModelSelectionSplit == i,]
+    # }
+  #} else {
+  #  trainingData$ModelSelectionSplit <- FALSE
+  #}
   
 
 # Model definitions ------------------------------------------------------------
@@ -184,10 +179,10 @@
   out$data$test <- testingData
   
   # CV splits
-  if(ValidationDataSheet$CrossValidate){
-    out$data$cvSplits$train <- CVSplitsTrain
-    out$data$cvSplits$test <- CVSplitsTest
-  }
+  # if(ValidationDataSheet$CrossValidate){
+  #  out$data$cvSplits$train <- CVSplitsTrain
+  #  out$data$cvSplits$test <- CVSplitsTest
+  # }
   
   ## pseudo absence  
   out$pseudoAbs <- FALSE # To Do: build out call to pseudo absence 
@@ -200,8 +195,8 @@
   
 # Create output text file ------------------------------------------------------
 
-  capture.output(cat("Random Forest Results"), file=paste0(ssimTempDir,"\\Data\\rf_output.txt")) 
-  on.exit(capture.output(cat("Model Failed\n\n"),file=paste0(ssimTempDir,"\\Data\\rf_output.txt"),append=TRUE))  
+  capture.output(cat("Random Forest Results"), file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt")) 
+  on.exit(capture.output(cat("Model Failed\n\n"),file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),append=TRUE))  
 
 
 # Review model data ------------------------------------------------------------
@@ -214,44 +209,40 @@
   
 # Fit model --------------------------------------------------------------------
 
-  # source(file.path(packageDir, "fitModel.R")) ## GLM - code sourced and updated from model.fit.r 
-
-  out <- fitModel(dat = trainingData, 
-                  out = out,
-                  modType = modType,
-                  full.fit = T)
+  finalMod <- fitModel(dat = trainingData, 
+                       out = out)
   
-  finalMod <- out$finalMod
-  finalMod[["trainingData"]] <- out$data$train
-  
-  # store output model option
-  outModOptions <- out$modOptions
-  outModOptions$thresholdOptimization <- NULL
-  saveDatasheet(myScenario, outModOptions, "wisdm_RandomForest")
-  
-  out$modOptions$NumberOfVariablesSampled <- RFSheet$NumberOfVariablesSampled
+  finalMod$trainingData <- trainingData
   
   # save model to temp storage
-  saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\rf_model.rds"))
-  finalMod[["trainingData"]] <- NULL
+  saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
+  # finalMod[["trainingData"]] <- NULL
+  
+  # save output model options
+  RFSheet$NumberOfVariablesSampled <- finalMod$mtry
+  saveDatasheet(myScenario, RFSheet, "wisdm_RandomForest")
   
   # add relevant model details to out 
+  out$finalMod <- finalMod
   out$finalVars <- out$inputVars # random forest doesn't drop variables
   out$nVarsFinal <- length(out$finalVars)
   
   txt0 <- paste("\n\n","Settings:",
                 # "\n\trandom seed used                       : ",out$input$seed,
-                "\n\tn covariates considered at each split  : ", mean(unlist(lapply(out$finalMod,"[",14))),
+                "\n\tn covariates considered at each split  : ", RFSheet$NumberOfVariablesSampled,
                 if(out$pseudoAbs==TRUE) "\n\t   (averaged over each used available split)\n",
-                "\n\tn trees                                : ",out$modOptions$NumberOfTrees,
+                "\n\tn trees                                : ",RFSheet$NumberOfTrees,
                 if(out$pseudoAbs==TRUE) "\n\t   (for each used available split)\n",
                 sep="")
   txt1 <- "\n\nRelative performance of predictors in final model:\n\n"
   
-  capture.output(cat(txt0),cat(txt1),print(round(out$modSummary,4)),file=paste0(ssimTempDir,"\\Data\\rf_output.txt"),append=TRUE) 
+  modelSummary <- finalMod$importance
+  modelSummary <- modelSummary[order(modelSummary[,3],decreasing=T),]
+  
+  capture.output(cat(txt0),cat(txt1),print(round(modelSummary,4)),file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),append=TRUE) 
   
   updateRunLog("\nSummary of Model:\n")
-  coeftbl <- out$modSummary
+  coeftbl <- modelSummary
   coeftbl <- round(coeftbl, 6) 
   coeftbl <- cbind(rownames(coeftbl), coeftbl)
   rownames(coeftbl) <- NULL
@@ -260,21 +251,15 @@
   
 # Test model predictions -------------------------------------------------------
   
-  # Just for the training set for Random Forest we have to take out of bag predictions rather than the regular predictions
-  out$data$train$predicted <- tweak.p(out$data$train$predicted) # out$trainModPredicted
+  # For the training set for Random Forest take out of bag predictions rather than the regular predictions
+  if(out$modelFamily == "poisson"){ out$data$train$predicted <- finalMod$predicted
+  } else { out$data$train$predicted <- tweak.p(finalMod$votes[,2]) } # tweak predictions to remove 1/0 so that calc deviance doesn't produce NA/Inf values 
   
   if(ValidationDataSheet$SplitData){
-    out$data$test$predicted <- pred.fct(x=testingData, mod=finalMod, modType=modType)
+    out$data$test$predicted <- pred.fct(x=out$data$test, mod=finalMod, modType=modType)
   }
-  
-  if(ValidationDataSheet$CrossValidate){
-     for(i in 1:length(out$data$cvSplits$test)){
-       # out$data$cvSplits$test[[i]]$predicted <- pred.fct(x=out$data$cvSplits$test[[i]], mod=finalMod[[i]], modType=modType)   # cv test predictions for each split based only on that splits model
-       out$data$cvSplits$test[[i]]$predicted <- pred.fct(x=out$data$cvSplits$test[[i]], mod=finalMod, modType=modType)      # cv test predictions for each split based on full model (i.e., predicted average across all cv splits)
-     }
-  }
- 
-# Run Cross Validation (if specified) ------------------------------------------
+
+## Run Cross Validation (if specified) -----------------------------------------
   
   if(ValidationDataSheet$CrossValidate){
     
@@ -298,27 +283,27 @@
   
   # add model Outputs to datasheet
   modelOutputsSheet <- addRow(modelOutputsSheet, 
-                              list(ModelType = modType, 
-                                   ModelRDS = paste0(ssimTempDir,"\\Data\\rf_model.rds"),
-                                   ResponseCurves = paste0(ssimTempDir,"\\Data\\rf_ResponseCurves.png"),
-                                   TextOutput = paste0(ssimTempDir,"\\Data\\rf_output.txt"),
-                                   ResidualSmoothPlot = paste0(ssimTempDir,"\\Data\\rf_ResidualSmoothPlot.png"),
-                                   ResidualSmoothRDS = paste0(ssimTempDir,"\\Data\\rf_ResidualSmoothFunction.rds")))
+                              list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
+                                   # ModelType = modType,
+                                   ModelRDS = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"),
+                                   ResponseCurves = paste0(ssimTempDir,"\\Data\\", modType, "_ResponseCurves.png"),
+                                   TextOutput = paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),
+                                   ResidualSmoothPlot = paste0(ssimTempDir,"\\Data\\", modType, "_ResidualSmoothPlot.png"),
+                                   ResidualSmoothRDS = paste0(ssimTempDir,"\\Data\\", modType, "_ResidualSmoothFunction.rds")))
   
-  outputRow <- which(modelOutputsSheet$ModelType == "rf")
   
   if(out$modelFamily != "poisson"){
-    if("rf_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot[outputRow] <- paste0(ssimTempDir,"\\Data\\rf_StandardResidualPlots.png") }
-    modelOutputsSheet$ConfusionMatrix[outputRow] <-  paste0(ssimTempDir,"\\Data\\rf_ConfusionMatrix.png")
-    modelOutputsSheet$VariableImportancePlot[outputRow] <-  paste0(ssimTempDir,"\\Data\\rf_VariableImportance.png")
-    modelOutputsSheet$VariableImportanceData[outputRow] <-  paste0(ssimTempDir,"\\Data\\rf_VariableImportance.csv")
-    modelOutputsSheet$ROCAUCPlot[outputRow] <- paste0(ssimTempDir,"\\Data\\rf_ROCAUCPlot.png")
-    modelOutputsSheet$CalibrationPlot[outputRow] <- paste0(ssimTempDir,"\\Data\\rf_CalibrationPlot.png")
+    if("rf_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_StandardResidualPlots.png") }
+    modelOutputsSheet$ConfusionMatrix <-  paste0(ssimTempDir,"\\Data\\", modType, "_ConfusionMatrix.png")
+    modelOutputsSheet$VariableImportancePlot <-  paste0(ssimTempDir,"\\Data\\", modType, "_VariableImportance.png")
+    modelOutputsSheet$VariableImportanceData <-  paste0(ssimTempDir,"\\Data\\", modType, "_VariableImportance.csv")
+    modelOutputsSheet$ROCAUCPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_ROCAUCPlot.png")
+    modelOutputsSheet$CalibrationPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_CalibrationPlot.png")
   } else {
-    modelOutputsSheet$ResidualsPlot[outputRow] <- paste0(ssimTempDir,"\\Data\\rf_PoissonResidualPlots.png")
+    modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_PoissonResidualPlots.png")
   }
   
-  if("rf_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot[outputRow] <- paste0(ssimTempDir,"\\Data\\rf_AUCPRPlot.png") } 
+  if("rf_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_AUCPRPlot.png") } 
   
   saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs", append = T)
   

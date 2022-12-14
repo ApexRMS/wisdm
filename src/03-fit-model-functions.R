@@ -9,10 +9,11 @@
 
 fitModel <- function(dat,           # df of training data 
                      out,           # out list
-                     full.fit=FALSE,
                      pts=NULL,
-                     weight=NULL,
-                     Fold,...){
+                     weight=NULL){
+                     # full.fit=FALSE, 
+                     # Fold,...
+                     
   
   # This function was written to separate the steps involved in model fitting 
   # from the post processing steps needed to produce several of the later outputs
@@ -99,97 +100,96 @@ fitModel <- function(dat,           # df of training data
 
     if("predicted" %in% names(dat)){ dat <- select(dat, -predicted)}
     
-    rf.full <- list()
-    num.splits <- NULL
+    # rf.full <- list()
+    # num.splits <- NULL
     
-    if(out$validationOptions$CrossValidate == T){ # Cross Validation
-      splits <- unique(dat$ModelSelectionSplit)
-      splits  <- splits[order(splits)]
-      num.splits <- length(splits)
-      
-      mtry.vect <- vector()
-      split.votes <- matrix(nrow=nrow(dat),ncol=num.splits)
-      
-      for(i in 1:num.splits){
-        # tune the mtry parameter - this controls the number of covariates randomly subset for each split #
-        cat("\ntuning mtry parameter\n")
-        x = dat[dat$ModelSelectionSplit %in% splits[-i], -c(1:7)] # rbind(psd.abs[psd.abs$ModelSelectionSplit %in% splits[-i],-c(1:7)], dat[dat$Response>=1,-c(1:7)]) 
-        if(out$modelFamily == "poisson"){ 
-          y = dat[dat$ModelSelectionSplit %in% splits[-i], "Response"]
-        } else { y = factor(dat[dat$ModelSelectionSplit %in% splits[-i], "Response"])}
-        if(is.null(mtry)){
-          mtr <- tuneRF(x = x, y = y,
-                      mtryStart = 3,
-                      importance = TRUE,
-                      ntreeTry = 100,
-                      replace=FALSE, 
-                      doBest=F,
-                      plot=F)
-          mtry.vect[i] <- mtr[mtr[,2] == min(mtr[,2]),1][1]
-          } else { mtry.vect[i] <- mtry }
-        cat("\nnow fitting full random forest model using mtry=",mtry,"\n")
-        
-        rf.full[[i]] <- randomForest(x = x, y = y, xtest = xtest, ytest = ytest, importance = importance, ntree = n.trees,
-                                   mtry = mtry.vect[i], replace = samp.replace, 
-                                   sampsize = ifelse(is.null(sampsize),(ifelse(samp.replace,nrow(x),ceiling(.632*nrow(x)))),sampsize),
-                                   nodesize = nodesize, # ifelse(is.null(nodesize),(if (!is.null(y) && !is.factor(y)) 5 else 1),nodesize),
-                                   maxnodes = maxnodes, localImp = localImp, nPerm = nPerm, 
-                                   keep.forest = ifelse(is.null(keep.forest),!is.null(y) && is.null(xtest),keep.forest),
-                                   corr.bias = corr.bias, keep.inbag = keep.inbag)
-        if(i == 1){ 
-          model.summary <- importance(rf.full[[i]])
-        } else {
-          model.summary <- model.summary + importance(rf.full[[i]])
-        } 
-        split.votes[dat$ModelSelectionSplit %in% splits[-i],i] <- predict(rf.full[[i]],type="vote")[,2]
-      }
-      votes <- apply(split.votes,1, mean, na.rm = T)
-      model.summary <- 1/out$validationOptions$NumberOfFolds*model.summary[order(model.summary[,3],decreasing=T),]
-      
-    } else { # No Cross Validation
+    # if(out$validationOptions$CrossValidate == T){ # Cross Validation
+    #   splits <- unique(dat$ModelSelectionSplit)
+    #   splits  <- splits[order(splits)]
+    #   num.splits <- length(splits)
+    #   
+    #   mtry.vect <- vector()
+    #   split.votes <- matrix(nrow=nrow(dat),ncol=num.splits)
+    #   
+    #   for(i in 1:num.splits){
+    #     # tune the mtry parameter - this controls the number of covariates randomly subset for each split #
+    #     cat("\ntuning mtry parameter\n")
+    #     x = dat[dat$ModelSelectionSplit %in% splits[-i], -c(1:7)] # rbind(psd.abs[psd.abs$ModelSelectionSplit %in% splits[-i],-c(1:7)], dat[dat$Response>=1,-c(1:7)]) 
+    #     if(out$modelFamily == "poisson"){ 
+    #       y = dat[dat$ModelSelectionSplit %in% splits[-i], "Response"]
+    #     } else { y = factor(dat[dat$ModelSelectionSplit %in% splits[-i], "Response"])}
+    #     if(is.null(mtry)){
+    #       mtr <- tuneRF(x = x, y = y,
+    #                   mtryStart = 3,
+    #                   importance = TRUE,
+    #                   ntreeTry = 100,
+    #                   replace=FALSE, 
+    #                   doBest=F,
+    #                   plot=F)
+    #       mtry.vect[i] <- mtr[mtr[,2] == min(mtr[,2]),1][1]
+    #       } else { mtry.vect[i] <- mtry }
+    #     cat("\nnow fitting full random forest model using mtry=",mtry,"\n")
+    #     
+    #     rf.full[[i]] <- randomForest(x = x, y = y, xtest = xtest, ytest = ytest, importance = importance, ntree = n.trees,
+    #                                mtry = mtry.vect[i], replace = samp.replace, 
+    #                                sampsize = ifelse(is.null(sampsize),(ifelse(samp.replace,nrow(x),ceiling(.632*nrow(x)))),sampsize),
+    #                                nodesize = nodesize, # ifelse(is.null(nodesize),(if (!is.null(y) && !is.factor(y)) 5 else 1),nodesize),
+    #                                maxnodes = maxnodes, localImp = localImp, nPerm = nPerm, 
+    #                                keep.forest = ifelse(is.null(keep.forest),!is.null(y) && is.null(xtest),keep.forest),
+    #                                corr.bias = corr.bias, keep.inbag = keep.inbag)
+    #     if(i == 1){ 
+    #       model.summary <- importance(rf.full[[i]])
+    #     } else {
+    #       model.summary <- model.summary + importance(rf.full[[i]])
+    #     } 
+    #     split.votes[dat$ModelSelectionSplit %in% splits[-i],i] <- predict(rf.full[[i]],type="vote")[,2]
+    #   }
+    #   votes <- apply(split.votes,1, mean, na.rm = T)
+    #   model.summary <- 1/out$validationOptions$NumberOfFolds*model.summary[order(model.summary[,3],decreasing=T),]
+    #   
+    # } else { # No Cross Validation
     
-      x = dat[, -c(1:7)] 
-      if(out$modelFamily == "poisson"){ 
-        y = dat$Response
-      } else { y = factor(dat$Response) }
+    x = dat[,-c(1:7)] 
+    if(out$modelFamily == "poisson"){ 
+      y = dat$Response
+    } else { y = factor(dat$Response) }
       
-      # tune the mtry parameter - this controls the number of covariates randomly subset for each split #
-      if(is.null(mtry)){
-        cat("\ntuning mtry parameter\n")
-        mtr <- tuneRF(x = x, y = y,
-                      mtryStart = 3,
-                      importance = TRUE,
-                      ntreeTry = 100,
-                      replace=FALSE, 
-                      doBest=F,
-                      plot=F)
-        mtry <- mtr[mtr[,2] == min(mtr[,2]),1][1]
-      }
-      cat("\nnow fitting full random forest model using mtry=",mtry,"\n")
-      rf.full[[1]] <- randomForest(x = x, y = y, xtest = xtest, ytest = ytest, importance = importance, ntree = n.trees,
-                                   mtry = mtry, replace = samp.replace, 
-                                   sampsize = ifelse(is.null(sampsize),(ifelse(samp.replace,nrow(x),ceiling(.632*nrow(x)))),sampsize),
-                                   nodesize = nodesize, # ifelse(is.null(nodesize),(if (!is.null(y) && !is.factor(y)) 5 else 1),nodesize),
-                                   maxnodes = maxnodes, localImp = localImp, nPerm = nPerm, 
-                                   keep.forest = ifelse(is.null(keep.forest),!is.null(y) && is.null(xtest),keep.forest),
-                                   corr.bias = corr.bias, keep.inbag = keep.inbag)
-      
-      model.summary <- importance(rf.full[[1]])
-      
-      if(out$modelFamily == "poisson"){
-        votes <- predict(rf.full[[1]])[,2]
-      } else {
-        votes <- predict(rf.full[[1]],type="vote")[,2]
-      }  
+    # tune the mtry parameter - this controls the number of covariates randomly subset for each split #
+    if(is.null(mtry)){
+      cat("\ntuning mtry parameter\n")
+      mtr <- tuneRF(x = x, y = y,
+                    mtryStart = 3,
+                    importance = TRUE,
+                    ntreeTry = 100,
+                    replace=FALSE, 
+                    doBest=F,
+                    plot=F)
+      mtry <- mtr[mtr[,2] == min(mtr[,2]),1][1]
     }
-    
-    if(full.fit){
-      
-      out$modOptions$NumberOfVariablesSampled = mean(unlist(lapply(rf.full,FUN=function(lst){lst$mtry})))
-      # Reduce("combine",rf.full)
-      out$finalMod <- rf.full
-  
-      # if(PsdoAbs){ ## Not sure why this was only run for psuedo abs... I expanded the above code to predict for all types of training data
+    cat("\nnow fitting full random forest model using mtry=",mtry,"\n")
+    rf.full <- randomForest(x = x, y = y, xtest = xtest, ytest = ytest, importance = importance, ntree = n.trees,
+                            mtry = mtry, replace = samp.replace, 
+                            sampsize = ifelse(is.null(sampsize),(ifelse(samp.replace,nrow(x),ceiling(.632*nrow(x)))),sampsize),
+                            nodesize = nodesize, # ifelse(is.null(nodesize),(if (!is.null(y) && !is.factor(y)) 5 else 1),nodesize),
+                            maxnodes = maxnodes, localImp = localImp, nPerm = nPerm, 
+                            keep.forest = ifelse(is.null(keep.forest),!is.null(y) && is.null(xtest),keep.forest),
+                            corr.bias = corr.bias, keep.inbag = keep.inbag)
+    # if(full.fit){ 
+    #   
+    #   out$modOptions$NumberOfVariablesSampled = mtry 
+    #   
+    #   out$finalMod <- rf.full  
+    #   
+    #   model.summary <- importance(rf.full)
+    #   out$modSummary <- model.summary[order(model.summary[,3],decreasing=T),]
+    #   
+      # if(out$modelFamily == "poisson"){
+      #  out$data$train$predicted <- rf.full$predicted
+      # } else {
+      #   out$data$train$predicted <- rf.full$votes[,2]
+      # } 
+      #
+      # if(PsdoAbs){ ## Not sure why this is set up differnt for psuedo abs... will revisit when building out psuedo absences code
       #   votes<-rep(NA,times=nrow(dat))
       # 
       #   #these should be oob votes for the absence in a fairly random order
@@ -213,17 +213,10 @@ fitModel <- function(dat,           # df of training data
       #   confusion.mat<-table(dat$response,response)
       #   oob.error<-100*(1-sum(diag(confusion.mat))/sum(confusion.mat))
       #   class.error<-c(confusion.mat[1,2],confusion.mat[2,1])/(apply(confusion.mat,1,sum))
-      #   out$mods$predictions<-votes
-      # } else { 
-      # out$mod1TrainPredictions <- predict(rf.full[[1]],type="vote")[,2]
-      out$data$train$predicted <- votes 
-      # }
-  
-      out$modSummary <- model.summary[order(model.summary[,3],decreasing=T),]
-      
-      return(out)
-      } else { return(rf.full) }
-      # if(full.fit){return(out)} else { return(rf.full)}
+      #   out$data$train$predicted<-votes
+      # } 
+      # return(out)} else { return(rf.full) }
+  return(rf.full)
   }
   # #================================================================
   # #                        MAXENT
@@ -407,14 +400,15 @@ cv.fct <- function(out,         # out list
   # for the first, sp.no can be left on its default of 1
   # for community models, sp.no can be varied from 1 to n.spp
   
-  data <- out$data$train  # training data
-  n.cases <- nrow(data)
-  xdat <- subset(data, select = out$inputVars)
-  obs <- data$Response
-  preds <- data$predicted
+  # full (training) data 
   family <- out$modelFamily
-  site.weights <- data$Weight
-  
+  data <- out$data$train
+  xdat <- subset(data, select = out$inputVars)
+  obs <- out$data$train$Response
+  preds <- out$data$train$predicted
+  site.weights <- out$data$train$Weight
+  selector <- data$ModelSelectionSplit
+  n.cases <- nrow(data)
   
   if (family == "binomial" | family == "bernoulli") {
     full.resid.deviance <- calc.deviance(obs, preds, weights = site.weights, family="binomial")
@@ -428,44 +422,34 @@ cv.fct <- function(out,         # out list
     full.calib <- calibration(obs, preds, family = "poisson")
   }
   
+
   # set up for results storage
-  nk <- nfolds # -1
+  nk <- nfolds 
+  
+  fitted.values <- rep(0, n.cases)
+  cor.mat <- matrix(nrow = length(out$inputVars), ncol=nk)
+  rownames(cor.mat) <- out$inputVars
+  thresh <- NULL
+  
   subset.test <- rep(0,nk)
   subset.calib <- as.data.frame(matrix(0,ncol=5,nrow=nk))
   names(subset.calib) <- c("intercept","slope","test1","test2","test3")
   subset.resid.deviance <- rep(0,nk)
   
-  # now setup for withholding random subsets
-  pred.values <- rep(0, n.cases)
-  fitted.values <- rep(0, n.cases)
-  
-  selector <- data$ModelSelectionSplit
-  # resp.curves <- vector("list",nk)
-  # out.cv <- list()
-  # names(resp.curves) <- seq(1:nk)
-  
-  ## Start cross validation Fold loop 
-  
-  cor.mat <- matrix(nrow = length(out$inputVars), ncol=nk)
-  rownames(cor.mat) <- out$inputVars
-  thresh <- NULL
+  ## Start cross validation Fold loop
   
   for (i in 1:nk) {
-    cat(i," ")
+   
     model.mask <- selector != i  #used to fit model on majority of data
     pred.mask <- selector == i   #used to identify the with-held subset
     # assign("species.subset", obs[model.mask], pos = 1)
     # assign("predictor.subset", xdat[model.mask, ], pos = 1)
     
-    if(out$modType == "rf"){ # STOPPED HERE SEE IF THIS MAKES SENSE -- seems it should as we have already run a model for each CV split -- but may need to be set up differently 
-      cv.final.mod <- out$finalMod[[i]]
-    } else {
-      # fit new model 
-      cv.final.mod <- fitModel(dat = data[model.mask,],
-                               out = out,
-                               weight = site.weights[model.mask],
-                               Fold=i)
-    }
+    # fit new model 
+    cv.final.mod <- fitModel(dat = data[model.mask,],
+                             out = out,
+                             weight = site.weights[model.mask]) 
+    
     
     fitted.values[pred.mask] <- pred.fct(mod = cv.final.mod,
                                          x = xdat[pred.mask,],
@@ -484,7 +468,7 @@ cv.fct <- function(out,         # out list
                                                           pred = pred.fct(mod = cv.final.mod,
                                                                           x=xdat[model.mask,],
                                                                           modType = out$modType)),
-                                               opt.methods = out$modOptions$thresholdOptimization))[2]
+                                               opt.methods = out$modOptions$thresholdOptimization)[2])
     
     y_i <- obs[pred.mask]
     u_i <- fitted.values[pred.mask]
@@ -504,9 +488,7 @@ cv.fct <- function(out,         # out list
     
   } # end of Cross Validation Fold Loop
   
-  
-  cat("","\n")
-  
+  data$predicted <- fitted.values
   u_i <- fitted.values
   
   if (family =="binomial" | family == "bernoulli") {
@@ -542,7 +524,7 @@ cv.fct <- function(out,         # out list
   cv.list <- list(full.resid.deviance = full.resid.deviance, full.test = full.test, full.calib = full.calib, 
                   pooled.deviance = cv.resid.deviance, pooled.test = cv.test, pooled.calib = cv.calib,
                   subset.deviance = subset.deviance, subset.test = subset.test, subset.calib = subset.calib,
-                  cor.mat = cor.mat, thresh=thresh) # , resp.curves=resp.curves,
+                  cor.mat = cor.mat, thresh=thresh, cv.train.data = data) # , resp.curves=resp.curves,
   out$cvResults <- cv.list
   return(out)
 }
@@ -679,13 +661,13 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
     out$trainThresh <- as.numeric(optimal.thresholds(data.frame(ID = 1:length(out$data$train$Response),
                                                                 pres.abs = out$data$train$Response,
                                                                 pred = out$data$train$predicted),
-                                                     opt.methods = out$modOptions$thresholdOptimization))[2]
+                                                     opt.methods = out$modOptions$thresholdOptimization)[2])
     if(!is.null(out$data$test)){
       
       out$testThresh <- as.numeric(optimal.thresholds(data.frame(ID = 1:length(out$data$test$Response),
                                                                  pres.abs = out$data$test$Response,
                                                                  pred = out$data$test$predicted),
-                                                      opt.methods = out$modOptions$thresholdOptimization))[2]
+                                                      opt.methods = out$modOptions$thresholdOptimization)[2])
     }
   } else {
     
@@ -710,16 +692,19 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
   
   out$hasSplit <- hasSplit <- (out$pseudoAbs & !out$modType %in% c("glm", "maxent"))
   Stats <- list()
+  
   if(out$validationOptions$CrossValidate){
-    for (i in 1:length(out$data$cvSplits$test)){
-      Stats[[i]] <- calcStat(x = out$data$cvSplits$test[[i]],  
+    for (i in 1:out$validationOptions$NumberOfFolds){
+      Stats[[i]] <- calcStat(x = out$cvResults$cv.train.data[out$cvResults$cv.train.data$ModelSelectionSplit == i,],  
                              family = out$modelFamily,
                              thresh = out$cvResults$thresh[i], 
                              has.split = hasSplit) 
     }
     names(Stats) <- c(1:ValidationDataSheet$NumberOfFolds)
   }
+  
   Stats$train <- calcStat(x = out$data$train, family = out$modelFamily, thresh = out$trainThresh, has.split = hasSplit)
+  
   if(out$validationOptions$SplitData){
     Stats$test <- calcStat(x = out$data$test, family = out$modelFamily, thresh = out$testThresh, has.split = hasSplit)
   }
@@ -749,7 +734,7 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
   
   ### Create residual surface of input data  
 
-    if(splitType %in% c("none", "cv")){
+    if(splitType %in% c("none", "cv")){ # use training data
       
       dev.contrib <- calc.deviance(obs = out$data$train$Response, 
                                    preds = out$data$train$predicted,
@@ -762,7 +747,7 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
                                          file.name = residualSmoothFile,
                                          label = splitType)
       
-    } else {
+    } else { # use testing data
       
       dev.contrib <- calc.deviance(obs = out$data$test$Response, 
                                    preds = out$data$test$predicted,
@@ -1116,18 +1101,18 @@ VariableImportance <- function(out,  # out list
   
   cor.mat <- matrix(nrow = length(out$inputVars), ncol = length(auc))
   
-  if(out$modType == "rf"){ 
-    trainPred <- pred.fct(mod = out$finalMod, x = out$data$train, modType = out$modType)
-    auc$train <- roc(out$dat$train$Response,trainPred)
-  } else {
-    trainPred <- out$data$train$predicted
-  }
+  # if(out$modType == "rf"){ 
+  #   trainPred <- pred.fct(mod = out$finalMod, x = out$data$train, modType = out$modType)
+  #   auc$train <- roc(out$dat$train$Response,trainPred)
+  # } else {
+  #   trainPred <- out$data$train$predicted
+  # }
   
   # add 1 to the drop in AUC to ensure it's greater than zero then I can normalize
   
   cor.mat[,1] <- unlist(auc$train) - permute.predict(inputVars = out$inputVars,
                                                      dat = out$data$train, 
-                                                     preds = trainPred,
+                                                     preds = out$data$train$predicted,
                                                      obs = out$data$train$Response,
                                                      mod = out$finalMod, 
                                                      modType = out$modType)
@@ -1341,7 +1326,7 @@ resid.image <- function(dev.contrib,
   s1 <- seq(from=MinCol,to=MaxCol,length=length(table(z)))
   col.ind <- apply((outer(s1,z,f)),2,which.min)
   
-  a <- loess(z~x*y,weights=wgt)
+  a <- loess(z~x*y,weights=wgt, control = loess.control(surface = "direct"))
   x.lim <- rep(seq(from=min(x),to=max(x),length=100),each=100)
   y.lim <- rep(seq(from=min(y),to=max(y),length=100),times=100)
   z <- predict(a,newdata=cbind("x"=x.lim,"y"=y.lim))
@@ -1813,7 +1798,7 @@ smoothdist <- function(preds, obs) {
   #                   family=binomial),silent=TRUE)
   # }
   
-  if("try-error" %in% class(gam1) | !gam1$converged){
+  if("try-error" %in% class(gam1)){  # | !gam1$converged
     gam1 <- try(glm(obs ~ ns(preds, df=1), 
                     weights=rep(1, length(preds)), 
                     family=binomial),silent=TRUE)

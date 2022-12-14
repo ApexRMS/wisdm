@@ -23,7 +23,6 @@ source(file.path(packageDir, "04-apply-model-functions.R"))
 
 # Active project and scenario
 myLibrary <- ssimLibrary()
-myProject <- rsyncrosim::project()
 myScenario <- scenario()
 # datasheet(myScenario)
 
@@ -33,15 +32,16 @@ ssimOutputDir <- ssimEnvironment()$OutputDirectory
 resultScenario <- ssimEnvironment()$ScenarioId
 
 # Read in datasheets
-covariatesSheet <- datasheet(myProject, "Covariates", optional = T)
+covariatesSheet <- datasheet(myScenario, "wisdm_Covariates", optional = T, includeKey = T)
+modelsSheet <- datasheet(myScenario, "wisdm_Models", includeKey = T)
 # runControlSheet <- datasheet(myScenario, "RunControl", optional = T)
 multiprocessingSheet <- datasheet(myScenario, "core_Multiprocessing")
 spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing")
 covariateDataSheet <- datasheet(myScenario, "CovariateData", optional = T, lookupsAsFactors = F)
 templateSheet <- datasheet(myScenario, "TemplateRaster")
-modelOutputsSheet <- datasheet(myScenario, "ModelOutputs", optional = T)
+modelOutputsSheet <- datasheet(myScenario, "ModelOutputs", optional = T, lookupsAsFactors = F)
 outputOptionsSheet <- datasheet(myScenario, "OutputOptions", optional = T)
-spatialOutputsSheet <- datasheet(myScenario, "SpatialOutputs", optional = T)
+spatialOutputsSheet <- datasheet(myScenario, "SpatialOutputs", optional = T, lookupsAsFactors = F)
 
 # Set defaults -----------------------------------------------------------------
 
@@ -50,6 +50,19 @@ spatialOutputsSheet <- datasheet(myScenario, "SpatialOutputs", optional = T)
 #   runControlSheet <- addRow(runControlSheet, list(1,1,0,0))
 #   saveDatasheet(myScenario, runControlSheet, "RunControl")
 # }
+
+## Covariates sheet
+if(any(is.na(covariatesSheet$ID))){
+  if (all(is.na(covariatesSheet$ID))){
+    covariatesSheet$ID <- 1:nrow(covariatesSheet)
+  } else {
+    whichNA <- which(is.na(covariatesSheet$ID))
+    maxID <- max(covariatesSheet$ID, na.rm = T)
+    covariatesSheet$ID[whichNA] <- (maxID+1):(maxID+length(whichNA))
+  }
+ saveDatasheet(myScenario, covariatesSheet,  "wisdm_Covariates")  
+}
+ 
 ## Output options sheet
 if(nrow(outputOptionsSheet)<1){
   outputOptionsSheet <- addRow(outputOptionsSheet, list(T,F,F,F))
@@ -91,7 +104,7 @@ if(name(myLibrary) == "Partial"){
 
 for (i in 1:nrow(modelOutputsSheet)){ 
   
-  modType <- modelOutputsSheet$ModelType[i]
+  modType <- modelsSheet$ModelType[modelsSheet$ModelsID == modelOutputsSheet$ModelsID[i]]
   
   mod <- readRDS(paste0(ssimOutputDir,"\\Scenario-", resultScenario,"\\wisdm_ModelOutputs\\",modelOutputsSheet$ModelRDS[i]))
   
@@ -104,7 +117,7 @@ for (i in 1:nrow(modelOutputsSheet)){
     
     trainingData <-  mod$data
     if(outputOptionsSheet$MakeResidualsMap){
-      trainingData$predicted <- pred.fct(x=trainingData, mod=mod, modType=modType)
+      # trainingData$predicted <- pred.fct(x=trainingData, mod=mod, modType=modType)
       if(max(trainingData$Response)>1){ modFamily <-"poisson" 
       } else { modFamily <- "binomial" }
     }
@@ -112,10 +125,10 @@ for (i in 1:nrow(modelOutputsSheet)){
   
   if(modType == "rf"){
     
-    modVars <- rownames(mod[[1]]$importance)
+    modVars <- rownames(mod$importance)
     
     trainingData <-  mod$trainingData
-    mod$trainingData <- NULL
+    # mod$trainingData <- NULL
     
     if(outputOptionsSheet$MakeResidualsMap){
       if(max(trainingData$Response)>1){ modFamily <-"poisson" 
@@ -243,7 +256,9 @@ for (i in 1:nrow(modelOutputsSheet)){
         # order the training data so that we can consider the first and last row only in mess calculations
         train.dat <- select(trainingData, all_of(modVars))
         for(k in 1:nrow(covData)){ train.dat[ ,k] <- sort(train.dat[ ,k]) } 
-        # index <- names(train.dat)
+        ids <- NULL
+        for(n in names(train.dat)){ ids[n] <- covariatesSheet$ID[covariatesSheet$CovariateName == n]}
+        names(train.dat) <- ids
         
         pred.rng <- rep(NA, nrow(temp))
         names(pred.rng) <- NA
@@ -303,6 +318,7 @@ for (i in 1:nrow(modelOutputsSheet)){
     
       predv <- predict(residSmooth, blockvals)
       predv <- as.numeric(predv)
+      predv[!complete.cases(temp)] <- -9999 
       predv[is.na(predv)] <- -9999
       
       residRaster <- rast(templateRaster, vals = predv)
@@ -318,10 +334,10 @@ for (i in 1:nrow(modelOutputsSheet)){
     
     # add model Outputs to datasheet
     spatialOutputsSheet <- addRow(spatialOutputsSheet, 
-                                list( # Iteration = 1, Timestep = 0,
-                                     ModelType = modType))
-    
-    outputRow <- which(spatialOutputsSheet$ModelType == modType)
+                                  list( # Iteration = 1, Timestep = 0,
+                                    ModelsID = modelsSheet$ModelsID[modelsSheet$ModelType == modType])) #, ModelType = modType))
+  
+    outputRow <- which(spatialOutputsSheet$ModelsID == modelsSheet$ModelsID[modelsSheet$ModelType == modType])
                               
     if(outputOptionsSheet$MakeProbabilityMap){
       spatialOutputsSheet$ProbabilityRaster[outputRow] <- file.path(ssimTempDir,paste0(modType,"_prob_map.tif"))

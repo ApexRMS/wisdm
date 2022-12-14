@@ -30,22 +30,32 @@
 						<column name="CovariateName" displayName="Covariate Name" dataType="String"/>
 						<column name="IsCategorical" displayName="Is Categorical" dataType="Boolean" defaultValue="0" isOptional="True"/>
 						<column name="Description" dataType="String" isOptional="True"/>
+						<column name="ID" dataType="Integer" isOptional="True" fillWeight="5" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="0"/>
+                		<column name="Color" dataType="String" isOptional="True" isReadOnly="True" autoSizeMode="None" width="35"/>
 					  </columns>
+					  <validations>
+                		<validation validationType="UniqueOrNull" columns="ID"/>
+                		<validation validationType="Unique" columns="CovariateName"/>
+              		  </validations>
 					</datasheet>
 				  </datasheets>
 				</datafeed>
-				<!--datafeed name="Models" dataScope="Project">
+				<datafeed name="Models" dataScope="Project">
 				  <datasheets>
 					<datasheet name="Models" valueMember="ModelsID" displayMember="ModelName">
 					  <columns>
 						<column name="ModelsID" dataType="Integer" isPrimary="True"/>
 						<column name="ProjectID" dataType="Integer"/>
-						<column name="ModelName" displayName="Name" dataType="String"/>
-						<column name="ModelType" displayName="Tag" dataType="String"/>
+						<column name="ModelName" dataType="String"/>
+						<column name="ModelType" dataType="String"/>
 					  </columns>
+					  <defaultRecords>
+                		<record columns="ModelName"	values="Generalized Linear Model;Random Forest"/>
+						<record columns="ModelType"	values="gml;rf"/>
+              		  </defaultRecords>
 					</datasheet>
 				  </datasheets>
-				</datafeed-->
+				</datafeed>
 				<datafeed name="FieldData" displayName="Field Data" dataScope="Scenario">
 				  <datasheets>
 					<datasheet  name="FieldData" displayName="Field Data">
@@ -172,6 +182,7 @@
 					<datasheet name="ModelOutputs">
 					  <columns>
 						<column name="ScenarioID" dataType="Integer"/>
+						<column name="ModelsID" dataType= "Integer" validationType="Datasheet" formula1="Models"/>
 						<column name="ModelType" dataType= "String"/>
 						<column name="ModelRDS" dataType="String" isExternalFile="True"/>
 						<column name="ResponseCurves" dataType="String" isExternalFile="True" isPngImage="True"/>
@@ -360,12 +371,12 @@
 					<datasheet name="SpatialOutputs" spatialMultiProcessing="True">
 					  <columns>
 					  	<column name="ScenarioID" dataType="Integer"/>
-						<!--column name="ModelsID" dataType= "Integer"/-->
+						<column name="ModelsID" dataType= "Integer" validationType="Datasheet" formula1="Models"/>
 						<column name="ModelType" dataType= "String"/>
-						<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
-						<column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
-						<column name="ModRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
-						<column name="ResidualsRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
+						<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="ModRaster" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="ResidualsRaster" dataType="String" isExternalFile="True" isRaster="True"/>
 						<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
 					  </columns>
 					</datasheet>
@@ -476,20 +487,20 @@
 				<item  name="SelectedMatrix" displayName="Selected Matrix" dataSheet="CovariateCorrelationMatrix" column="SelectedMatrix"/>
 			</group>
 			<group name="MapOutputs" displayName="Map Outputs">
-				<item name="ProbabilityMap" displayName="Probability" dataSheet="SpatialOutputs" column="ProbabilityRaster"/>
-				<item name="MessMap" displayName="MESS" dataSheet="SpatialOutputs" column="MessRaster"/>
-				<item name="ModMap" displayName="MoD" dataSheet="SpatialOutputs" column="ModRaster"/>
-				<item name="ResidualsMap" displayName="Residuals" dataSheet="SpatialOutputs" column="ResidualsRaster"/>
+				<item name="ProbabilityMap" displayName="Probability" dataSheet="SpatialOutputs" column="ProbabilityRaster" filter="ModelsID"/>
+				<item name="MessMap" displayName="MESS" dataSheet="SpatialOutputs" column="MessRaster" filter="ModelsID"/>
+				<item name="ModMap" displayName="MoD" dataSheet="SpatialOutputs" column="ModRaster" filter="ModelsID"/>
+				<item name="ResidualsMap" displayName="Residuals" dataSheet="SpatialOutputs" column="ResidualsRaster" filter="ModelsID"/>
 			</group>
 			<group name="ModelOutputs" displayName="Model Outputs">
-				<item name="ResponseCurves" displayName="Response Curves" dataSheet="ModelOutputs" column="ResponseCurves"/>
-				<item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="ModelOutputs" column="ResidualsPlot"/>
-				<item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="ModelOutputs" column="ResidualSmoothPlot"/>	
-				<item name="CalibrationPlot" displayName="Calibration" dataSheet="ModelOutputs" column="CalibrationPlot"/>
-				<item name="ROCAUCPlot" displayName="ROC/AUC" dataSheet="ModelOutputs" column="ROCAUCPlot"/>
-				<item name="AUCPRPlot" displayName="AUCPR" dataSheet="ModelOutputs" column="AUCPRPlot"/>
-				<item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="ModelOutputs" column="ConfusionMatrix"/>
-				<item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="ModelOutputs" column="VariableImportancePlot"/>		
+				<item name="ResponseCurves" displayName="Response Curves" dataSheet="ModelOutputs" column="ResponseCurves" filter="ModelsID"/>
+				<item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="ModelOutputs" column="ResidualsPlot" filter="ModelsID"/>
+				<item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="ModelOutputs" column="ResidualSmoothPlot" filter="ModelsID"/>	
+				<item name="CalibrationPlot" displayName="Calibration" dataSheet="ModelOutputs" column="CalibrationPlot" filter="ModelsID"/>
+				<item name="ROCAUCPlot" displayName="ROC/AUC" dataSheet="ModelOutputs" column="ROCAUCPlot" filter="ModelsID"/>
+				<item name="AUCPRPlot" displayName="AUCPR" dataSheet="ModelOutputs" column="AUCPRPlot" filter="ModelsID"/>
+				<item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="ModelOutputs" column="ConfusionMatrix" filter="ModelsID"/>
+				<item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="ModelOutputs" column="VariableImportancePlot" filter="ModelsID"/>		
 			</group>
 		</layout>
 	</layouts>	

@@ -12,10 +12,11 @@
     min.train <- data.frame(train.dat[1,]) # because we sorted
     max.train <- data.frame(train.dat[nrow(train.dat),])
     output <- data.frame(matrix(data=NA,nrow=nrow(rast),ncol=ncol(rast)))
+    names(output) <- names(train.dat)
     for(k in 1:length(min.train)){
       output[,k] <- my.min(rast.val=rast[,k], as.numeric(min.train[,k]), as.numeric(max.train[,k]))
     }
-    Indx <- apply(output,1,which.min)
+    Indx <- apply(output,1,FUN = function(x){names(which.min(x))})
     output <- apply(output,1,min)
     if(sum(output>0)==0){ return(data.frame(Indx=Indx,output=output)) }
     
