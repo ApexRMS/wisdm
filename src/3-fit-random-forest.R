@@ -36,7 +36,7 @@
   covariatesSheet <- datasheet(myScenario, "wisdm_Covariates", optional = T)
   modelsSheet <- datasheet(myScenario, "wisdm_Models")
   fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
-  ValidationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
+  validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
   reducedCovariatesSheet <- datasheet(myScenario, "wisdm_ReducedCovariates", lookupsAsFactors = F)
   siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
   RFSheet <- datasheet(myScenario, "wisdm_RandomForest")
@@ -84,12 +84,12 @@
   }
   
   ## Validation Sheet
-  if(nrow(ValidationDataSheet)<1){
-    ValidationDataSheet <- addRow(ValidationDataSheet, list(SplitData = FALSE,
+  if(nrow(validationDataSheet)<1){
+    validationDataSheet <- addRow(validationDataSheet, list(SplitData = FALSE,
                                                             CrossValidate = FALSE))
   }
-  if(is.na(ValidationDataSheet$CrossValidate)){ValidationDataSheet$CrossValidate <- FALSE}
-  if(is.na(ValidationDataSheet$SplitData)){ValidationDataSheet$SplitData <- FALSE}
+  if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}
+  if(is.na(validationDataSheet$SplitData)){validationDataSheet$SplitData <- FALSE}
 
   
 # Prep data for model fitting --------------------------------------------------
@@ -125,7 +125,7 @@
   # identify training and testing sites 
   trainTestDatasets <- split(siteDataWide, f = siteDataWide[,"UseInModelEvaluation"], drop = T)
   trainingData <- trainTestDatasets$`FALSE`
-  if(!ValidationDataSheet$CrossValidate){trainingData$ModelSelectionSplit <- FALSE}
+  if(!validationDataSheet$CrossValidate){trainingData$ModelSelectionSplit <- FALSE}
   testingData <- trainTestDatasets$`TRUE`
   
 # Model definitions ------------------------------------------------------------
@@ -164,7 +164,7 @@
   out$pseudoAbs <- FALSE # To Do: build out call to pseudo absence 
   
   ## Validation options
-  out$validationOptions <- ValidationDataSheet 
+  out$validationOptions <- validationDataSheet 
   
   ## path to temp ssim storage 
   out$tempDir <- paste0(ssimTempDir,"\\Data\\")
@@ -230,16 +230,16 @@
   if(out$modelFamily == "poisson"){ out$data$train$predicted <- finalMod$predicted
   } else { out$data$train$predicted <- tweak.p(finalMod$votes[,2]) } # tweak predictions to remove 1/0 so that calc deviance doesn't produce NA/Inf values 
  
-  if(ValidationDataSheet$SplitData){
+  if(validationDataSheet$SplitData){
     out$data$test$predicted <- pred.fct(x=out$data$test, mod=finalMod, modType=modType)
   }
 
 ## Run Cross Validation (if specified) -----------------------------------------
   
-  if(ValidationDataSheet$CrossValidate){
+  if(validationDataSheet$CrossValidate){
     
     out <- cv.fct(out = out,
-                  nfolds = ValidationDataSheet$NumberOfFolds)
+                  nfolds = validationDataSheet$NumberOfFolds)
   }
   
 # Generate Model Outputs -------------------------------------------------------
