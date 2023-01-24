@@ -9,9 +9,9 @@
 
 fitModel <- function(dat,           # df of training data 
                      out,           # out list
+                     fullFit=TRUE,
                      pts=NULL,
                      weight=NULL){
-                     # full.fit=FALSE, 
                      # Fold,...
                      
   
@@ -123,19 +123,64 @@ fitModel <- function(dat,           # df of training data
                             corr.bias = corr.bias, keep.inbag = keep.inbag)
   return(modelRF)
   }
-  # #================================================================
-  # #                        MAXENT
-  # #================================================================= 
-  # if(Model=="maxent"){
-  #   #this is a bit confusing because the files is something.lambdas and I don't necessarilly know what something is
-  #   if(missing(Fold)) lambdasFile=list.files(out$input$lambdas,full.names=TRUE)[grep("lambdas",list.files(out$input$lambdas))]
-  #   else lambdasFile=list.files(file.path(out$input$lambdas,paste("cvSplit",Fold,sep="")),
-  #                               full.names=TRUE)[grep("lambdas",list.files(file.path(out$input$lambdas,paste("cvSplit",Fold,sep=""))))] 
-  #   out$mods$final.mod[[1]]<-read.maxent(lambdasFile)
-  #   if(full.fit) return(out)
-  #   else return(out$mods$final.mod)
-  # }
-  # 
+  #================================================================
+  #                        MAXENT
+  #=================================================================
+  if(out$modType == "maxent"){
+    if(fullFit == T){
+      
+      # prepare batch file
+      capture.output(cat("java -mx512m"), file = out$batchPath)
+      cat(" -jar", paste0('"', file.path(ssimEnvironment()$PackageDirectory, "maxent.jar"), '"'), file = out$batchPath, append = T)
+      cat(paste0(' samplesfile="',out$swdPath, '"'), file = out$batchPath, append = T)
+      cat(paste0(' environmentallayers="', out$backgroundPath, '"'), file = out$batchPath, append = T)
+      if(length(out$factorInputVars)>0){
+        for (i in out$factorInputVars){
+          cat(paste0(" togglelayertype=",i), file = out$batchPath, append = T)
+        }}
+      if(!is.null(out$testDataPath)){
+        cat(paste0(' testsamplesfile="',out$testDataPath,'"'), file = out$batchPath, append = T)
+      }
+      cat(paste0(' outputdirectory="',out$tempDir,'"'), file = out$batchPath, append = T)
+      cat(" threads=",out$maxJobs, sep = "", file = out$batchPath, append = T)
+      cat(" responsecurves jackknife writeclampgrid writemess warnings prefixes", file = out$batchPath, append = T) # reverse these default settings  
+      cat(" redoifexists autorun", file = out$batchPath, append = T)
+      
+      # run maxent
+      shell(out$batchPath)
+      
+      # read lambdas output
+      modelMaxent <- read.maxent(file.path(out$tempDir, "species.lambdas"))
+      
+    } else {
+      
+      # prepare batch file
+      capture.output(cat("java -mx512m"), file = out$batchPath)
+      cat(" -jar", paste0('"', file.path(ssimEnvironment()$PackageDirectory, "maxent.jar"), '"'), file = out$batchPath, append = T)
+      cat(paste0(' samplesfile="',file.path(out$tempDir, "CVsplits", "training-swd.csv"), '"'), file = out$batchPath, append = T)
+      cat(paste0(' environmentallayers="', file.path(out$tempDir, "CVsplits", "background-swd.csv"), '"'), file = out$batchPath, append = T)
+      if(length(out$factorInputVars)>0){
+        for (i in out$factorInputVars){
+          cat(paste0(" togglelayertype=",i), file = out$batchPath, append = T)
+        }}
+      # if(!is.null(out$testDataPath)){
+      #   cat(paste0(' testsamplesfile="',out$testDataPath,'"'), file = out$batchPath, append = T)
+      # }
+      cat(paste0(' outputdirectory="',file.path(out$tempDir, "CVsplits"),'"'), file = out$batchPath, append = T)
+      cat(" threads=",out$maxJobs, sep = "", file = out$batchPath, append = T)
+      cat(" writeclampgrid writemess warnings prefixes", file = out$batchPath, append = T) # reverse these default settings  
+      cat(" redoifexists autorun", file = out$batchPath, append = T)
+      
+      # run maxent
+      shell(out$batchPath)
+      
+      # read lambdas output
+      modelMaxent <- read.maxent(file.path(out$tempDir, "CVsplits", "species.lambdas"))
+    
+    }
+    return(modelMaxent)
+  }
+
   # #================================================================
   # #          Habitat Suitability Criterion
   # #================================================================= 
@@ -279,6 +324,62 @@ fitModel <- function(dat,           # df of training data
   # }
 }
 
+### Read Maxent ----------------------------------------------------------------
+
+read.maxent<-function(lambdas){
+  lambdas <- read.csv(lambdas,header=FALSE)
+  normalizers<-lambdas[(nrow(lambdas)-3):nrow(lambdas),]
+  entropy<-normalizers[4,2]
+  lambdas<-lambdas[1:(nrow(lambdas)-4),]
+  fctType <- rep("raw",times=nrow(lambdas))
+  fctType[grep("`",as.character(lambdas[,1]))] <- "reverse.hinge"
+  fctType[grep("'",as.character(lambdas[,1]))] <- "forward.hinge"
+  fctType[grep("\\^",as.character(lambdas[,1]))]<-"quadratic"
+  fctType[grep("[*]",as.character(lambdas[,1]))]<-"product"
+  fctType[grep("[(]",as.character(lambdas[,1]))]<-"threshold"
+  
+  #make these all default to NULL in case the feature type was turned off
+  Raw.coef<-Quad.coef<-Prod.coef<-Fwd.Hinge<-Rev.Hinge<-Thresh.val<-Raw.mult<-Quad.mult<-
+    Prod.mult<-FH.mult<-FH.cnst<-Rev.mult<-Rev.cnst<-Thresh.cnst<-NULL
+  
+  if(any(fctType=="raw")){ 
+    "Raw.coef"<-lambdas[fctType=="raw",]
+    Raw.mult<-c(-sum(Raw.coef[,2]*Raw.coef[,3]/(Raw.coef[,4]-Raw.coef[,3])), Raw.coef[,2]/(Raw.coef[,4]-Raw.coef[,3]))
+    Raw.mult[is.nan(Raw.mult)]<-0
+  }
+  if(any(fctType=="quadratic")){
+    "Quad.coef"<-lambdas[fctType=="quadratic",]
+    Quad.mult<-c(-sum(Quad.coef[,2]*Quad.coef[,3]/(Quad.coef[,4]-Quad.coef[,3])), Quad.coef[,2]/(Quad.coef[,4]-Quad.coef[,3]))
+  }
+  if(any(fctType=="product")){ 
+    "Prod.coef"<-lambdas[fctType=="product",]
+    Prod.coef[,1]<-gsub("[*]",":",Prod.coef[,1])
+    Prod.mult<-c(-sum(Prod.coef[,2]*Prod.coef[,3]/(Prod.coef[,4]-Prod.coef[,3])), Prod.coef[,2]/(Prod.coef[,4]-Prod.coef[,3]))
+  }
+  if(any(fctType=="forward.hinge")){ 
+    "Fwd.Hinge"<-lambdas[fctType=="forward.hinge",]
+    Fwd.Hinge[,1]<-gsub("'","",Fwd.Hinge[,1])
+    FH.mult<-Fwd.Hinge[,2]/(Fwd.Hinge[,4]-Fwd.Hinge[,3])
+    FH.cnst<- -Fwd.Hinge[,2]*Fwd.Hinge[,3]/(Fwd.Hinge[,4]-Fwd.Hinge[,3])
+  }
+  if(any(fctType=="reverse.hinge")){ 
+    "Rev.Hinge"<-lambdas[fctType=="reverse.hinge",]
+    Rev.Hinge[,1]<-gsub("`","",Rev.Hinge[,1])
+    Rev.mult<- -Rev.Hinge[,2]/(Rev.Hinge[,4]-Rev.Hinge[,3])
+    Rev.cnst<-Rev.Hinge[,2]*Rev.Hinge[,4]/(Rev.Hinge[,4]-Rev.Hinge[,3])
+  }
+  if(any(fctType=="threshold")){ 
+    "Thresh.val"<-lambdas[fctType=="threshold",]
+    Thresh.cnst<-Thresh.val[,2]
+  }
+  
+  
+  retn.lst<-list(Raw.coef=Raw.coef,Quad.coef=Quad.coef,Prod.coef=Prod.coef,Fwd.Hinge=Fwd.Hinge,Rev.Hinge=Rev.Hinge,Thresh.val=Thresh.val,Raw.mult=Raw.mult,Quad.mult=Quad.mult,
+                 Prod.mult=Prod.mult,FH.mult=FH.mult,FH.cnst=FH.cnst,Rev.mult=Rev.mult,Rev.cnst=Rev.cnst,Thresh.cnst=Thresh.cnst,normalizers=normalizers,entropy=entropy)
+  return(retn.lst)
+}
+
+
 
 # MODEL SELECTION AND VALIDATION FUNCTIONS -------------------------------------
 
@@ -350,10 +451,32 @@ cv.fct <- function(out,         # out list
     # assign("species.subset", obs[model.mask], pos = 1)
     # assign("predictor.subset", xdat[model.mask, ], pos = 1)
     
+    if(out$modType == "maxent"){ # prepare input files
+      
+      if(!file.exists(file.path(out$tempDir, "CVsplits"))){dir.create(file.path(out$tempDir, "CVsplits"))}
+      
+      data[model.mask,] %>%
+        mutate(Species = case_when(Response == 1 ~ "species")) %>%
+        drop_na(Species) %>%
+        select(-SiteID, -Response, -UseInModelEvaluation, -ModelSelectionSplit, -Weight, -predicted) %>%
+        relocate(Species, .before = X) %>%
+        write.csv(file.path(out$tempDir, "CVsplits", "training-swd.csv"), row.names = F)
+      
+      # out$data$background %>%
+      #   filter(ModelSelectionSplit != i) %>%
+      data[model.mask,] %>%
+        mutate(Species = case_when(Response != 1 ~ "background")) %>%
+        drop_na(Species) %>%
+        select(-SiteID, -Response, -UseInModelEvaluation, -ModelSelectionSplit, -Weight, -predicted) %>%
+        relocate(Species, .before = X) %>%
+        write.csv(file.path(out$tempDir, "CVsplits", "background-swd.csv"), row.names = F)
+    }
+    
     # fit new model 
     cv.final.mod <- fitModel(dat = data[model.mask,],
                              out = out,
-                             weight = site.weights[model.mask]) 
+                             weight = site.weights[model.mask],
+                             fullFit = F) 
     
     
     fitted.values[pred.mask] <- pred.fct(mod = cv.final.mod,
@@ -605,7 +728,7 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
                              thresh = out$cvResults$thresh[i], 
                              has.split = hasSplit) 
     }
-    names(Stats) <- c(1:ValidationDataSheet$NumberOfFolds)
+    names(Stats) <- c(1:out$validationOptions$NumberOfFolds)
   }
   
   Stats$train <- calcStat(x = out$data$train, family = out$modelFamily, thresh = out$trainThresh, has.split = hasSplit)
@@ -877,7 +1000,7 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
     capture.output(cat("\n\n============================================================",
                        "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
     
-    capture.stats(Stats[1:(ValidationDataSheet$NumberOfFolds)], file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
+    capture.stats(Stats[1:(out$validationOptions$NumberOfFolds)], file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
                   label = "cv", family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
     
     capture.output(cat("\n\n============================================================",
@@ -891,7 +1014,7 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
     capture.output(cat("\n\n============================================================",
                        "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
     
-    capture.stats(Stats[1:(ValidationDataSheet$NumberOfFolds)], file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
+    capture.stats(Stats[1:(out$validationOptions$NumberOfFolds)], file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
                   label = splitType, family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
   }
   if(splitType == "train/test"){

@@ -59,7 +59,9 @@ pred.fct <- function(mod,      # mod = the model fit object
     # make predictions from complete data only #
     y[complete.cases(x)] <- try(as.vector(predict(mod, newdata=x[complete.cases(x),], type="vote")[,2]), silent=TRUE)
   }
-  
+  if(modType == "maxent"){
+    y[complete.cases(x)]<-try(maxent.predict(mod, x[complete.cases(x),]), silent=TRUE)
+  }
   # if(modType=="brt"){
   #   # retrieve key items from the global environment #
   #   # make predictions from complete data only #
@@ -79,9 +81,7 @@ pred.fct <- function(mod,      # mod = the model fit object
   #     y[complete.cases(x)] <- try(predict.gbm(model,x[complete.cases(x),],model$target.trees,type="response"),silent=TRUE)        
   #   }
   # }
-  # if(modType=="maxent"){
-  #   y[complete.cases(x)]<-try(maxent.predict(model,x[complete.cases(x),]),silent=TRUE)
-  # }
+
   # if(modType=="udc"){
   #   
   #   y[complete.cases(x)]<-try(udc.predict(model,x[complete.cases(x),]),silent=TRUE)
@@ -123,6 +123,57 @@ tweak.p <- function(p){
   p[p==1]<-max(p[p<1])
   p[p==0]<-min(p[p>0])
   return(p)
+}
+
+## maxent predict function -----------------------------------------------------
+
+maxent.predict <- function(model,x){
+  
+  if(names(model[[1]])[1]=="Raw.coef")
+  {attach(model[[1]])
+    on.exit(detach(model[[1]]))
+  } else{attach(model)
+    on.exit(detach(model))
+  }
+  
+  # These all default to zero in case the feature was excluded
+  Raw <- Quad <- Prod <- Forw <- Rev <- Thresh <- 0
+  
+  if(!is.null(Raw.coef)){
+    Raw<- model.matrix(as.formula(paste("~",paste(Raw.coef[,1],collapse=" + "),sep="")),x)
+    Raw<-apply(t(Raw)*Raw.mult,2,sum)
+  }
+  if(!is.null(Quad.coef)){  
+    Quad<- model.matrix(as.formula(paste("~ I(",paste(Quad.coef[,1],collapse=") + I("),")",sep="")),x)
+    Quad<-apply(t(Quad)*Quad.mult,2,sum)
+  }
+  if(!is.null(Prod.coef)){  
+    Prod<- model.matrix(as.formula(paste("~ ",paste(Prod.coef[,1],collapse=" + "),sep="")),x)
+    Prod<-apply(t(Prod)*Prod.mult,2,sum)
+  }
+  if(!is.null(Fwd.Hinge)){
+    Forw<- model.matrix(as.formula(paste("~ ",paste("-1 + ",paste("I(",paste(Fwd.Hinge[,1],paste(Fwd.Hinge[,1],
+                                                                                                 paste("(",Fwd.Hinge[,3],")",sep=""),sep=">"),sep="*("),collapse=")) + "),"))",sep=""),sep="")),x)
+    Forw.Cst<-Forw!=0
+    Forw<-apply(t(Forw)*FH.mult,2,sum)+apply(t(Forw.Cst)*FH.cnst,2,sum)
+  }
+  if(!is.null(Rev.Hinge)){
+    Rev<- model.matrix(as.formula(paste("~ ",paste("-1 + ",paste("I(",paste(Rev.Hinge[,1],paste(Rev.Hinge[,1],
+                                                                                                paste("(",Rev.Hinge[,4],")",sep=""),sep="<"),sep="*("),collapse=")) + "),"))",sep=""),sep="")),x)
+    Rev.Cst<-Rev!=0
+    Rev <- apply(t(Rev)*Rev.mult,2,sum) + apply(t(Rev.Cst)*Rev.cnst,2,sum)
+  }
+  if(!is.null(Thresh.val)){
+    Thresh.val[,1]<-gsub("=","==",Thresh.val[,1])
+    Thresh<-model.matrix(as.formula(paste("~ ",paste("I",Thresh.val[,1],collapse=" + ",sep=""),sep="")),x)
+    Thresh<-apply(t(Thresh[,2:ncol(Thresh)])*Thresh.cnst,2,sum)
+  }
+  
+  S<-Raw + Quad + Prod + Forw + Rev + Thresh - normalizers[1,2]
+  
+  qx<-  exp(S)/normalizers[2,2]
+  prediction<-qx*exp(entropy)/(1+qx*exp(entropy))
+  return(prediction)
 }
 
 # ## brt precict function --------------------------------------------------------
