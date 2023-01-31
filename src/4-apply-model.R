@@ -128,6 +128,13 @@ for (i in 1:nrow(modelOutputsSheet)){
     } else { modFamily <- "binomial" }
   }
   
+  if(modType == "maxent"){
+    modVars <- mod$Raw.coef$V1
+    trainingData <-  mod$trainingData
+    mod$trainingData <- NULL
+    modFamily <- "binomial"
+  }
+  
   # identify factor variables
   factorVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T)]
   factorVars <- factorVars[factorVars %in% modVars]
@@ -160,6 +167,9 @@ for (i in 1:nrow(modelOutputsSheet)){
     predictFct = rf.predict
     library(randomForest)
   }
+  if(modType == "maxent"){
+    predictFct = maxent.predict
+  }
   # if(modType == "mars") {
   #   predictFct = mars.predict
   #   library(mda)
@@ -173,7 +183,7 @@ for (i in 1:nrow(modelOutputsSheet)){
   
   # prep prediction data ---------------------------------------------------------
   
-  # TO Do: Update scalability -- need to crop rasters to tile extent (not extent of tiling raster)
+  # TO Do: Update scalability
   
   if(nrow(templateSheet)<1){ stop("Template raster is missing. Please provide a template raster before continuing.") }
   
@@ -222,7 +232,7 @@ for (i in 1:nrow(modelOutputsSheet)){
   
   # create probability map -------------------------------------------------------
     
-  if(outputOptionsSheet$MakeProbabilityMap){
+  if(outputOptionsSheet$MakeProbabilityMap){ ## STOPPED HERE FOR MAXENT ##
     preds <- matrix(predictFct(model = mod, x = temp), ncol = ncol(templateRaster), byrow = T)
     preds <- round((preds*100), 0)
     preds[is.na(preds)] <- -9999  # typeof(preds)

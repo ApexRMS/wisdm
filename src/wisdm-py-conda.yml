@@ -178,7 +178,7 @@ dependencies:
   - pyqt=5.15.7=py310h1fd54f2_2
   - pyqt5-sip=12.11.0=py310h00ffb61_2
   - pysocks=1.7.1=pyh0701188_6
-  - pysyncrosim=1.0.24=pyha21a80b_0
+  - pysyncrosim=1.0.25=pyha21a80b_0
   - python=3.10.8=h4de0772_0_cpython
   - python-dateutil=2.8.2=pyhd8ed1ab_0
   - python_abi=3.10=3_cp310

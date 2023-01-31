@@ -51,8 +51,8 @@
 						<column name="ModelType" dataType="String"/>
 					  </columns>
 					  <defaultRecords>
-                		<record columns="ModelName"	values="Generalized Linear Model;Random Forest"/>
-						<record columns="ModelType"	values="gml;rf"/>
+                		<record columns="ModelName"	values="Generalized Linear Model;Random Forest;Maxent"/>
+						<record columns="ModelType"	values="gml;rf;maxent"/>
               		  </defaultRecords>
 					</datasheet>
 				  </datasheets>
@@ -196,6 +196,7 @@
 						<column name="ConfusionMatrix" dataType="String" isExternalFile="True" isPngImage="True"/>
 						<column name="VariableImportancePlot" dataType="String" isExternalFile="True" isPngImage="True"/>
 						<column name="VariableImportanceData" dataType="String" isExternalFile="True"/>
+						<column name="MaxentFiles" dataType="String" isExternalFile="True"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -370,6 +371,11 @@
 					  <columns>
 						<column name="MaxentID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
+						<column name="MemoryLimit" displayName="Memory allocation (GB)" dataType="Integer"/>
+						<column name="MaximumBackgroundPoints" displayName="Maximum number of background points" dataType="Integer"/>
+						<column name="MultiprocessingThreads" displayName="Number of processing threads" dataType="Integer"/>
+						<column name="VisibleInterface" displayName="View maxent user interface during run" dataType="Boolean"/>
+						<column name="SaveMaxentFiles" displayName="Save maxent formated input/output files" dataType="Boolean"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -450,6 +456,10 @@
 		  name="ResidMapExport" dataSheet="SpatialOutputs" column="ResidualsRaster" isFolderExport="True" 
 		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
 		</transformer>
+		<transformer 
+		  name="MaxentFilesExport" dataSheet="ModelOutputs" column="MaxentFiles" isFolderExport="True" 
+		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		</transformer>
 	</transformers>
 	<layouts>
 		<!--Library Datafeeds Layout-->
@@ -500,6 +510,7 @@
 					<item name="ModelExportRDS" displayName="Model RDS"/>
 					<item name="ModelExportText" displayName="Summary Text"/>
 					<item name="VariableImportanceExportData" displayName="Variable Importance"/>
+					<item name="MaxentFilesExport" displayName="Maxent Files"/>
 				</group>
 				<group name="MapOutputs" displayName="Map Outputs">
 					<item name="ProbMapExport" displayName="Probability"/>

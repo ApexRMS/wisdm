@@ -41,10 +41,10 @@ ssimInputDir = myScenario.library.location + ".input\Scenario-" + str(myScenario
 # Load datasheets
 # inputs
 covariatesSheet = myScenario.project.datasheets("Covariates")
-covariateDataSheet = myScenario.datasheets("CovariateData")
+covariateDataSheet = myScenario.datasheets("CovariateData", show_full_paths=False)
 fieldDataSheet = myScenario.datasheets("FieldData")
 fieldDataOptions = myScenario.datasheets("FieldDataOptions")
-templateRasterSheet = myScenario.datasheets("TemplateRaster")
+templateRasterSheet = myScenario.datasheets("TemplateRaster", show_full_paths=False)
 multiprocessingSheet = myScenario.datasheets("core_Multiprocessing")
 
 # outputs
@@ -122,10 +122,10 @@ if rasterio.dtypes.is_ndarray(templateMask):
         templatePolygons = templatePolygons.buffer(0)
         # Sometimes buffer() converts a simple Multipolygon to just a Polygon,
         # need to keep it a Multi throughout
-        if templatePolygons.type == 'Polygon':
+        if templatePolygons.geom_type == 'Polygon':
             templatePolygons = shapely.geometry.MultiPolygon([templatePolygons])
           
-    templatePolygons = gpd.GeoDataFrame({'geometry':templatePolygons}, crs=templateCRS)
+    templatePolygons = gpd.GeoDataFrame(geometry=[templatePolygons], crs=templateCRS)
 else:
     print('The template raster does not include a "No Data" mask.', 
     'All output covariate and site data will be clipped', 
@@ -325,7 +325,7 @@ if pd.notnull(fieldDataOptions.AggregateAndWeight[0]):
                 for d in dupes:
                     sitesInd = sites.index[sites.RasterCellID == d].to_list()
                     weight_d = 1/len(sitesInd)
-                    sites.Weights[sitesInd] = weight_d
+                    sites.Weight[sitesInd] = weight_d
             else: 
                 print("\nWeights were already present in the field data, new weights were not assigned.\n")
 

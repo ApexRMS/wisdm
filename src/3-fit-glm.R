@@ -12,12 +12,7 @@
   library(rsyncrosim)
   library(tidyr)
   library(dplyr)
-  library(PresenceAbsence)
-  library(PRROC)
-  library(ROCR)
-  library(ggplot2)
-  library(splines)
-  
+
   packageDir <- Sys.getenv("ssim_package_directory")
   source(file.path(packageDir, "00-helper-functions.R"))
   source(file.path(packageDir, "03-fit-model-functions.R"))
@@ -141,7 +136,7 @@
   out$validationOptions <- validationDataSheet 
   
   ## path to temp ssim storage 
-  out$tempDir <- paste0(ssimTempDir,"\\Data\\")
+  out$tempDir <- file.path(ssimTempDir, "Data")
   
 # Create output text file ------------------------------------------------------
 
@@ -219,7 +214,7 @@
 
 # Save model outputs -----------------------------------------------------------
 
-  tempFiles <- list.files(paste0(ssimTempDir,"\\Data"))
+  tempFiles <- list.files(file.path(ssimTempDir, "Data"))
   
   # add model Outputs to datasheet
   modelOutputsSheet <- addRow(modelOutputsSheet, 

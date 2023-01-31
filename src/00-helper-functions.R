@@ -136,6 +136,10 @@ maxent.predict <- function(model,x){
     on.exit(detach(model))
   }
   
+  # build prediction shell filled with NA
+  prediction <- rep(NA, nrow(x))
+  names(prediction) <- row.names(x)
+  
   # These all default to zero in case the feature was excluded
   Raw <- Quad <- Prod <- Forw <- Rev <- Thresh <- 0
   
@@ -169,10 +173,11 @@ maxent.predict <- function(model,x){
     Thresh<-apply(t(Thresh[,2:ncol(Thresh)])*Thresh.cnst,2,sum)
   }
   
-  S<-Raw + Quad + Prod + Forw + Rev + Thresh - normalizers[1,2]
+  S <- Raw + Quad + Prod + Forw + Rev + Thresh - normalizers[1,2]
   
-  qx<-  exp(S)/normalizers[2,2]
-  prediction<-qx*exp(entropy)/(1+qx*exp(entropy))
+  qx <-  exp(S)/normalizers[2,2]
+  predVals <- qx*exp(entropy)/(1+qx*exp(entropy))
+  prediction[names(predVals)] <- predVals
   return(prediction)
 }
 

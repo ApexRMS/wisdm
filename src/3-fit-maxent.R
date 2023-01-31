@@ -12,11 +12,7 @@
 library(rsyncrosim)
 library(tidyr)
 library(dplyr)
-
-library(PresenceAbsence)
-# library(PRROC)
-# library(ROCR)
-# library(ggplot2)
+library(zip) # install.packages("zip")
 # library(splines)
 
 packageDir <- Sys.getenv("ssim_package_directory")
@@ -43,7 +39,6 @@ maxentSheet <- datasheet(myScenario, "wisdm_Maxent")
 mulitprocessingSheet <- datasheet(myScenario, "core_Multiprocessing")
 modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T, empty = T, lookupsAsFactors = F)
 
-
 #  Set defaults ----------------------------------------------------------------  
 
 ## Validation Sheet
@@ -55,8 +50,26 @@ if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <
 if(is.na(validationDataSheet$SplitData)){validationDataSheet$SplitData <- FALSE}
 
 ## Maxent Sheet 
-# maxentSheet <- addRow(maxentSheet, list(VisibleInterface = TRUE))
-maxentSheet <- data.frame(VisibleInterface = TRUE)
+if(nrow(maxentSheet)<1){
+  maxentSheet <- addRow(maxentSheet, list(MemoryLimit = 512,
+                                          VisibleInterface = FALSE,
+                                          MaximumBackgroundPoints = 10000,
+                                          SaveMaxentFiles = FALSE))
+}
+
+if(is.na(maxentSheet$MemoryLimit)){maxentSheet$MemoryLimit <- 512}
+if(is.na(maxentSheet$MaximumBackgroundPoints)){maxentSheet$MaximumBackgroundPoints <- 10000}
+if(is.na(maxentSheet$VisibleInterface)){maxentSheet$VisibleInterface <- FALSE}
+if(is.na(maxentSheet$SaveMaxentFiles)){maxentSheet$SaveMaxentFiles <- FALSE}
+
+if(mulitprocessingSheet$EnableMultiprocessing){
+  if(is.na(maxentSheet$MultiprocessingThreads)){
+    maxentSheet$MultiprocessingThreads <- mulitprocessingSheet$MaximumJobs
+    }
+} else {
+  maxentSheet$MultiprocessingThreads <- 1
+  }
+    
 
 # Prep data for model fitting --------------------------------------------------
 
@@ -118,7 +131,7 @@ out$inputVars <- reducedCovariatesSheet$CovariatesID
 out$factorInputVars <- factorInputVars
 
 ## pseudo absence  
-out$pseudoAbs <- pseudoAbs <- FALSE # To Do: build out call to pseudo absence 
+out$pseudoAbs <- pseudoAbs <- TRUE # To Do: build out call to pseudo absence 
 
 ## Validation options
 out$validationOptions <- validationDataSheet 
@@ -128,9 +141,13 @@ out$tempDir <- file.path(ssimTempDir, "Data")
 
 # Format and save data for use in Maxent -------------------------------------------
 
+# create temp maxent folders
+dir.create(file.path(ssimTempDir, "Data", "Inputs"))
+dir.create(file.path(ssimTempDir, "Data", "Outputs"))
+
 ## training data
 
-out$swdPath <- swdPath <- file.path(ssimTempDir, "Data", "training-swd.csv")
+out$swdPath <- swdPath <- file.path(ssimTempDir, "Data", "Inputs", "training-swd.csv")
 
 trainingData %>%
   mutate(Species = case_when(Response == 1 ~ "species")) %>%
@@ -140,15 +157,10 @@ trainingData %>%
   write.csv(swdPath, row.names = F)
 
 out$data$train <- trainingData
-# out$data$train <- trainingData %>% 
-#   mutate(Species = case_when(Response == 1 ~ "species")) %>%
-#   drop_na(Species) %>%
-#   select(-Species)
-#   
 
 if(pseudoAbs){
   
-  out$backgroundPath <- backgroundPath <- file.path(ssimTempDir, "Data", "background-swd.csv")
+  out$backgroundPath <- backgroundPath <- file.path(ssimTempDir, "Data", "Inputs", "background-swd.csv")
   
   trainingData %>%
     mutate(Species = case_when(Response != 1 ~ "background")) %>%
@@ -156,33 +168,22 @@ if(pseudoAbs){
     select(-SiteID, -Response, -UseInModelEvaluation, -ModelSelectionSplit, -Weight) %>%
     relocate(Species, .before = X) %>%
     write.csv(backgroundPath, row.names = F)
-  
-  # out$data$background <-trainingData %>%
-  #   mutate(Species = case_when(Response != 1 ~ "background")) %>%
-  #   drop_na(Species) %>%
-  #   select(-Species)
   }
 
 ## testing data
 
 if(!is.null(testingData)){
-  out$testDataPath <- testDataPath <- file.path(ssimTempDir, "Data", "testing-swd.csv")
+  out$testDataPath <- testDataPath <- file.path(ssimTempDir, "Data", "Inputs", "testing-swd.csv")
   testingData %>%
     mutate(Species = case_when(Response == 1 ~ "species")) %>%
     drop_na(Species) %>%
     select(-SiteID, -Response, -UseInModelEvaluation, -ModelSelectionSplit, -Weight) %>%
     relocate(Species, .before = X) %>%
     write.csv(testDataPath, row.names = F)
+  }
 
-  # out$data$test <- testingData %>%
-  #   mutate(Species = case_when(Response == 1 ~ "species"),
-  #          ModelSelectionSplit == FALSE) %>%
-  #   drop_na(Species) %>%
-  #   select(-Species)
-}
-
-out$batchPath <- file.path(ssimTempDir,"Data", "runMaxent.bat")
-out$maxJobs <- mulitprocessingSheet$MaximumJobs
+out$batchPath <- file.path(ssimTempDir,"Data", "Inputs", "runMaxent.bat")
+# out$maxJobs <- mulitprocessingSheet$MaximumJobs
 
 # Create output text file ------------------------------------------------------
 
@@ -202,8 +203,11 @@ if(nrow(out$data$train)/(length(out$inputVars)-1)<10){
 finalMod <- fitModel(dat = NULL, # maxent code pulls in data from csv files built/saved above  
                      out = out)
 
+finalMod$trainingData <- trainingData
+  
 # save model to temp storage
 saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
+finalMod$trainingData <- NULL
 
 # add relevant model details to out 
 out$finalMod <- finalMod
@@ -211,7 +215,7 @@ out$finalVars <- out$inputVars # random forest doesn't drop variables
 out$nVarsFinal <- length(out$finalVars)
 
 # load maxent run results
-runReults <- read.csv(file.path(ssimTempDir, "Data", "maxentResults.csv"))
+runReults <- read.csv(file.path(ssimTempDir, "Data", "Outputs", "maxentResults.csv"))
 
 modSummary <- data.frame("Variabels" = gsub(".contribution", "", names(runReults)[grep("contribution",names(runReults))]))
 modSummary$Contribution <- t(runReults[grep("contribution",names(runReults))])
@@ -220,8 +224,7 @@ updateRunLog("\nSummary of Model:\n")
 coeftbl <- modSummary
 rownames(coeftbl) <- NULL
 updateRunLog(pander::pandoc.table.return(coeftbl, style = "simple", split.tables = 100))
-
-capture.output(modSummary,file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"), append=TRUE)
+capture.output(cat("\n\n"), modSummary, file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"), append=TRUE)
 
 # Test model predictions -------------------------------------------------------
 
@@ -238,8 +241,6 @@ if(validationDataSheet$CrossValidate){
                 nfolds = validationDataSheet$NumberOfFolds)
 }
 
-## STOPPED HERE ## below code still needs to be checked/updated 
-
 # Generate Model Outputs -------------------------------------------------------
 
 ## AUC/ROC - Residual Plots - Variable Importance -  Calibration - Confusion Matrix ##
@@ -252,7 +253,7 @@ response.curves(out)
 
 # Save model outputs -----------------------------------------------------------
 
-tempFiles <- list.files(paste0(ssimTempDir,"\\Data"))
+tempFiles <- list.files(file.path(ssimTempDir,"Data"))
 
 # add model Outputs to datasheet
 modelOutputsSheet <- addRow(modelOutputsSheet, 
@@ -261,22 +262,27 @@ modelOutputsSheet <- addRow(modelOutputsSheet,
                                  ResponseCurves = paste0(ssimTempDir,"\\Data\\", modType, "_ResponseCurves.png"),
                                  TextOutput = paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),
                                  ResidualSmoothPlot = paste0(ssimTempDir,"\\Data\\", modType, "_ResidualSmoothPlot.png"),
-                                 ResidualSmoothRDS = paste0(ssimTempDir,"\\Data\\", modType, "_ResidualSmoothFunction.rds")))
+                                 ResidualSmoothRDS = paste0(ssimTempDir,"\\Data\\", modType, "_ResidualSmoothFunction.rds"),
+                                 ConfusionMatrix =  paste0(ssimTempDir,"\\Data\\", modType, "_ConfusionMatrix.png"),
+                                 VariableImportancePlot = paste0(ssimTempDir,"\\Data\\", modType, "_VariableImportance.png"),
+                                 VariableImportanceData =  paste0(ssimTempDir,"\\Data\\", modType, "_VariableImportance.csv"),
+                                 ROCAUCPlot = paste0(ssimTempDir,"\\Data\\", modType, "_ROCAUCPlot.png"),
+                                 CalibrationPlot = paste0(ssimTempDir,"\\Data\\", modType, "_CalibrationPlot.png")))
 
 
-if(out$modelFamily != "poisson"){
-  if("rf_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_StandardResidualPlots.png") }
-  modelOutputsSheet$ConfusionMatrix <-  paste0(ssimTempDir,"\\Data\\", modType, "_ConfusionMatrix.png")
-  modelOutputsSheet$VariableImportancePlot <-  paste0(ssimTempDir,"\\Data\\", modType, "_VariableImportance.png")
-  modelOutputsSheet$VariableImportanceData <-  paste0(ssimTempDir,"\\Data\\", modType, "_VariableImportance.csv")
-  modelOutputsSheet$ROCAUCPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_ROCAUCPlot.png")
-  modelOutputsSheet$CalibrationPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_CalibrationPlot.png")
-} else {
-  modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_PoissonResidualPlots.png")
+if("maxent_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_StandardResidualPlots.png") }
+if("maxent_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_AUCPRPlot.png") } 
+
+# save maxent files to compressed zip
+if(maxentSheet$SaveMaxentFiles){
+  setwd(out$tempDir)
+  
+  # create zip file of all maxent specific inputs/outputs
+  zip(zipfile = paste0("Maxent-",ssimEnvironment()$ScenarioId, ".zip"), files = c("Inputs", "Outputs"))
+  
+  # save zip to model outputs
+  modelOutputsSheet$MaxentFiles <- paste0(ssimTempDir,"\\Data\\Maxent-",ssimEnvironment()$ScenarioId, ".zip")
 }
 
-if("rf_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_AUCPRPlot.png") } 
-
+# save outputs datasheet
 saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs", append = T)
-
-
