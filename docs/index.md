@@ -22,7 +22,7 @@ The WISDM package provides a streamlined workflow for preparing data, developing
 ## Requirements
 
 This package requires SyncroSim [version 2.4.20](https://syncrosim.com/download/) or higher.
-
+Java (link to latest release) is also required if you choose to run Maxent models.
 
 > Instructions for installing the above requirements for WISDM are provided on the [Getting Started](https://apexrms.github.io/wisdm/getting_started.html) page.
 
@@ -46,7 +46,7 @@ Maxent software at [https://biodiversityinformatics.amnh.org/open_source/maxent/
 
 ## Developers
 
-Skye Pearman-Gillman (Author, maintainer)
+Skye Pearman-Gillman (Author, maintainer) <a href="https://orcid.org/0000-0002-3911-1985"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
 <br>
 Leonardo Frid (Author) <a href="https://orcid.org/0000-0002-5489-2337"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
 <br>

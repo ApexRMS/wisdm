@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.5">
+<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.6">
 	<transformers>
 		<!--Primary Transformer-->
 		<transformer 
@@ -15,6 +15,7 @@
 			<transformer name="VariableReduction"/>
 			<transformer name="GLM"/>
 			<transformer name="RandomForest"/>
+			<transformer name="Maxent"/>
 			<transformer name="ApplyModel"/>
 		</include>
 		</transformer>
@@ -50,8 +51,8 @@
 						<column name="ModelType" dataType="String"/>
 					  </columns>
 					  <defaultRecords>
-                		<record columns="ModelName"	values="Generalized Linear Model;Random Forest"/>
-						<record columns="ModelType"	values="gml;rf"/>
+                		<record columns="ModelName"	values="Generalized Linear Model;Random Forest;Maxent"/>
+						<record columns="ModelType"	values="gml;rf;maxent"/>
               		  </defaultRecords>
 					</datasheet>
 				  </datasheets>
@@ -195,6 +196,7 @@
 						<column name="ConfusionMatrix" dataType="String" isExternalFile="True" isPngImage="True"/>
 						<column name="VariableImportancePlot" dataType="String" isExternalFile="True" isPngImage="True"/>
 						<column name="VariableImportanceData" dataType="String" isExternalFile="True"/>
+						<column name="MaxentFiles" dataType="String" isExternalFile="True"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -345,6 +347,41 @@
 				</datafeed>
 			</datafeeds>
 		</transformer>
+		<!--Maxent Transformer-->
+		<transformer
+		  name="Maxent"
+		  displayName ="3 - Maxent"
+		  isRunnable="True"
+		  programName="RScript"
+		  programArguments="3-fit-maxent.R"
+		  condaEnv="wisdm-r-conda.yml">
+			<pipeline>
+				<datafeed name="FieldData" type="Input"/>
+				<datafeed name="CovariateData" type="Input"/>
+				<datafeed name="ValidationOptions" type="Input"/>
+				<datafeed name="ReducedCovariates" type="Input"/>
+				<datafeed name="SiteData" type="Input"/>
+				<datafeed name="Maxent"/>
+				<datafeed name="ModelOutputs" type="Output"/>
+			</pipeline>
+			<datafeeds>
+				<datafeed name="Maxent" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="Maxent" isSingleRow="True">
+					  <columns>
+						<column name="MaxentID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="MemoryLimit" displayName="Memory allocation (GB)" dataType="Integer"/>
+						<column name="MaximumBackgroundPoints" displayName="Maximum number of background points" dataType="Integer"/>
+						<column name="MultiprocessingThreads" displayName="Number of processing threads" dataType="Integer"/>
+						<column name="VisibleInterface" displayName="View maxent user interface during run" dataType="Boolean"/>
+						<column name="SaveMaxentFiles" displayName="Save maxent formated input/output files" dataType="Boolean"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+			</datafeeds>
+		</transformer>
 		<!--Apply Model Transformer-->
 		<transformer
 		  name="ApplyModel"
@@ -419,6 +456,10 @@
 		  name="ResidMapExport" dataSheet="SpatialOutputs" column="ResidualsRaster" isFolderExport="True" 
 		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
 		</transformer>
+		<transformer 
+		  name="MaxentFilesExport" dataSheet="ModelOutputs" column="MaxentFiles" isFolderExport="True" 
+		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		</transformer>
 	</transformers>
 	<layouts>
 		<!--Library Datafeeds Layout-->
@@ -453,6 +494,7 @@
 		  <group name="Models">
 			<item name="GLM"/>
 			<item name="RandomForest" displayName="Random Forest"/>
+			<item name="Maxent"/>
 		  </group>
 		<item name="OutputOptions"/>
 		</layout> 
@@ -468,6 +510,7 @@
 					<item name="ModelExportRDS" displayName="Model RDS"/>
 					<item name="ModelExportText" displayName="Summary Text"/>
 					<item name="VariableImportanceExportData" displayName="Variable Importance"/>
+					<item name="MaxentFilesExport" displayName="Maxent Files"/>
 				</group>
 				<group name="MapOutputs" displayName="Map Outputs">
 					<item name="ProbMapExport" displayName="Probability"/>

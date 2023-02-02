@@ -3,15 +3,21 @@
 ## ApexRMS, March 2022       
 ## ---------------------------- 
 
+library(PresenceAbsence)
+library(PRROC)
+library(ROCR)
+library(ggplot2)
+library(splines)
+
 # MODEL FIT FUNCTION -----------------------------------------------------------
 
 ## Fit model -------------------------------------------------------------------
 
 fitModel <- function(dat,           # df of training data 
                      out,           # out list
+                     fullFit=TRUE,
                      pts=NULL,
                      weight=NULL){
-                     # full.fit=FALSE, 
                      # Fold,...
                      
   
@@ -123,19 +129,63 @@ fitModel <- function(dat,           # df of training data
                             corr.bias = corr.bias, keep.inbag = keep.inbag)
   return(modelRF)
   }
-  # #================================================================
-  # #                        MAXENT
-  # #================================================================= 
-  # if(Model=="maxent"){
-  #   #this is a bit confusing because the files is something.lambdas and I don't necessarilly know what something is
-  #   if(missing(Fold)) lambdasFile=list.files(out$input$lambdas,full.names=TRUE)[grep("lambdas",list.files(out$input$lambdas))]
-  #   else lambdasFile=list.files(file.path(out$input$lambdas,paste("cvSplit",Fold,sep="")),
-  #                               full.names=TRUE)[grep("lambdas",list.files(file.path(out$input$lambdas,paste("cvSplit",Fold,sep=""))))] 
-  #   out$mods$final.mod[[1]]<-read.maxent(lambdasFile)
-  #   if(full.fit) return(out)
-  #   else return(out$mods$final.mod)
-  # }
-  # 
+  #================================================================
+  #                        MAXENT
+  #=================================================================
+  if(out$modType == "maxent"){
+    if(fullFit == T){
+      
+      # prepare batch file
+      capture.output(cat("java -mx", out$modOptions$MemoryLimit, "m", sep=""), file = out$batchPath)
+      cat(" -jar", paste0('"', file.path(ssimEnvironment()$PackageDirectory, "maxent.jar"), '"'), file = out$batchPath, append = T)
+      if(!out$modOptions$VisibleInterface){ cat(" -z", file = out$batchPath, append = T) }
+      cat(paste0(' samplesfile="',out$swdPath, '"'), file = out$batchPath, append = T)
+      cat(paste0(' environmentallayers="', out$backgroundPath, '"'), file = out$batchPath, append = T)
+      if(length(out$factorInputVars)>0){
+        for (i in out$factorInputVars){
+          cat(paste0(" togglelayertype=",i), file = out$batchPath, append = T)
+        }}
+      if(!is.null(out$testDataPath)){
+        cat(paste0(' testsamplesfile="',out$testDataPath,'"'), file = out$batchPath, append = T)
+      }
+      cat(paste0(' outputdirectory="',file.path(out$tempDir, "Outputs"),'"'), file = out$batchPath, append = T)
+      cat(" threads=",out$modOptions$MultiprocessingThreads, sep = "", file = out$batchPath, append = T)
+      cat(" responsecurves jackknife writeclampgrid writemess warnings prefixes", file = out$batchPath, append = T) # reverse these default settings  
+      cat(" redoifexists autorun", file = out$batchPath, append = T)
+      
+      # run maxent
+      shell(out$batchPath)
+      
+      # read lambdas output
+      modelMaxent <- read.maxent(file.path(out$tempDir, "Outputs", "species.lambdas"))
+      
+    } else {
+      
+      # prepare batch file
+      capture.output(cat("java -mx", out$modOptions$MemoryLimit, "m", sep=""), file = out$batchPath)
+      cat(" -jar", paste0('"', file.path(ssimEnvironment()$PackageDirectory, "maxent.jar"), '"'), file = out$batchPath, append = T)
+      if(!out$modOptions$VisibleInterface){ cat(" -z", file = out$batchPath, append = T) }
+      cat(paste0(' samplesfile="',file.path(out$tempDir, "CVsplits", "training-swd.csv"), '"'), file = out$batchPath, append = T)
+      cat(paste0(' environmentallayers="', file.path(out$tempDir, "CVsplits", "background-swd.csv"), '"'), file = out$batchPath, append = T)
+      if(length(out$factorInputVars)>0){
+        for (i in out$factorInputVars){
+          cat(paste0(" togglelayertype=",i), file = out$batchPath, append = T)
+        }}
+      cat(paste0(' outputdirectory="',file.path(out$tempDir, "CVsplits"),'"'), file = out$batchPath, append = T)
+      cat(" threads=",out$modOptions$MultiprocessingThreads, sep = "", file = out$batchPath, append = T)
+      cat(" writeclampgrid writemess warnings prefixes", file = out$batchPath, append = T) # reverse these default settings  
+      cat(" redoifexists autorun", file = out$batchPath, append = T)
+      
+      # run maxent
+      shell(out$batchPath)
+      
+      # read lambdas output
+      modelMaxent <- read.maxent(file.path(out$tempDir, "CVsplits", "species.lambdas"))
+    
+    }
+    return(modelMaxent)
+  }
+
   # #================================================================
   # #          Habitat Suitability Criterion
   # #================================================================= 
@@ -279,6 +329,62 @@ fitModel <- function(dat,           # df of training data
   # }
 }
 
+### Read Maxent ----------------------------------------------------------------
+
+read.maxent<-function(lambdas){
+  lambdas <- read.csv(lambdas,header=FALSE)
+  normalizers<-lambdas[(nrow(lambdas)-3):nrow(lambdas),]
+  entropy<-normalizers[4,2]
+  lambdas<-lambdas[1:(nrow(lambdas)-4),]
+  fctType <- rep("raw",times=nrow(lambdas))
+  fctType[grep("`",as.character(lambdas[,1]))] <- "reverse.hinge"
+  fctType[grep("'",as.character(lambdas[,1]))] <- "forward.hinge"
+  fctType[grep("\\^",as.character(lambdas[,1]))]<-"quadratic"
+  fctType[grep("[*]",as.character(lambdas[,1]))]<-"product"
+  fctType[grep("[(]",as.character(lambdas[,1]))]<-"threshold"
+  
+  #make these all default to NULL in case the feature type was turned off
+  Raw.coef<-Quad.coef<-Prod.coef<-Fwd.Hinge<-Rev.Hinge<-Thresh.val<-Raw.mult<-Quad.mult<-
+    Prod.mult<-FH.mult<-FH.cnst<-Rev.mult<-Rev.cnst<-Thresh.cnst<-NULL
+  
+  if(any(fctType=="raw")){ 
+    "Raw.coef"<-lambdas[fctType=="raw",]
+    Raw.mult<-c(-sum(Raw.coef[,2]*Raw.coef[,3]/(Raw.coef[,4]-Raw.coef[,3])), Raw.coef[,2]/(Raw.coef[,4]-Raw.coef[,3]))
+    Raw.mult[is.nan(Raw.mult)]<-0
+  }
+  if(any(fctType=="quadratic")){
+    "Quad.coef"<-lambdas[fctType=="quadratic",]
+    Quad.mult<-c(-sum(Quad.coef[,2]*Quad.coef[,3]/(Quad.coef[,4]-Quad.coef[,3])), Quad.coef[,2]/(Quad.coef[,4]-Quad.coef[,3]))
+  }
+  if(any(fctType=="product")){ 
+    "Prod.coef"<-lambdas[fctType=="product",]
+    Prod.coef[,1]<-gsub("[*]",":",Prod.coef[,1])
+    Prod.mult<-c(-sum(Prod.coef[,2]*Prod.coef[,3]/(Prod.coef[,4]-Prod.coef[,3])), Prod.coef[,2]/(Prod.coef[,4]-Prod.coef[,3]))
+  }
+  if(any(fctType=="forward.hinge")){ 
+    "Fwd.Hinge"<-lambdas[fctType=="forward.hinge",]
+    Fwd.Hinge[,1]<-gsub("'","",Fwd.Hinge[,1])
+    FH.mult<-Fwd.Hinge[,2]/(Fwd.Hinge[,4]-Fwd.Hinge[,3])
+    FH.cnst<- -Fwd.Hinge[,2]*Fwd.Hinge[,3]/(Fwd.Hinge[,4]-Fwd.Hinge[,3])
+  }
+  if(any(fctType=="reverse.hinge")){ 
+    "Rev.Hinge"<-lambdas[fctType=="reverse.hinge",]
+    Rev.Hinge[,1]<-gsub("`","",Rev.Hinge[,1])
+    Rev.mult<- -Rev.Hinge[,2]/(Rev.Hinge[,4]-Rev.Hinge[,3])
+    Rev.cnst<-Rev.Hinge[,2]*Rev.Hinge[,4]/(Rev.Hinge[,4]-Rev.Hinge[,3])
+  }
+  if(any(fctType=="threshold")){ 
+    "Thresh.val"<-lambdas[fctType=="threshold",]
+    Thresh.cnst<-Thresh.val[,2]
+  }
+  
+  
+  retn.lst<-list(Raw.coef=Raw.coef,Quad.coef=Quad.coef,Prod.coef=Prod.coef,Fwd.Hinge=Fwd.Hinge,Rev.Hinge=Rev.Hinge,Thresh.val=Thresh.val,Raw.mult=Raw.mult,Quad.mult=Quad.mult,
+                 Prod.mult=Prod.mult,FH.mult=FH.mult,FH.cnst=FH.cnst,Rev.mult=Rev.mult,Rev.cnst=Rev.cnst,Thresh.cnst=Thresh.cnst,normalizers=normalizers,entropy=entropy)
+  return(retn.lst)
+}
+
+
 
 # MODEL SELECTION AND VALIDATION FUNCTIONS -------------------------------------
 
@@ -350,10 +456,32 @@ cv.fct <- function(out,         # out list
     # assign("species.subset", obs[model.mask], pos = 1)
     # assign("predictor.subset", xdat[model.mask, ], pos = 1)
     
+    if(out$modType == "maxent"){ # prepare input files
+      
+      if(!file.exists(file.path(out$tempDir, "CVsplits"))){dir.create(file.path(out$tempDir, "CVsplits"))}
+      
+      data[model.mask,] %>%
+        mutate(Species = case_when(Response == 1 ~ "species")) %>%
+        drop_na(Species) %>%
+        select(-SiteID, -Response, -UseInModelEvaluation, -ModelSelectionSplit, -Weight, -predicted) %>%
+        relocate(Species, .before = X) %>%
+        write.csv(file.path(out$tempDir, "CVsplits", "training-swd.csv"), row.names = F)
+      
+      # out$data$background %>%
+      #   filter(ModelSelectionSplit != i) %>%
+      data[model.mask,] %>%
+        mutate(Species = case_when(Response != 1 ~ "background")) %>%
+        drop_na(Species) %>%
+        select(-SiteID, -Response, -UseInModelEvaluation, -ModelSelectionSplit, -Weight, -predicted) %>%
+        relocate(Species, .before = X) %>%
+        write.csv(file.path(out$tempDir, "CVsplits", "background-swd.csv"), row.names = F)
+    }
+    
     # fit new model 
     cv.final.mod <- fitModel(dat = data[model.mask,],
                              out = out,
-                             weight = site.weights[model.mask]) 
+                             weight = site.weights[model.mask],
+                             fullFit = F) 
     
     
     fitted.values[pred.mask] <- pred.fct(mod = cv.final.mod,
@@ -542,15 +670,15 @@ permute.predict <- function(inputVars, # input variables for model fitting
 
 makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.plot.jpg
   
-  standResidualFile <- paste0(out$tempDir, out$modType, "_StandardResidualPlots.png")
-  variableImportanceFile <- paste0(out$tempDir, out$modType, "_VariableImportance.png")
-  confusionMatrixFile <- paste0(out$tempDir, out$modType, "_ConfusionMatrix.png")
-  residualSmoothFile <- paste0(out$tempDir, out$modType, "_ResidualSmoothPlot.png")
-  residualSmoothFctFile <- paste0(out$tempDir, out$modType, "_ResidualSmoothFunction.rds")
-  ROCAUCFile <- paste0(out$tempDir, out$modType, "_ROCAUCPlot.png")  
-  AUCPRFile <- paste0(out$tempDir, out$modType, "_AUCPRPlot.png")
-  calibrationFile <- paste0(out$tempDir, out$modType, "_CalibrationPlot.png")
-  residualPlotFile <- paste0(out$tempDir, out$modType, "_PoissonResidualPlots.png")
+  standResidualFile <- file.path(out$tempDir, paste0(out$modType, "_StandardResidualPlots.png"))
+  variableImportanceFile <- file.path(out$tempDir, paste0(out$modType, "_VariableImportance.png"))
+  confusionMatrixFile <- file.path(out$tempDir, paste0(out$modType, "_ConfusionMatrix.png"))
+  residualSmoothFile <- file.path(out$tempDir, paste0(out$modType, "_ResidualSmoothPlot.png"))
+  residualSmoothFctFile <- file.path(out$tempDir, paste0(out$modType, "_ResidualSmoothFunction.rds"))
+  ROCAUCFile <- file.path(out$tempDir, paste0(out$modType, "_ROCAUCPlot.png"))  
+  AUCPRFile <- file.path(out$tempDir, paste0(out$modType, "_AUCPRPlot.png"))
+  calibrationFile <- file.path(out$tempDir, paste0(out$modType, "_CalibrationPlot.png"))
+  residualPlotFile <- file.path(out$tempDir, paste0(out$modType, "_PoissonResidualPlots.png"))
 
   
   if(!out$validationOptions$SplitData & !out$validationOptions$CrossValidate){ splitType <- "none" }
@@ -605,7 +733,7 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
                              thresh = out$cvResults$thresh[i], 
                              has.split = hasSplit) 
     }
-    names(Stats) <- c(1:ValidationDataSheet$NumberOfFolds)
+    names(Stats) <- c(1:out$validationOptions$NumberOfFolds)
   }
   
   Stats$train <- calcStat(x = out$data$train, family = out$modelFamily, thresh = out$trainThresh, has.split = hasSplit)
@@ -875,39 +1003,39 @@ makeModelEvalPlots <- function(out = out){ # previous function name: make.auc.pl
   if(splitType == "cv/train/test"){
     
     capture.output(cat("\n\n============================================================",
-                       "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
+                       "\n\nEvaluation Statistics"), file = file.path(out$tempDir, paste0(out$modType, "_output.txt")), append = TRUE)
     
-    capture.stats(Stats[1:(ValidationDataSheet$NumberOfFolds)], file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
+    capture.stats(Stats[1:(out$validationOptions$NumberOfFolds)], file.name = file.path(out$tempDir, paste0(out$modType, "_output.txt")), 
                   label = "cv", family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
     
     capture.output(cat("\n\n============================================================",
-                       "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
+                       "\n\nEvaluation Statistics"), file = file.path(out$tempDir, paste0(out$modType, "_output.txt")), append = TRUE)
     
-    capture.stats(Stats["test"], file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
+    capture.stats(Stats["test"], file.name = file.path(out$tempDir, paste0(out$modType, "_output.txt")), 
                   label = "train/test", family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
   }
   if(splitType == "cv"){
     
     capture.output(cat("\n\n============================================================",
-                       "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
+                       "\n\nEvaluation Statistics"), file = file.path(out$tempDir, paste0(out$modType, "_output.txt")), append = TRUE)
     
-    capture.stats(Stats[1:(ValidationDataSheet$NumberOfFolds)], file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
+    capture.stats(Stats[1:(out$validationOptions$NumberOfFolds)], file.name = file.path(out$tempDir, paste0(out$modType, "_output.txt")), 
                   label = splitType, family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
   }
   if(splitType == "train/test"){
     
     capture.output(cat("\n\n============================================================",
-                       "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
+                       "\n\nEvaluation Statistics"), file = file.path(out$tempDir, paste0(out$modType, "_output.txt")), append = TRUE)
     
-    capture.stats(Stats["test"], file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
+    capture.stats(Stats["test"], file.name = file.path(out$tempDir, paste0(out$modType, "_output.txt")), 
                   label = splitType, family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
   }  
   if(splitType == "none"){
     
     capture.output(cat("\n\n============================================================",
-                       "\n\nEvaluation Statistics"), file = paste0(out$tempDir, out$modType, "_output.txt"), append = TRUE)
+                       "\n\nEvaluation Statistics"), file = file.path(out$tempDir, paste0(out$modType, "_output.txt")), append = TRUE)
     
-    capture.stats(Stats, file.name = paste0(out$tempDir, out$modType, "_output.txt"), 
+    capture.stats(Stats, file.name = file.path(out$tempDir, paste0(out$modType, "_output.txt")), 
                   label = splitType, family = out$modelFamily, opt.methods = out$modOptions$thresholdOptimization, out)
   }
   
@@ -926,29 +1054,29 @@ calcStat <- function(x,       # x <- out$data[[i]]
   p.bar <- sum(auc.data$pres.abs * x$Weight) / sum(x$Weight)
   n.pres <- sum(auc.data$pres.abs>=1)
   n.abs <- nrow(auc.data)-n.pres
-  # if(has.split & !is.null(x$Split)){ #we're in the train split here for pseudoAbs
-  #   dev.vect<-vector()
-  #   null.dev<-vector()
-  #   for(i in 1:(length(unique(x$Split))-1)){
-  #     dev.vect[i]<-calc.deviance(c(rep(0,times=sum(x$Split==i)),x$resp[x$resp==1]),
-  #                                c(x$pred[x$Split==i],x$pred[x$resp==1]))
-  #     null.dev[i]<-calc.deviance(c(rep(0,times=sum(x$Split==i)),x$resp[x$resp==1]),
-  #                                rep(mean(c(rep(1,times=sum(x$resp==1)),rep(0,times=sum(x$Split==i)))),times=(sum(x$resp==1)+sum(x$Split==i))))
-  #   }
-  #   null.dev<-mean(null.dev)
-  #   dev.fit<-mean(dev.vect)
-  # }
-  # else if(has.split & is.null(x$Split)){ # in the test split for pseudoAbs deviance shouldn't be calculated because calibration is wrong
-  #   null.dev = NA
-  #   dev.fit = NA
-  # }
-  # else{     
-  null.dev <- calc.deviance(auc.data$pres.abs, rep(p.bar,times=length(auc.data$pres.abs)), x$Weight, family=family) #*nrow(x$dat)
-  if(is.nan(null.dev)){null.dev <- NA}
-  
-  dev.fit <- calc.deviance(auc.data$pres.abs, auc.data$pred, x$Weight, family=family) #*nrow(x$dat) Elith does not include this it might cause a weighting issue when averaging I'm not sure if I should include it
-  if(is.nan(dev.fit)){dev.fit <- NA}
-  # }
+  if(has.split & !all(x$UseInModelEvaluation)){ # we're in the train split here for pseudoAbs
+    dev.vect <-vector()
+    null.dev <-vector()
+    for(i in 1:(length(unique(x$ModelSelectionSplit))-1)){
+      dev.vect[i] <- calc.deviance(c(rep(0,times=sum(x$ModelSelectionSplit==i)),x$Response[x$Response==1]),
+                                 c(x$predicted[x$ModelSelectionSplit==i],x$predicted[x$Response==1]))
+      null.dev[i] <- calc.deviance(c(rep(0,times=sum(x$ModelSelectionSplit==i)),x$Response[x$Response==1]),
+                                 rep(mean(c(rep(1,times=sum(x$Response==1)),rep(0,times=sum(x$UseInModelEvaluation==i)))),
+                                     times=(sum(x$Response==1)+sum(x$ModelSelectionSplit==i))))
+    }
+    null.dev <- mean(null.dev)
+    dev.fit <- mean(dev.vect)
+  }
+  else if(has.split & all(x$UseInModelEvaluation)){ # in the test split for pseudoAbs -- deviance shouldn't be calculated because calibration is wrong
+    null.dev = NA
+    dev.fit = NA
+  } else{
+    null.dev <- calc.deviance(auc.data$pres.abs, rep(p.bar,times=length(auc.data$pres.abs)), x$Weight, family=family) #*nrow(x$dat)
+    if(is.nan(null.dev)){ null.dev <- NA }
+    
+    dev.fit <- calc.deviance(auc.data$pres.abs, auc.data$pred, x$Weight, family=family) #*nrow(x$dat) Elith does not include this it might cause a weighting issue when averaging I'm not sure if I should include it
+    if(is.nan(dev.fit)){ dev.fit <- NA }
+    }
   
   dev.exp <- null.dev - dev.fit
   pct.dev.exp <- dev.exp/null.dev*100
@@ -1798,7 +1926,7 @@ capture.stats <- function(Stats.lst,  # stats or lst output from calcStat functi
         if(label == "Cross validation"){paste(" (sd ",signif(sd(unlist(lapply(Stats.lst,function(lst){lst$Tss}))),digits=5),")",sep="")},
         "\n"),
       
-      file=paste0(out$tempDir, out$modType,"_output.txt",sep=""),append=TRUE)
+      file=file.path(out$tempDir, paste0(out$modType, "_output.txt")),append=TRUE)
   }
   
   if(!out$pseudoAbs){
@@ -1824,7 +1952,7 @@ capture.stats <- function(Stats.lst,  # stats or lst output from calcStat functi
                                                               ")",sep="")},
                         
                         "\n\n",
-                        file=paste0(out$tempDir, out$modType, "_output.txt"),append=TRUE))
+                        file=file.path(out$tempDir, paste0(out$modType, "_output.txt")),append=TRUE))
     #if(label=="crossValidation"){cat("\n\n   Pooled Calibration Statistics\n",print.table(cbind(names(out$cv$pooled.calib),out$cv$pooled.calib)))}
     #something I should include later
   }
@@ -1835,8 +1963,8 @@ capture.stats <- function(Stats.lst,  # stats or lst output from calcStat functi
 response.curves <- function(out){
   
   # if(out$modType %in% c("brt","mars")){ nVars <- nrow(out$mod$summary)
-  # if(out$modType %in% c("maxent","udc")) nVars <- out$mods$n.vars.final
-  if(out$modType %in% c("glm", "rf")){ nVars <- out$nVarsFinal  }
+  # if(out$modType %in% c("udc")) nVars <- out$mods$n.vars.final
+  if(out$modType %in% c("glm", "rf", "maxent")){ nVars <- out$nVarsFinal  }
   
   pcol <- ceiling(sqrt(nVars))
   prow <- ceiling(nVars/pcol)
@@ -1862,10 +1990,10 @@ response.curves <- function(out){
   
   # for (k in c(1,2)){
   k <- 1
-    if(k==1){ png(paste0(out$tempDir, out$modType,"_ResponseCurves.png"), width=2000, height=2000, pointsize = 20) 
+    if(k==1){ png(file.path(out$tempDir, paste0(out$modType,"_ResponseCurves.png")), width=2000, height=2000, pointsize = 20) 
       par(oma=c(1,6,4,2),mfrow=c(prow,pcol))}                   
     for (i in sort(match(out$finalVars,names(dat)))) {
-      if (k==2){ png(filename=paste0(out$tempDir, out$modType,"_ResponseCurves\\",names(dat)[i],".png",sep=""),width=2000, height=2000, pointsize = 20)
+      if (k==2){ png(filename=file.path(out$tempDir, paste0(out$modType,"_ResponseCurves"), paste0(names(dat)[i],".png",sep="")),width=2000, height=2000, pointsize = 20)
         par(mar=c(5,8,6,1))
       }
       if (!is.factor(dat[, i])) {

@@ -19,4 +19,5 @@ dependencies:
   - r-dplyr=1.0.9
   - r-gbm=2.1.8
   - r-randomforest=4.7_1.1
+  - r-zip=2.2.2
 
