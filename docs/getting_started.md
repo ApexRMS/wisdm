@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Getting started with **WISDM**
+title: Getting Started
 permalink: /getting_started
 ---
 
