@@ -14,7 +14,7 @@ library(dplyr)
 library(pander)
 
 packageDir <- (Sys.getenv("ssim_package_directory"))
-source(file.path(packageDir, "01-data-prep-functions.R"))
+source(file.path(packageDir, "02-non-spatial-data-prep-functions.R"))
 
 # Connect to library -----------------------------------------------------------
 

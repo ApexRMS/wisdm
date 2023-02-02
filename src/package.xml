@@ -164,39 +164,25 @@
 					</datasheet>
 				  </datasheets>
 				</datafeed>
-				<datafeed name="OutputOptions" displayName="Output Options" dataScope="Scenario">
+				<datafeed name="ModelOutputs" displayName="Model Outputs" dataScope="Scenario" isOutput="True">
 				  <datasheets>
-					<datasheet  name="OutputOptions" displayName="Output Options" isSingleRow="True">
-					  <columns>
-						<column name="OutputOptionsID" dataType="Integer" isPrimary="True"/>
-						<column name="ScenarioID" dataType="Integer"/>
-						<column name="MakeProbabilityMap" displayName="Make Probability Map" dataType="Boolean"/>
-						<column name="MakeResidualsMap" displayName="Make Residuals Map" dataType="Boolean"/>
-						<column name="MakeMessMap" displayName="Make Multivariate Environmental Similarity Surface (MESS) Map" dataType="Boolean"/>
-						<column name="MakeModMap" displayName="Make Most Dissimilar Variable (MoD) Map" dataType="Boolean"/>
-					  </columns>
-					</datasheet>
-				  </datasheets>
-				</datafeed>
-				<datafeed name="ModelOutputs" dataScope="Scenario" isOutput="True">
-				  <datasheets>
-					<datasheet name="ModelOutputs">
+					<datasheet name="ModelOutputs" displayName="Model Outputs">
 					  <columns>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="ModelsID" dataType= "Integer" validationType="Datasheet" formula1="Models"/>						
-						<column name="ModelRDS" dataType="String" isExternalFile="True"/>
-						<column name="ResponseCurves" dataType="String" isExternalFile="True" isPngImage="True"/>
-						<column name="ResidualsPlot" dataType="String" isExternalFile="True" isPngImage="True"/>
-						<column name="ResidualSmoothPlot" dataType="String" isExternalFile="True" isPngImage="True"/>
-						<column name="ResidualSmoothRDS" dataType="String" isExternalFile="True"/>
-						<column name="TextOutput" dataType="String" isExternalFile="True"/>
-						<column name="CalibrationPlot" dataType="String" isExternalFile="True" isPngImage="True"/>
-						<column name="ROCAUCPlot" dataType="String" isExternalFile="True" isPngImage="True"/>
-						<column name="AUCPRPlot" dataType="String" isExternalFile="True" isPngImage="True"/>
-						<column name="ConfusionMatrix" dataType="String" isExternalFile="True" isPngImage="True"/>
-						<column name="VariableImportancePlot" dataType="String" isExternalFile="True" isPngImage="True"/>
-						<column name="VariableImportanceData" dataType="String" isExternalFile="True"/>
-						<column name="MaxentFiles" dataType="String" isExternalFile="True"/>
+						<column name="ModelsID" dataType= "Integer" validationType="Datasheet" formula1="Models" isVisible="False"/>						
+						<column name="ModelRDS" displayName="Model RDS" dataType="String" isExternalFile="True" isReadOnly="True"/>
+						<column name="ResponseCurves" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
+						<column name="ResidualsPlot" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
+						<column name="ResidualSmoothPlot" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
+						<column name="ResidualSmoothRDS" dataType="String" isExternalFile="True" isVisible="False"/>
+						<column name="TextOutput" dataType="String" isExternalFile="True" isVisible="False"/>
+						<column name="CalibrationPlot" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
+						<column name="ROCAUCPlot" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
+						<column name="AUCPRPlot" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
+						<column name="ConfusionMatrix" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
+						<column name="VariableImportancePlot" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
+						<column name="VariableImportanceData" dataType="String" isExternalFile="True" isVisible="False"/>
+						<column name="MaxentFiles" dataType="String" isExternalFile="True" isVisible="False"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -213,12 +199,13 @@
 		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="TemplateRaster" type="Input"/>
+				<datafeed name="corestime_Multiprocessing" type="Output"/>
 			</pipeline>
 		</transformer>	
 		<!--Spatial Data Preparation Transformer-->
 		<transformer
 		  name="SpatialDataPreparation"
-		  displayName ="1.1 - Spatial Data Preparation"
+		  displayName ="1 - Spatial Data Preparation"
 		  isRunnable="True"
 		  programName="Python"
 		  programArguments="1-spatial-data-preparation.py"
@@ -235,10 +222,10 @@
 		<!--Non-Spatial Data Preparation Transformer-->
 		<transformer
 		  name="DataPreparation"
-		  displayName ="1.2 - Data Preparation (Non-Spatial)"
+		  displayName ="2 - Data Preparation (Non-Spatial)"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="1-data-preparation.R"
+		  programArguments="2-non-spatial-data-preparation.R"
 		  condaEnv="wisdm-r-conda.yml">
 		  <pipeline>
 			<datafeed name="FieldData"/>
@@ -250,10 +237,10 @@
 		<!--Variable Reduction Transformer-->
 		<transformer
 		  name="VariableReduction"
-		  displayName ="2 - Variable Reduction"
+		  displayName ="3 - Variable Reduction"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="2-variable-reduction.R"
+		  programArguments="3-variable-reduction.R"
 		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
@@ -279,10 +266,10 @@
 		<!--GLM Transformer-->
 		<transformer
 		  name="GLM"
-		  displayName ="3 - Generalized Linear Model"
+		  displayName ="4 - Generalized Linear Model"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="3-fit-glm.R"
+		  programArguments="4-fit-glm.R"
 		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
@@ -312,10 +299,10 @@
 		<!--Random Forest Transformer-->
 		<transformer
 		  name="RandomForest"
-		  displayName ="3 - Random Forest"
+		  displayName ="4 - Random Forest"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="3-fit-random-forest.R"
+		  programArguments="4-fit-random-forest.R"
 		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
@@ -350,10 +337,10 @@
 		<!--Maxent Transformer-->
 		<transformer
 		  name="Maxent"
-		  displayName ="3 - Maxent"
+		  displayName ="4 - Maxent"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="3-fit-maxent.R"
+		  programArguments="4-fit-maxent.R"
 		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
@@ -385,10 +372,10 @@
 		<!--Apply Model Transformer-->
 		<transformer
 		  name="ApplyModel"
-		  displayName ="4 - Apply Model"
+		  displayName ="5 - Apply Model"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="4-apply-model.R"
+		  programArguments="5-apply-model.R"
 		  className="SyncroSim.StochasticTime.StochasticTimeTransformer" 
 		  classAssembly="SyncroSim.StochasticTime"
 		  runContext="AllowRemote"
@@ -401,7 +388,21 @@
 				<datafeed name="OutputOptions" type="Input"/>
 				<datafeed name="SpatialOutputs" type="Output"/>
 			</pipeline>
-			<datafeeds>			
+			<datafeeds>	
+				<datafeed name="OutputOptions" displayName="Output Options" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="OutputOptions" displayName="Output Options" isSingleRow="True">
+					  <columns>
+						<column name="OutputOptionsID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="MakeProbabilityMap" displayName="Make Probability Map" dataType="Boolean"/>
+						<column name="MakeResidualsMap" displayName="Make Residuals Map" dataType="Boolean"/>
+						<column name="MakeMessMap" displayName="Make Multivariate Environmental Similarity Surface (MESS) Map" dataType="Boolean"/>
+						<column name="MakeModMap" displayName="Make Most Dissimilar Variable (MoD) Map" dataType="Boolean"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>	
 				<datafeed name="SpatialOutputs" dataScope="Scenario" isOutput="True">
 				  <datasheets>
 					<datasheet name="SpatialOutputs" spatialMultiProcessing="True">
@@ -478,25 +479,26 @@
 		<layout name="coreforms_ScenarioDatafeeds">
 		  <group name="DataPreparation" displayName="Data Preparation">
 			<group name="FieldData" displayName="Field Data">
-				<item name="FieldData"/>
-				<item name="FieldDataOptions"/>
+				<item name="FieldData" showIf="inPipeline"/>
+				<item name="FieldDataOptions" showIf="inPipeline"/>
 			</group>
-			<item name="CovariateData"/>
-			<item name="ValidationOptions"/>
-			<item name="TemplateRaster"/>
-			<item name="corestime_Multiprocessing"/>
+			<item name="CovariateData" showIf="inPipeline"/>
+			<item name="ValidationOptions" showIf="inPipeline"/>
+			<item name="TemplateRaster" showIf="inPipeline"/>
+			<item name="corestime_Multiprocessing" showIf="inPipeline"/>
 		  </group>
 		  <group name="VariableReduction" displayName="Variable Reduction">
-			<item name="CovariateSelectionOptions"/>
-			<item name="SiteData"/>
-			<item name="ReducedCovariates"/>
+			<item name="CovariateSelectionOptions" showIf="inPipeline"/>
+			<item name="SiteData" showIf="inPipeline"/>
+			<item name="ReducedCovariates" showIf="inPipeline"/>
 		  </group>
 		  <group name="Models">
-			<item name="GLM"/>
-			<item name="RandomForest" displayName="Random Forest"/>
-			<item name="Maxent"/>
+			<item name="GLM" showIf="inPipeline"/>
+			<item name="RandomForest" displayName="Random Forest" showIf="inPipeline"/>
+			<item name="Maxent" showIf="inPipeline"/>
+			<item name="ModelOutputs" showIf="inPipeline"/>
 		  </group>
-		<item name="OutputOptions"/>
+		<item name="OutputOptions" showIf="inPipeline"/>
 		</layout> 
 		<!--Result Transformers Layout-->
 		<layout name="coreforms_ResultTransformers">

@@ -17,7 +17,7 @@ library(dplyr)
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "00-helper-functions.R"))
-source(file.path(packageDir, "04-apply-model-functions.R"))
+source(file.path(packageDir, "05-apply-model-functions.R"))
 
 # Connect to library -----------------------------------------------------------
 

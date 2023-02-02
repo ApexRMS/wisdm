@@ -15,7 +15,7 @@ library(dplyr)
 library(shiny)
 
 packageDir <- Sys.getenv("ssim_package_directory")
-source(file.path(packageDir, "02-variable-reduction-functions.R"))
+source(file.path(packageDir, "03-variable-reduction-functions.R"))
 
 # Connect to library -----------------------------------------------------------
 
@@ -139,10 +139,10 @@ if(file.exists("C:/Program Files/Google/Chrome/Application/chrome.exe")){
 # browser.path = file.path(packageDir,"Apps/chrome/chrome.exe")
 
 if(is.null(browser.path)){
-  runApp(appDir = file.path(packageDir, "02-covariate-correlation-app.R"),
+  runApp(appDir = file.path(packageDir, "03-covariate-correlation-app.R"),
          launch.browser = TRUE)  
 } else {
-  runApp(appDir = file.path(packageDir, "02-covariate-correlation-app.R"),
+  runApp(appDir = file.path(packageDir, "03-covariate-correlation-app.R"),
        launch.browser = function(shinyurl) {
          system(paste0("\"", browser.path, "\" --app=", shinyurl, " -incognito"), wait = F)
         })
