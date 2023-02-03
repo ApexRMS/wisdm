@@ -51,8 +51,9 @@
 						<column name="ModelType" dataType="String"/>
 					  </columns>
 					  <defaultRecords>
-                		<record columns="ModelName"	values="Generalized Linear Model;Random Forest;Maxent;"/>
-						<record columns="ModelType"	values="gml;rf;maxent;"/>
+                		<record columns="ModelName|ModelType"	values="Generalized Linear Model|glm"/>
+						<record columns="ModelName|ModelType"	values="Random Forest|rf"/>
+						<record columns="ModelName|ModelType" values="Maxent|maxent"/>
               		  </defaultRecords>
 					</datasheet>
 				  </datasheets>
