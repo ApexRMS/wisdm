@@ -1,0 +1,7 @@
+# Syncrosim Generated Random Forest Color Map (QGIS-compatible),,,,,
+INTERPOLATION:DISCRETE
+0,0,255,255,255,-35 - 0 
+105,255,0,0,255,70 - 105
+35,255,255,0,255,0 - 35
+-35,0,0,255,255,-70 - -35
+70,255,165,0,255,35 - 70 
