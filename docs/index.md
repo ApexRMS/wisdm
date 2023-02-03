@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Home
-description: "Landing page for the WISDM Package"
+description: "Workbench for Integrated Species Distribution Modeling"
 permalink: /
 ---
 
@@ -13,19 +13,16 @@ permalink: /
 ## Workbench for Integrated Species Distribution Modeling 
 <br>
 
-### WISDM is an open-source SyncroSim package for developing and visualizing species distribution models. <br>
+### WISDM is an open-source [SyncroSim](https://syncrosim.com/) package for developing and visualizing species distribution models. <br>
 
-The WISDM package provides a streamlined workflow for preparing data, developing species distribution models (SDM), and visualizing model outputs. WISDM maintains records of the various data inputs, processing steps, and modeling options used during SDM construction, and allows users to customize and run existing SDM methods, such as Generalized Linear Models, Random Forest, and Maxent, without having to interact with different software platforms. WISDM also allows users to easily visualize and compare models from within the SyncroSim user interface.
-
-
-** Should we mention SAHM here? Maybe link to the old software/documentation and mention that this is an updated version...**
+WISDM was designed to update and replace SAHM, a software application originally developed in 2013 by the US Geological Survey ([Morisette et al. 2013](https://doi.org/10.1111/j.1600-0587.2012.07815.x)). The WISDM package streamlines your species distribution modeling (SDM) workflows by preparing data, fitting model ensembles, and visualizing model outputs. WISDM maintains records of the various data inputs, processing steps, and modeling options used during SDM construction, and allows users to customize and run existing SDM methods, such as Generalized Linear Models, Random Forest, and Maxent, without having to interact with different software platforms. WISDM also allows users to easily visualize and compare models from within the SyncroSim user interface.
 
 <br>
 
 ## Requirements
 
 This package requires SyncroSim [version 2.4.20](https://syncrosim.com/download/) or higher.  
-Java (**link to latest release**) is also required to run Maxent models.
+[Java](https://www.java.com) is also required to run [Maxent](https://biodiversityinformatics.amnh.org/open_source/maxent/) models within the WISDM package.
 
 > Instructions for installing the above requirements for WISDM are provided on the [Getting Started](https://apexrms.github.io/wisdm/getting_started.html) page.
 
