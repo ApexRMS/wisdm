@@ -81,17 +81,19 @@ This opens the *Scenario Properties* window.
 
 ### Pipeline
 
-Located underneath the **General** tab, the model **Pipeline** allows you to select which stages of the model to include in the model run and their run order. A full run of **WISDM** consists of six stages: (1) Create multiprocessing tiles; (2) Prepare spatial data; (3) Prepare non-spatial data; (4) Reduce variables; (5) Fit statistical model(s); (6) Apply the model(s). In this example, we will run the full pipeline including two statistical models in Stage 5:
+Located underneath the **General** tab, the model **Pipeline** allows you to select which stages of the model to include in the model run and their run order. A full run of **WISDM** consists of five or six stages: (0) Create multiprocessing tiles; (1) Prepare spatial data; (2) Prepare non-spatial data; (3) Reduce variables; (4) Fit statistical model(s); (5) Apply the model(s). In this example, we will run the full pipeline including two statistical models in Stage 5:
 
-* Stage 1: Prepare Multiprocessing
-* Stage 2: Spatial Data Preparation
-* Stage 3: Data Preparation (Non-Spatial)
-* Stage 4: Variable Reduction
-* Stage 5.1: Generalized Linear Model
-* Stage 5.2: Random Forest
-* Stage 6: Apply Model
+* Stage 0: Prepare Multiprocessing 
+* Stage 1: Spatial Data Preparation
+* Stage 2: Data Preparation (Non-Spatial)
+* Stage 3: Variable Reduction
+* Stage 4.1: Generalized Linear Model
+* Stage 4.2: Random Forest
+* Stage 5: Apply Model
 
 **INSERT IMAGE**
+
+**add a note that Stage 0 only needs to be run if spatial multiprocessing is required (i.e., for large landscapes and/or high resolution data). In this example we're using spatial multiprocessing for demonstration purposes. Highlight that multiprocessing must be enabled for spatial multiprocessing to run.** 
 
 Note that all stages in this pipeline are dependent on the results of the previous stage. You cannot run a stage without having first run the previous stage. However, you can chose to fit your data to any number of the statistical models available for Stage 5 (i.e., GLM, Random Forest, or Maxent). In this example, GLM and Random Forest have been selected and added to the Pipeline.  
 
