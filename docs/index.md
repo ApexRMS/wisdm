@@ -51,5 +51,12 @@ Maxent software at [https://biodiversityinformatics.amnh.org/open_source/maxent/
 
 Skye Pearman-Gillman (Author, maintainer) <a href="https://orcid.org/0000-0002-3911-1985"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
 <br>
-Leonardo Frid (Author) <a href="https://orcid.org/0000-0002-5489-2337"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
+Catherine Jarnevich (Author)
 <br>
+Peder Engelstad (Author)
+<br>
+Brian Miller (Author)
+<br>
+Jeffrey Morisette (Author)
+<br>
+Leonardo Frid (Author) <a href="https://orcid.org/0000-0002-5489-2337"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
