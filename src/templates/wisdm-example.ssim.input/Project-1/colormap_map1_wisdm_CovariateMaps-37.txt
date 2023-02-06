@@ -1,7 +1,0 @@
-# Syncrosim Generated bio1 Color Map (QGIS-compatible),,,,,
-INTERPOLATION:DISCRETE
-0,0,0,255,255,0
-14,255,255,0,255,14
-21,255,165,0,255,21
-28,255,0,0,255,28
-7,0,255,255,255,7
