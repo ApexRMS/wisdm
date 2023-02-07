@@ -48,14 +48,14 @@ Maxent software at <a href="https://biodiversityinformatics.amnh.org/open_source
 
 ## Developers
 
-Skye Pearman-Gillman (Author, maintainer) <a href="https://orcid.org/0000-0002-3911-1985"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
+Skye Pearman-Gillman (Author, maintainer) <a href="https://orcid.org/0000-0002-3911-1985" target="_blank"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
 <br>
-Catherine Jarnevich (Author) <a href="https://orcid.org/0000-0002-9699-2336"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
+Catherine Jarnevich (Author) <a href="https://orcid.org/0000-0002-9699-2336" target="_blank"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
 <br>
-Peder Engelstad (Author) <a href="https://orcid.org/0000-0002-3681-9216"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
+Peder Engelstad (Author) <a href="https://orcid.org/0000-0002-3681-9216" target="_blank"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
 <br>
-Brian Miller (Author) <a href="https://orcid.org/0000-0003-1716-1161"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
+Brian Miller (Author) <a href="https://orcid.org/0000-0003-1716-1161" target="_blank"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
 <br>
-Jeffrey Morisette (Author) <a href="https://orcid.org/0000-0002-0483-0082"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
+Jeffrey Morisette (Author) <a href="https://orcid.org/0000-0002-0483-0082" target="_blank"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
 <br>
-Leonardo Frid (Author) <a href="https://orcid.org/0000-0002-5489-2337"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
+Leonardo Frid (Author) <a href="https://orcid.org/0000-0002-5489-2337" target="_blank"><img align="middle" style="padding: 0.5px" width="17" src="assets/images/ORCID.png"></a>
