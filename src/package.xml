@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.6">
+<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.7">
 	<transformers>
 		<!--Primary Transformer-->
 		<transformer 
@@ -193,10 +193,10 @@
 		<!--Prepare Multiprocessing Transformer-->
 		<transformer
 		  name="PrepMultiprocessing"
-		  displayName ="0 - Prepare Multiprocessing"
+		  displayName ="1 - Prepare Multiprocessing"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="0-prep-multiprocessing.R"
+		  programArguments="1-prep-multiprocessing.R"
 		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="TemplateRaster" type="Input"/>
@@ -206,10 +206,10 @@
 		<!--Spatial Data Preparation Transformer-->
 		<transformer
 		  name="SpatialDataPreparation"
-		  displayName ="1 - Spatial Data Preparation"
+		  displayName ="2 - Spatial Data Preparation"
 		  isRunnable="True"
 		  programName="Python"
-		  programArguments="1-spatial-data-preparation.py"
+		  programArguments="2-spatial-data-preparation.py"
 		  condaEnv="wisdm-py-conda.yml"
 		  runContext="LocalOnly">
 		  <pipeline>
@@ -223,10 +223,10 @@
 		<!--Non-Spatial Data Preparation Transformer-->
 		<transformer
 		  name="DataPreparation"
-		  displayName ="2 - Data Preparation (Non-Spatial)"
+		  displayName ="3 - Data Preparation (Non-Spatial)"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="2-non-spatial-data-preparation.R"
+		  programArguments="3-non-spatial-data-preparation.R"
 		  condaEnv="wisdm-r-conda.yml">
 		  <pipeline>
 			<datafeed name="FieldData"/>
@@ -238,10 +238,10 @@
 		<!--Variable Reduction Transformer-->
 		<transformer
 		  name="VariableReduction"
-		  displayName ="3 - Variable Reduction"
+		  displayName ="4 - Variable Reduction"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="3-variable-reduction.R"
+		  programArguments="4-variable-reduction.R"
 		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
@@ -267,10 +267,10 @@
 		<!--GLM Transformer-->
 		<transformer
 		  name="GLM"
-		  displayName ="4 - Generalized Linear Model"
+		  displayName ="5 - Generalized Linear Model"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="4-fit-glm.R"
+		  programArguments="5-fit-glm.R"
 		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
@@ -300,10 +300,10 @@
 		<!--Random Forest Transformer-->
 		<transformer
 		  name="RandomForest"
-		  displayName ="4 - Random Forest"
+		  displayName ="5 - Random Forest"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="4-fit-random-forest.R"
+		  programArguments="5-fit-random-forest.R"
 		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
@@ -338,10 +338,10 @@
 		<!--Maxent Transformer-->
 		<transformer
 		  name="Maxent"
-		  displayName ="4 - Maxent"
+		  displayName ="5 - Maxent"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="4-fit-maxent.R"
+		  programArguments="5-fit-maxent.R"
 		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
@@ -373,10 +373,10 @@
 		<!--Apply Model Transformer-->
 		<transformer
 		  name="ApplyModel"
-		  displayName ="5 - Apply Model"
+		  displayName ="6 - Apply Model"
 		  isRunnable="True"
 		  programName="RScript"
-		  programArguments="5-apply-model.R"
+		  programArguments="6-apply-model.R"
 		  className="SyncroSim.StochasticTime.StochasticTimeTransformer" 
 		  classAssembly="SyncroSim.StochasticTime"
 		  runContext="AllowRemote"
