@@ -1,0 +1,94 @@
+Random Forest Results
+
+Settings:
+	n covariates considered at each split  : 3
+	n trees                                : 1000
+
+Relative performance of predictors in final model:
+
+                         0       1 MeanDecreaseAccuracy MeanDecreaseGini
+sagebrush           0.1879  0.0442               0.0758           7.6476
+precip_wet_quarter  0.0390  0.0184               0.0231           3.7849
+mixed_shrub         0.1058 -0.0013               0.0228           2.7905
+ndvi                0.0155  0.0111               0.0118           2.3213
+max_temp            0.0182  0.0022               0.0057           2.6267
+road_density        0.0067  0.0054               0.0055           2.6351
+min_temp           -0.0099  0.0082               0.0041           1.7114
+
+
+============================================================ 
+
+Evaluation Statistics applied to Cross validation split:
+
+ 
+	 Correlation Coefficient      : 0.6340079  (sd 0.11613) 
+	 NULL Deviance                : 1.0837 (sd 0.047808)
+	 Fit Deviance                 : 0.71956 (sd 0.17848)
+	 Explained Deviance           : 0.36418 (sd 0.13326)
+	 Percent Deviance Explained   : 34.085 (sd 14.39)
+
+  Threshold Methods based on 
+	 Mean Threshold               : 0.529 (sd 0.011937) 
+
+	 Confusion Matrix: 
+
+         observed
+predicted  1  0
+        1 72  7
+        0  7 17
+
+	 AUC                          :  0.88584  (sd 0.073336) 
+	 AUC-pr                       :  0.9611013  (sd 0.025348) 
+	 Percent Correctly Classified :  86.42857  (sd 3.9268) 
+	 Sensitivity                  :  0.9116667  (sd 0.055465) 
+	 Specificity                  :  0.72  (sd 0.17889) 
+	 Kappa                        :  0.6221004  (sd 0.10353) 
+	 True Skill Statistic         :  0.6316667  (sd 0.15517) 
+
+
+   Calibration Statistics 
+	 Intercept (general calibration)                            :  259.9621  (sd 581.73) 
+	 Slope   (direction and variation in fit)                   :  356.7249  (sd 795.38) 
+	 Testa0b1 (overall reliability of predictors)               :  0.4950802  (sd 0.3368) 
+	 Testa0|b1(incorrect calibration given correct refinement)  :  0.6207806  (sd 0.26476) 
+	 Testb1|a (refinement given correct calibration)            :  0.3652421  (sd 0.33062) 
+
+
+
+============================================================ 
+
+Evaluation Statistics applied to Final evaluation split:
+
+ 
+	 Correlation Coefficient      : 0.4849696 
+	 NULL Deviance                : 1.103
+	 Fit Deviance                 : 0.93389
+	 Explained Deviance           : 0.16915
+	 Percent Deviance Explained   : 15.335
+
+  Threshold Methods based on 
+	 Threshold                    :  0.755 
+
+	 Confusion Matrix: 
+
+         observed
+predicted  1  0
+        1 61  6
+        0 18 19
+
+	 AUC                          :  0.8051 
+	 AUC-pr                       :  0.9116901 
+	 Percent Correctly Classified :  76.92308 
+	 Sensitivity                  :  0.7721519 
+	 Specificity                  :  0.76 
+	 Kappa                        :  0.4571553 
+	 True Skill Statistic         :  0.5321519 
+
+
+   Calibration Statistics 
+	 Intercept (general calibration)                            :  0.2728727 
+	 Slope   (direction and variation in fit)                   :  0.6088938 
+	 Testa0b1 (overall reliability of predictors)               :  0.0900195 
+	 Testa0|b1(incorrect calibration given correct refinement)  :  0.9392355 
+	 Testb1|a (refinement given correct calibration)            :  0.02830084 
+

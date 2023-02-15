@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.7">
+<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.8">
 	<transformers>
 		<!--Primary Transformer-->
 		<transformer 
@@ -479,18 +479,18 @@
 		<!--Scenario Datafeeds Layout-->
 		<layout name="coreforms_ScenarioDatafeeds">
 		  <group name="DataPreparation" displayName="Data Preparation">
+			<item name="TemplateRaster" showIf="inPipeline"/>
+			<item name="CovariateData" showIf="inPipeline"/>
 			<group name="FieldData" displayName="Field Data">
 				<item name="FieldData" showIf="inPipeline"/>
 				<item name="FieldDataOptions" showIf="inPipeline"/>
 			</group>
-			<item name="CovariateData" showIf="inPipeline"/>
 			<item name="ValidationOptions" showIf="inPipeline"/>
-			<item name="TemplateRaster" showIf="inPipeline"/>
 			<item name="corestime_Multiprocessing" showIf="inPipeline"/>
 		  </group>
 		  <group name="VariableReduction" displayName="Variable Reduction">
-			<item name="CovariateSelectionOptions" showIf="inPipeline"/>
 			<item name="SiteData" showIf="inPipeline"/>
+			<item name="CovariateSelectionOptions" showIf="inPipeline"/>
 			<item name="ReducedCovariates" showIf="inPipeline"/>
 		  </group>
 		  <group name="Models">
