@@ -25,6 +25,8 @@ a {
 // Background pf site header
 .site-header {
     background-color: #F0F0F0;
+    padding-right: 15%;
+    padding-left: 10%;
 }
 
 // Nav buttons
@@ -44,11 +46,27 @@ a {
 // size of wrapper
 .wrapper {
     max-width: calc(1000px - (30px * 2));
+    padding-right: 15%;
+    padding-left: 10%;
+}
+
+/* Size of page content (text within page) */
+.page-content {
+    padding-right: 15%;
+    padding-left: 10%;
+}
+
+/* Alignment of footer */
+.site-footer{
+    padding-right: 15%;
+    padding-left: 10%;
 }
 
 // Change footer col sizes
 .footer-col-1 {
     width: calc(35% - (30px / 2));
+    margin-left: 0%;
+    margin-right: 0%;
 }
 
 .footer-col-2 {
@@ -57,4 +75,33 @@ a {
 
 .footer-col-3 {
     width: calc(25% - (30px / 2));
+    text-align: right;
+}
+
+/* Sidebar box */
+.sidenav {
+    width: 12%;
+    position: absolute;
+    top: 170px;
+    right: 0px;
+    background: #f1f1f1;
+    padding: 12px 12px;
+    display: inline-block;
+}
+/* Sidebar when link is selected */
+.sidenav a {
+    padding: 6px 6px 6px 12px;
+    text-decoration: none;
+    font-size: 12px;
+    color: #000;
+    display: block;
+}
+/* Sidebar when cursor hovers */
+.sidenav a:hover {
+    background-color:#cecece;
+    color: white;
+}
+/* Adjust for small screens */
+@media screen and (max-width: 500px) {
+    .sidenav {display: none;}
 }
