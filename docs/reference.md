@@ -12,5 +12,5 @@ A SyncroSim model can have any number of Properties, each of which can have a *s
 Within this Reference guide, you will find details on the function of each column within each datasheet. *Datasheets* are organized under the following tabs:
 
 {% for section in site.sections %}
-  <li> <a href="{{ section.url }}"> {{ section.title }}</a> </li>
+  <li> <a href="{{site.baseurl}}{{ section.url }}"> {{ section.title }}</a> </li>
 {% endfor %}
