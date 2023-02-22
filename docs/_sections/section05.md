@@ -5,6 +5,12 @@ title: Output Options
 permalink: section05
 ---
 
+<!--- Sidebar Navigation Menu --->
+<div class="sidenav">
+    {% for section in site.sections %}
+        <a href="{{site.baseurl}}{{ section.url }}"> <b>{{ section.title }}</b> </a>
+    {% endfor %}
+</div>
 
 # **Output Options**
 
