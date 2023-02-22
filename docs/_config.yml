@@ -5,3 +5,6 @@ author: Apex Resource Management Solutions
 email: info@apexrms.com
 header_pages:
   - index.md
+collections:
+  sections:
+    output: true
