@@ -114,7 +114,7 @@ If you return to the **Scenario Properties**, under the **Data Preparation** tab
 <img align="middle" style="padding: 3px" width="700" src="assets/images/covariate-data.png">
 <br> <br>
 
-In the same **Data Preparation** tab, you'll also find a **Field Data** datasheet. Here, you will identify site locations by their X and Y coordinates and include response values for the target species. Response values can be provided as presence-only (1), presence/absence (1 or 0), or counts (integers >= 0). 
+In the same **Data Preparation** tab, you'll also find a **Field Data** datasheet. Here, you will identify site locations by their X and Y coordinates and include response values for the target species. Response values can be provided as presence-only (1), presence/absence (1 or 0), or counts (integers >= 0).  
 
 <br>
 <img align="middle" style="padding: 3px" width="700" src="assets/images/field-data.png">
@@ -196,7 +196,7 @@ Look through the *Result Scenario* to see the updated or newly populated datashe
 
 ### Field Data Outputs
 
-The **Field Data** datasheet has also been updated to only include sites inside the extent of the *template raster*. In the **Options** datasheet below, if weight was selected, the *Weights* column will be populated. If aggregate was selected, records with -9999 may occur in the *Response* column, this indicates redundancy, and these records are removed from model fitting. The *Use In Model Evaluation* and *Model Selection Split* columns will also be populated with the appropriate values. 
+The **Field Data** datasheet has also been updated to only include sites inside the extent of the *template raster*. In the **Options** datasheet below, if weight was selected, the *Weights* column will be populated. If aggregate was selected, records with -9999 may occur in the *Response* column, this indicates redundancy, and these records are removed from model fitting. The *Use In Model Evaluation* and *Model Selection Split* columns will also be populated with the appropriate values. The *Use in Model Evaluation* column indicates which sites will be used for model training and testing. A **Yes** in this column means that the site has been reserved for model evaluation (i.e., testing) and will not be used during model fitting (i.e., training). All sites with a **No** in this column represent the training dataset used for model fitting. The *Model Selection Split* column indicates if and how the training data has been spilt for cross validation. This column is only populated if *Use cross validation for model selection* was chosen under **Validation Options**, and will display the cross-validation fold that each site was assigned to. Only training data will be split into folds (so only sites with a **No** in the *Use in Model Evaluation* column will have a number in the *Model Selection Split* column). 
 
 <br>
 <img align="middle" style="padding: 3px" width="700" src="assets/images/field-data-output.png">
