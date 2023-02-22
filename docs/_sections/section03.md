@@ -9,7 +9,7 @@ permalink: section03
 <!--- Sidebar Navigation Menu --->
 <div class="sidenav">
     {% for section in site.sections %}
-        <a href="{{ section.url }}"> <b>{{ section.title }}</b> </a>
+        <a href="{{site.baseurl}}{{ section.url }}"> {{ section.title }}</b> </a>
         {% if section.section == page.section %}
             <a href="#heading01"> &emsp;Site Data</a>
             <a href="#heading02"> &emsp;Covariate Selection Options</a>
