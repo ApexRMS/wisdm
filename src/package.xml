@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.8">
+<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.9">
 	<transformers>
 		<!--Primary Transformer-->
 		<transformer 
@@ -83,6 +83,11 @@
 						<column name="ScenarioID" dataType="Integer"/>
 						<column name="EPSG" displayName="Authority Code (e.g., EPSG:4326)" dataType="String" isOptional="True"/>
 						<column name="AggregateAndWeight" displayName="Aggregate or Weight Data" dataType="Integer" validationType="List" formula1="0:Aggregate|1:Weight" isOptional="True"/>
+					    <column name="GenerateBackgroundSites" displayName="Generate background sites" dataType="Boolean" isOptional="True"/>
+					  	<column name="BackgroundSiteCount" displayName="Number of background sites added to field data" dataType="Integer" isOptional="True"/>
+						<column name="BackgroundGenerationMethod" displayName="Method used for background site generation" dataType="Integer" validationType="List" formula1="0:Kernel Density Estimate (KDE)|1:Minimum Convex Polygon (MCP)" isOptional="True"/>
+					    <column name="KDESurface" displayName="KDE background surface method" dataType="Integer" validationType="List" formula1="0:Continuous|1:Binary" isOptional="True"/>
+					    <column name="Isopleth" displayName="Isopleth threshold used for binary mask creation (%)" dataType="Integer" isOptional="True"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -229,9 +234,11 @@
 		  programArguments="3-non-spatial-data-preparation.R"
 		  condaEnv="wisdm-r-conda.yml">
 		  <pipeline>
+		  	<datafeed name="TemplateRaster" type="Input"/>
 			<datafeed name="FieldData"/>
 			<datafeed name="FieldDataOptions" type="Input"/>
 			<datafeed name="ValidationOptions" type="Input"/>
+			<datafeed name="CovariateData"/>
 			<datafeed name="SiteData" type="Input"/>
 		  </pipeline>
 		</transformer>
@@ -531,20 +538,20 @@
 				<item  name="SelectedMatrix" displayName="Selected Matrix" dataSheet="CovariateCorrelationMatrix" column="SelectedMatrix"/>
 			</group>
 			<group name="MapOutputs" displayName="Map Outputs">
-				<item name="ProbabilityMap" displayName="Probability" dataSheet="SpatialOutputs" column="ProbabilityRaster" filter="ModelsID"/>
-				<item name="MessMap" displayName="MESS" dataSheet="SpatialOutputs" column="MessRaster" filter="ModelsID"/>
-				<item name="ModMap" displayName="MoD" dataSheet="SpatialOutputs" column="ModRaster" filter="ModelsID"/>
-				<item name="ResidualsMap" displayName="Residuals" dataSheet="SpatialOutputs" column="ResidualsRaster" filter="ModelsID"/>
+				<item name="ProbabilityMap" displayName="Probability" dataSheet="SpatialOutputs" column="ProbabilityRaster" filter="ModelsID" extendedIdentifier="(Probability)"/>
+				<item name="MessMap" displayName="MESS" dataSheet="SpatialOutputs" column="MessRaster" filter="ModelsID" extendedIdentifier="(MESS)"/>
+				<item name="ModMap" displayName="MoD" dataSheet="SpatialOutputs" column="ModRaster" filter="ModelsID" extendedIdentifier="(MoD)"/>
+				<item name="ResidualsMap" displayName="Residuals" dataSheet="SpatialOutputs" column="ResidualsRaster" filter="ModelsID" extendedIdentifier="(Residuals)"/>
 			</group>
 			<group name="ModelOutputs" displayName="Model Outputs">
-				<item name="ResponseCurves" displayName="Response Curves" dataSheet="ModelOutputs" column="ResponseCurves" filter="ModelsID"/>
-				<item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="ModelOutputs" column="ResidualsPlot" filter="ModelsID"/>
-				<item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="ModelOutputs" column="ResidualSmoothPlot" filter="ModelsID"/>	
-				<item name="CalibrationPlot" displayName="Calibration" dataSheet="ModelOutputs" column="CalibrationPlot" filter="ModelsID"/>
-				<item name="ROCAUCPlot" displayName="ROC/AUC" dataSheet="ModelOutputs" column="ROCAUCPlot" filter="ModelsID"/>
-				<item name="AUCPRPlot" displayName="AUCPR" dataSheet="ModelOutputs" column="AUCPRPlot" filter="ModelsID"/>
-				<item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="ModelOutputs" column="ConfusionMatrix" filter="ModelsID"/>
-				<item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="ModelOutputs" column="VariableImportancePlot" filter="ModelsID"/>		
+				<item name="ResponseCurves" displayName="Response Curves" dataSheet="ModelOutputs" column="ResponseCurves" filter="ModelsID" extendedIdentifier="(Response Curves)"/>
+				<item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="ModelOutputs" column="ResidualsPlot" filter="ModelsID" extendedIdentifier="(Standard Residuals)"/>
+				<item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="ModelOutputs" column="ResidualSmoothPlot" filter="ModelsID" extendedIdentifier="(Residuals Smooth)"/>	
+				<item name="CalibrationPlot" displayName="Calibration" dataSheet="ModelOutputs" column="CalibrationPlot" filter="ModelsID" extendedIdentifier="(Calibration)"/>
+				<item name="ROCAUCPlot" displayName="ROC/AUC" dataSheet="ModelOutputs" column="ROCAUCPlot" filter="ModelsID" extendedIdentifier="(ROC/AUC)"/>
+				<item name="AUCPRPlot" displayName="AUCPR" dataSheet="ModelOutputs" column="AUCPRPlot" filter="ModelsID" extendedIdentifier="(AUCPR)"/>
+				<item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="ModelOutputs" column="ConfusionMatrix" filter="ModelsID" extendedIdentifier="(Confusion Matrix)"/>
+				<item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="ModelOutputs" column="VariableImportancePlot" filter="ModelsID" extendedIdentifier="(Variable Importance)"/>		
 			</group>
 		</layout>
 	</layouts>	

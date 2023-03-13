@@ -1,20 +1,22 @@
 ## -------------------------
 ## wisdm - data preparation
-## ApexRMS, March 2022
+## ApexRMS, March 2023
 ## -------------------------
 
-# built under R version 4.1.3 & SyncroSim version 2.4.0
+# built under R version 4.1.3 & SyncroSim version 2.4.18
 # Script pulls in field data and splits sites into test/train or CV groupings
 
 # source dependencies ----------------------------------------------------------
 
 library(rsyncrosim)
+library(terra)
 library(tidyr)
 library(dplyr)
 library(pander)
 
 packageDir <- (Sys.getenv("ssim_package_directory"))
 source(file.path(packageDir, "03-non-spatial-data-prep-functions.R"))
+source(file.path(packageDir, "03-background-data-functions.R"))
 
 # Connect to library -----------------------------------------------------------
 
@@ -26,12 +28,47 @@ myScenario <- scenario()
 ssimTempDir <- ssimEnvironment()$TransferDirectory 
 
 # Read in datasheets
+templateSheet <- datasheet(myScenario, "TemplateRaster")
 covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
+covariateDataSheet <- datasheet(myScenario, "wisdm_CovariateData", optional = T, lookupsAsFactors = F)
 fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
+fieldDataOptionsSheet <- datasheet(myScenario, "wisdm_FieldDataOptions", optional = T)
 validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
 siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", optional = T, lookupsAsFactors = F)
 
+# Prep inputs ------------------------------------------------------------------
+
+# identify categorical covariates
+if(sum(covariatesSheet$IsCategorical, na.rm = T)>0){
+  factorVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T & covariatesSheet$CovariateName %in% siteDataSheet$CovariatesID)]
+  if(length(factorVars)<1){ factorVars <- NULL }
+} else { factorVars <- NULL }
+
+# drop no data (-9999) sites that resulted from spatial aggregation 
+fieldDataSheet <- fieldDataSheet[!fieldDataSheet$Response == -9999,] 
+
 #  Set defaults ----------------------------------------------------------------  
+
+## Field data options sheet
+if(nrow(fieldDataOptionsSheet)<1){
+  fieldDataOptionsSheet <- addRow(fieldDataOptionsSheet, list(GenerateBackgroundSites = FALSE))
+}
+if(is.na(fieldDataOptionsSheet$GenerateBackgroundSites)){ fieldDataOptionsSheet$GenerateBackgroundSites <- FALSE }
+if(fieldDataOptionsSheet$GenerateBackgroundSites){
+  if(is.na(fieldDataOptionsSheet$BackgroundSiteCount)){fieldDataOptionsSheet$BackgroundSiteCount <- sum(fieldDataSheet$Response) }  
+  if(is.na(fieldDataOptionsSheet$BackgroundGenerationMethod)){fieldDataOptionsSheet$BackgroundGenerationMethod <- "Kernel Density Estimate (KDE)"}
+  if(is.na(fieldDataOptionsSheet$KDESurface)){
+    if(fieldDataOptionsSheet$BackgroundGenerationMethod == "Kernel Density Estimate (KDE)"){
+      fieldDataOptionsSheet$KDESurface <- "Continuous"
+    }}
+  if(is.na(fieldDataOptionsSheet$Isopleth)){
+    if(fieldDataOptionsSheet$KDESurface == "Binary" | fieldDataOptionsSheet$BackgroundGenerationMethod == "Minimum Convex Polygon (MCP)"){
+      fieldDataOptionsSheet$Isopleth <- 95
+    }
+  }
+}
+
+saveDatasheet(myScenario, fieldDataOptionsSheet, "wisdm_FieldDataOptions")
 
 ## Validation Sheet
 if(nrow(validationDataSheet)<1){
@@ -56,16 +93,138 @@ if(validationDataSheet$CrossValidate){
 
 saveDatasheet(myScenario, validationDataSheet, "wisdm_ValidationOptions")
 
-# Prep inputs ------------------------------------------------------------------
 
-# identify categorical covariates
-if(sum(covariatesSheet$IsCategorical, na.rm = T)>0){
-  factorVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T & covariatesSheet$CovariateName %in% siteDataSheet$CovariatesID)]
-  if(length(factorVars)<1){ factorVars <- NULL }
-} else { factorVars <- NULL }
+# Generate pseudo-absences (if applicable) -------------------------------------
 
-# drop no data (-9999) sites that resulted from spatial aggregation 
-fieldDataSheet <- fieldDataSheet[!fieldDataSheet$Response == -9999,] 
+if(fieldDataOptionsSheet$GenerateBackgroundSites){
+  
+  if(fieldDataOptionsSheet$BackgroundGenerationMethod == "Kernel Density Estimate (KDE)"){ 
+    methodInputs <- list("method"="kde", 
+                   "surface"=fieldDataOptionsSheet$KDESurface, 
+                   "isopleth"=fieldDataOptionsSheet$Isopleth)
+    }
+  if(fieldDataOptionsSheet$BackgroundGenerationMethod == "Minimum Convex Polygon (MCP)"){ 
+    methodInputs <- list("method"="mcp",
+                         "surface" = NA,
+                   "isopleth"=fieldDataOptionsSheet$Isopleth)
+    }
+
+  templateRaster <- rast(templateSheet$RasterFilePath)
+  
+  # create mask polygon from extent of valid data in template 
+  templateVector <- as.polygons(templateRaster)
+  
+  # generate background surface
+  backgroundSurfaceGeneration(sp = "species",
+                              template = templateRaster,
+                              method = methodInputs, 
+                              mask = templateVector,
+                              outputDir = ssimTempDir,
+                              dat = fieldDataSheet)
+  
+  # generate background (psuedo-absence) points
+  backgroundPointGeneration(sp = "species",
+                            outputDir = ssimTempDir,
+                            n = fieldDataOptionsSheet$BackgroundSiteCount+100,
+                            method = methodInputs,
+                            # target_file = fieldDataOptionsSheet, # this is an external input... 
+                            overwrite = T)
+  
+  # add background point to field data
+  bgData <- read.csv(file.path(ssimTempDir, paste0("species_", methodInputs$method, "_bg_pts.csv")))
+  
+  startId <- max(fieldDataSheet$SiteID)+1
+  bgData$SiteID <- startId:(startId+nrow(bgData)-1)
+  bgData$UseInModelEvaluation <- NA
+  bgData$ModelSelectionSplit <- NA
+  bgData$Weight <- NA
+  
+  fieldData <- rbind(fieldDataSheet, bgData)
+  
+  ## Remove background points that occur in pixels with presence points -----
+  
+  # rasterize points data
+  r <- rast(ext(templateRaster), resolution = res(templateRaster), crs = crs(templateRaster))
+  pts <- vect(fieldData, geom = c("X", "Y"), crs = crs(templateRaster))
+  rastPts <- rasterize(pts, r)
+  matPts <- as.matrix(rastPts, wide=T)
+  keep <- which(!is.na(matPts))
+  
+  rIDs <- rast(r, vals = 1:(dim(r)[1]*dim(r)[2]))
+  cellPerPt <- terra::extract(rIDs, pts)
+  cellPerPt$SiteID <- pts$SiteID
+  names(cellPerPt)[2] <- "PixelID"
+  pts <- merge(pts, cellPerPt[,c("PixelID", "SiteID")])
+  
+  # check for duplicate pixel ids
+  if(any(duplicated(pts$PixelID))){
+    dups <- pts[which(duplicated(pts$PixelID)),]
+    dropSites <- dups$SiteID[which(dups$Response == -9998)]
+    pts <- pts[!pts$SiteID %in% dropSites,]
+  }
+  
+  bgPts <- pts[pts$Response == -9998]
+  bgPts$PixelID <- NULL
+  
+  # remove extra bg sites
+  if(nrow(bgPts)>fieldDataOptionsSheet$BackgroundSiteCount){
+    bgPts <- sample(x = bgPts, size = fieldDataOptionsSheet$BackgroundSiteCount, replace = F)
+  }
+  if(nrow(bgPts)<fieldDataOptionsSheet$BackgroundSiteCount){
+    updateRunLog(paste0(nrow(bgPts), " psuedoabsence sites added to Field Data when ", fieldDataOptionsSheet$BackgroundSiteCount, 
+                        " were requested."))
+    # fieldDataOptionsSheet$BackgroundSiteCount <- nrow(bgPts)
+  }
+  
+  ## Extract covariate data for background sites  -----
+  
+  # rasterize bg data
+  rastPts <- rasterize(bgPts, r)
+  matPts <- as.matrix(rastPts, wide=T)
+  keep <- which(!is.na(matPts))
+  
+  rIDs <- rast(r, vals = 1:(dim(r)[1]*dim(r)[2]))
+  cellPerPt <- terra::extract(rIDs, bgPts)
+  cellPerPt$SiteID <- bgPts$SiteID
+  names(cellPerPt)[2] <- "PixelID"
+  bgPts <- merge(bgPts, cellPerPt[,c("PixelID", "SiteID")])
+  
+  rPixels <- rasterize(bgPts, r, field = "PixelID")
+  matPixs <- as.matrix(rPixels, wide=T)
+  PixelIDs <- matPixs[keep]
+  
+  PixelData <- data.frame(PixelID = PixelIDs)
+  
+  for(i in 1:nrow(covariateDataSheet)){
+    ri <- rast(covariateDataSheet$RasterFilePath[i])
+    mi <- as.matrix(ri, wide=TRUE)
+    
+    outMat <- mi*matPts
+    vals <- outMat[keep]
+    PixelData[covariateDataSheet$CovariatesID[i]] <- vals
+  }
+  
+  # convert background site data to long format and add to exisiting site datasheet
+  bgSiteData <- merge(cellPerPt[,c("PixelID", "SiteID")], PixelData)
+  bgSiteData$PixelID <- NULL
+  bgSiteData <- gather(data = bgSiteData, key = CovariatesID, value = Value, -SiteID)
+  
+  siteDataSheet <- rbind(siteDataSheet, bgSiteData)
+  
+  # save site data to scenario
+  saveDatasheet(myScenario, siteDataSheet, "wisdm_SiteData")
+  
+  # update field data
+  bgData <- bgData[which(bgData$SiteID %in% bgPts$SiteID),]
+  if(any(!is.na(fieldDataSheet$Weight))){ bgData$Weight <- 1 }
+
+  fieldDataSheet <- rbind(fieldDataSheet, bgData)
+
+  # update response for background sites
+  bgSiteIds <- fieldDataSheet$SiteID[fieldDataSheet$Response == -9998]
+  fieldDataSheet$Response[which(fieldDataSheet$SiteID %in% bgSiteIds)] <- 0
+
+}
 
 # Split data for testing/training and validation -------------------------------
 
@@ -73,7 +232,7 @@ siteDataWide <- spread(data = siteDataSheet, key = CovariatesID, value = Value)
 
 inputData <- left_join(fieldDataSheet, siteDataWide) # select(siteDataWide,-PixelID))
 
-# Define Train/Test Split (if specified)
+# Define Train/Test Split (if specified) 
 if(validationDataSheet$SplitData){
   inputData <- testTrainSplit(inputData = inputData,
                                trainProp = validationDataSheet$ProportionTrainingData,
@@ -114,6 +273,12 @@ if(validationDataSheet$SplitData == F & validationDataSheet$CrossValidate == F){
   inputData$UseInModelEvaluation <- FALSE
 }  
 
+
+# revert response for background sites
+updateFieldData <- dplyr::select(inputData, names(fieldDataSheet))
+if(fieldDataOptionsSheet$GenerateBackgroundSites){
+  updateFieldData$Response[which(updateFieldData$SiteID %in% bgSiteIds)] <- -9998
+}
+
 # save updated field data to scenario
-updateFieldData <- select(inputData, names(fieldDataSheet))
 saveDatasheet(myScenario, updateFieldData, "wisdm_FieldData", append = F)

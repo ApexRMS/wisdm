@@ -153,12 +153,12 @@ if len(invalidCRS)>0:
 #%% Prep covariate rasters
 for i in range(len(covariateDataSheet.CovariatesID)):
 
-    #%% Load and process covariate rasters
+    # Load and process covariate rasters
     covariatePath = ssimInputDir + "\\wisdm_CovariateData\\" + covariateDataSheet.RasterFilePath[i]
     covariateRaster = rioxarray.open_rasterio(covariatePath, chunks={'x': chunkDims, 'y': chunkDims})        
     outputCovariatePath = os.path.join(ssimTempDir, os.path.basename(covariatePath))
 
-    #%% check if covariate extent fully overlaps template extent: [left, bottom, right, top]
+    # check if covariate extent fully overlaps template extent: [left, bottom, right, top]
     covExtent = list(rasterio.warp.transform_bounds(covariateRaster.rio.crs, templateCRS,*covariateRaster.rio.bounds()))
     
     overlap=[]
@@ -169,7 +169,7 @@ for i in range(len(covariateDataSheet.CovariatesID)):
     if any(overlap) == False:
         raise ValueError(print("The extent of the", covariateDataSheet.CovariatesID[i], "raster does not overlap the full extent of the template raster. Ensure all covariate rasters overlap the template extent before continuing."))
     
-    #%% Determine if raster needs to be resampled or aggregated
+    # Determine if raster needs to be resampled or aggregated
     # convert covariate resolution to template units (following code is faster then reprojecting for large rasters)
     covAffine = rasterio.warp.calculate_default_transform(covariateRaster.rio.crs, templateCRS, 
                                                             covariateRaster.rio.width, covariateRaster.rio.height,
@@ -185,7 +185,7 @@ for i in range(len(covariateDataSheet.CovariatesID)):
         rioResampleMethod = covariateDataSheet.rioResample[i] 
         dropResAggCol = "AggregationMethod"
 
-    #%% reproject covariate raster ## TO DO - build out memory save version of reproject-match
+    # reproject covariate raster ## TO DO - build out memory save version of reproject-match
     # spatialUtils.parc(inputFile=covariatePath, 
     #                 templateRaster=templateRaster, 
     #                 outputFile=outputCovariatePath,
@@ -195,15 +195,15 @@ for i in range(len(covariateDataSheet.CovariatesID)):
     #                 mask = templatePolygons.geometry,
     #                 client=client)
 
-    #%% reproject/resample/clip covariate raster to match template 
+    # reproject/resample/clip covariate raster to match template 
     covariateRaster = covariateRaster.rio.reproject_match(templateRaster,
                                                             resampling=Resampling[rioResampleMethod])
     
-    #%% Add NoData mask to covariate raster
+    #Add NoData mask to covariate raster
     covariateRaster = np.ma.masked_array(covariateRaster, templateMask)
     covariateRaster.fill_value = -9999
    
-    #%% Set raster output parameters
+    # Set raster output parameters
     raster_params = {
         'driver': 'GTiff',
         'width': templateRaster.rio.width,
@@ -215,13 +215,13 @@ for i in range(len(covariateDataSheet.CovariatesID)):
         'transform': templateTransform
     }
         
-    #%% Write processed covariate raster to file with internal NoData mask 
+    # Write processed covariate raster to file with internal NoData mask 
     with rasterio.Env(GDAL_TIFF_INTERNAL_MASK=True):
         with rasterio.open(outputCovariatePath, mode="w", **raster_params,
                             masked= True, tiled=True, windowed=True, overwrite=True) as src:
             src.write(covariateRaster)
     
-    #%% Add covariate data to output dataframe
+    # Add covariate data to output dataframe
     outputRow = covariateDataSheet.iloc[i, 0:4]
     outputRow.RasterFilePath = outputCovariatePath
     outputRow[dropResAggCol] = float('nan')

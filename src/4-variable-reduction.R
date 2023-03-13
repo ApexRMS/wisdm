@@ -88,6 +88,9 @@ if(max(fieldDataSheet$Response)>1){
 # Ignore background data if present
 siteData <- siteData[!siteData$Response == -9999,]
 
+# update response for pseudo-absence sites
+siteData$Response[siteData$Response == -9998] <- 0
+
 # prep deviance explained data
 covData <- select(siteData, -Response)
 devExp <- vector()
@@ -120,6 +123,7 @@ pairsExplore(inputData = siteData,
 
 # inputs
 covData <- select(siteData, -Response, -all_of(badFactors))
+SelectedCovariates <- names(covData)
 # covsDE
 options <- covariateSelectionSheet
 

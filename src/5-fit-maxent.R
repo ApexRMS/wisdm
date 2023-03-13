@@ -93,6 +93,9 @@ if(all(is.na(siteDataWide$Weight))){siteDataWide$Weight <- 1}
 # ignore repeat records data if present
 # siteDataWide <- siteDataWide[!siteDataWide$Response == -9999,]
 
+# set pseudo absences to zero 
+siteDataWide$Response[siteDataWide$Response == -9998] <- 0
+
 # set categorical variable to factor
 factorInputVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T & covariatesSheet$CovariateName %in% names(siteDataWide))]
 if(length(factorInputVars)>0){ 
@@ -180,6 +183,9 @@ if(!is.null(testingData)){
     select(-SiteID, -Response, -UseInModelEvaluation, -ModelSelectionSplit, -Weight) %>%
     relocate(Species, .before = X) %>%
     write.csv(testDataPath, row.names = F)
+  
+  out$data$test <- testingData
+  
   }
 
 out$batchPath <- file.path(ssimTempDir,"Data", "Inputs", "runMaxent.bat")
