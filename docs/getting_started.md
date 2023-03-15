@@ -102,7 +102,7 @@ Note that Stage 1 (Prepare Multiprocessing) only needs to be added to the *Pipel
 
 ### Spatial Data Inputs
 
-Under the **Project Properties**, which you can view by double-clicking in the **Library Explorer** window the *Project* called *Definitions*, you'll find the **Covariates** datasheet. Here, you must list the names of all covariates you want to consider for model development.
+Under the **Project Properties**, which you can view by double-clicking in the **Library Explorer** window, in the *Project* called *Definitions*, you'll find the **Covariates** datasheet. Here, you must list the names of all covariates you want to consider for model development.
 
 <br>
 <img align="middle" style="padding: 3px" width="700" src="assets/images/covariates.png">
@@ -147,7 +147,7 @@ In the **Models** tab, you'll find the **GLM**, **Random Forest**, and **Maxent*
 
 ### Output Options
 
-In the **Output Options** datasheet, you can choose which output maps to generate. Four output options are available for selection: (1) Probability Map, (2) Residuals Map, (3) Multivariate Environmental Similarity Surface (MESS) Map, (4) Most Dissimilar Variable (MoD) Map. Choosing at least one option is required to produce output maps. If the fields are left blank, the default value of **No** will be chosen. 
+In the **Output Options** datasheet, you can choose which output maps to generate. Four output options are available for selection: (1) Probability Map, (2) Residuals Map, (3) Multivariate Environmental Similarity Surface (MESS) Map, (4) Most Dissimilar Variable (MoD) Map. Choosing at least one option is required to produce output maps. If fields are left blank, the corresponding maps will not be generated. 
 
 <br>
 <img align="middle" style="padding: 3px" width="700" src="assets/images/output-options.png">
@@ -157,7 +157,7 @@ In the **Output Options** datasheet, you can choose which output maps to generat
 
 Right-click on the **_Brewer's Sparrow Scenario_** in the **Scenario Manager** window and select **Run** from the context menu. If prompted to save your project click **Yes**. 
 
-During the model run, a **Covariate Correlation Viewer** window will appear showing correlations between *Covariates*. You can opt to remove covariates from consideration if the correlation values are deemed unacceptable. To remove a *Covariate*, simply uncheck the variable from the *Covariates to include:* list. A default threshold correlation value of 0.7 is used to color code the correlation values. This value, and the number of plots shown, can be changed. To view  changes, simply select the *Update* button. Once you are satisfied with your list of covariates, select the *Save & Close* button. The window will close and the analysis will continue.
+During the model run, a **Covariate Correlation Viewer** window will appear showing correlations between *Covariates*. You can opt to remove covariates from consideration if the correlation values are deemed unacceptable. To remove a *Covariate*, simply uncheck the variable from the *Covariates to include* list. A default threshold correlation value of 0.7 is used to color code the correlation values. This value, and the number of plots shown, can be changed. To view  changes, simply select the *Update* button. Once you are satisfied with your list of covariates, select the *Save & Close* button. The window will close and the analysis will continue.
 
 <br>
 <img align="middle" style="padding: 3px" width="700" src="assets/images/correlation-viewer.png">
@@ -196,7 +196,7 @@ Look through the *Result Scenario* to see the updated or newly populated datashe
 
 ### Field Data Outputs
 
-The **Field Data** datasheet has also been updated to only include sites inside the extent of the *template raster*. In the **Options** datasheet below, if weight was selected, the *Weights* column will be populated. If aggregate was selected, records with -9999 may occur in the *Response* column, this indicates redundancy, and these records are removed from model fitting. The *Use In Model Evaluation* and *Model Selection Split* columns will also be populated with the appropriate values. The *Use in Model Evaluation* column indicates which sites will be used for model training and testing. A **Yes** in this column means that the site has been reserved for model evaluation (i.e., testing) and will not be used during model fitting (i.e., training). All sites with a **No** in this column represent the training dataset used for model fitting. The *Model Selection Split* column indicates if and how the training data has been spilt for cross validation. This column is only populated if *Use cross validation for model selection* was chosen under **Validation Options**, and will display the cross-validation fold that each site was assigned to. Only training data will be split into folds (so only sites with a **No** in the *Use in Model Evaluation* column will have a number in the *Model Selection Split* column). 
+The **Field Data** datasheet has also been updated to only include sites inside the extent of the *template raster*. In the **Options** datasheet, if weight was selected, the *Weights* column will be populated. If aggregate was selected, records with -9999 may occur in the *Response* column, this indicates redundancy, and these records are removed from model fitting. The *Use In Model Evaluation* and *Model Selection Split* columns will also be populated based on selections defined in the **Validation Options** datasheet. The *Use in Model Evaluation* column indicates which sites will be used for model training and testing. A **Yes** in this column means that the site has been reserved for model evaluation (i.e., testing) and will not be used during model fitting (i.e., training). The *Model Selection Split* column indicates how the training data has been spilt for cross validation. This column is only populated if *Use cross validation for model selection* was chosen under **Validation Options**, and will display the cross-validation fold that each site was assigned to. 
 
 <br>
 <img align="middle" style="padding: 3px" width="700" src="assets/images/field-data-output.png">
@@ -210,7 +210,7 @@ Back in the **Covariate Data** datasheet, you'll find that all your input raster
 <img align="middle" style="padding: 3px" width="700" src="assets/images/covariate-data-output.png">
 <br> <br>
 
-In the *Results Scenario* you should also find that the **Data Preparation**, **Spatial Multiprocessing**, **Variable Reduction**, **Site Data**, **Variable Reduction**, and **Reduced Covaritate List** datasheets are now populated. **Site Data** is an output of the *Spatial Data Preparation* stage of the *Pipeline* and provides site specific values for each covariate. The **Reduced Covariate List** is an output of the **Variable Reduction** stage of the *Pipeline* and reports the candidate variables that were considered during model fitting.  
+In the *Results Scenario* you should also find that the **Spatial Multiprocessing**, **Site Data**, and **Reduced Covaritate List** datasheets are now populated.  
 
 Since we opted for multiprocessing, we can see that a tiling raster has been created and added to the **Spatial Multiprocessing** datasheet. This tiling raster is used to clip other spatial layers into smaller rectangular blocks effectively creating more manageable processing sizes. 
 
