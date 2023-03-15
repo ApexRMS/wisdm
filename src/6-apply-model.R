@@ -376,3 +376,4 @@ for (i in 1:nrow(modelOutputsSheet)){
 # save outputs
 saveDatasheet(myScenario, spatialOutputsSheet, "SpatialOutputs")
 progressBar(type = "end")    
+

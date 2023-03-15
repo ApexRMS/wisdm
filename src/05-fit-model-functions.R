@@ -31,11 +31,11 @@ fitModel <- function(dat,           # df of training data
   
   if(out$modType == "glm") {
     
-    # if(PsdoAbs){
-    #   # for glm sum of absence weights set equal to sum of presence weights
-    #   absWt <- sum(dat$Response == 1)/sum(dat$Response == 0)
-    #   dat$Weight[dat$Response == 0] <- absWt
-    # }
+    if(out$pseudoAbs){
+      # for glm sum of absence weights set equal to sum of presence weights
+      absWt <- sum(dat$Response == 1)/sum(dat$Response == 0)
+      dat$Weight[dat$Response == 0] <- absWt
+    }
     
     penalty <- if(out$modOptions$SimplificationMethod == "AIC"){2} else {log(nrow(dat))}
     

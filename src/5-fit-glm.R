@@ -82,7 +82,11 @@
   if(all(is.na(siteDataWide$Weight))){siteDataWide$Weight <- 1}
   
   # ignore background data if present
-  siteDataWide <- siteDataWide[!siteDataWide$Response == -9999,]
+  # siteDataWide <- siteDataWide[!siteDataWide$Response == -9999,]
+  
+  # set pseudo absences to zero 
+  if(any(siteDataWide$Response == -9998)){pseudoAbs <- TRUE} else {pseudoAbs <- FALSE}
+  siteDataWide$Response[siteDataWide$Response == -9998] <- 0
   
   # set categorical variable to factor
   factorInputVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T & covariatesSheet$CovariateName %in% names(siteDataWide))]
@@ -130,7 +134,7 @@
   out$data$test <- testingData
   
   ## pseudo absence  
-  out$pseudoAbs <- FALSE # To Do: build out call to pseudo absence 
+  out$pseudoAbs <- pseudoAbs
   
   ## Validation options
   out$validationOptions <- validationDataSheet 

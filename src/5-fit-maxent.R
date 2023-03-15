@@ -69,7 +69,8 @@ if(mulitprocessingSheet$EnableMultiprocessing){
 } else {
   maxentSheet$MultiprocessingThreads <- 1
   }
-    
+ 
+saveDatasheet(myScenario, maxentSheet, "wisdm_Maxent")   
 
 # Prep data for model fitting --------------------------------------------------
 
@@ -94,6 +95,7 @@ if(all(is.na(siteDataWide$Weight))){siteDataWide$Weight <- 1}
 # siteDataWide <- siteDataWide[!siteDataWide$Response == -9999,]
 
 # set pseudo absences to zero 
+if(any(siteDataWide$Response == -9998)){pseudoAbs <- TRUE} else {pseudoAbs <- FALSE}
 siteDataWide$Response[siteDataWide$Response == -9998] <- 0
 
 # set categorical variable to factor
@@ -107,8 +109,10 @@ if(length(factorInputVars)>0){
 # identify training and testing sites 
 trainTestDatasets <- split(siteDataWide, f = siteDataWide[,"UseInModelEvaluation"], drop = T)
 trainingData <- trainTestDatasets$`FALSE`
-if(!validationDataSheet$CrossValidate){trainingData$ModelSelectionSplit <- FALSE}
+if(!validationDataSheet$CrossValidate){ trainingData$ModelSelectionSplit <- FALSE }
+
 testingData <- trainTestDatasets$`TRUE`
+if(!is.null(testingData)){ testingData$ModelSelectionSplit <- FALSE }
 
 # Model definitions ------------------------------------------------------------
 
@@ -133,8 +137,8 @@ if(max(fieldDataSheet$Response)>1){
 out$inputVars <- reducedCovariatesSheet$CovariatesID
 out$factorInputVars <- factorInputVars
 
-## pseudo absence  
-out$pseudoAbs <- pseudoAbs <- TRUE # To Do: build out call to pseudo absence 
+## pseudo absence
+out$pseudoAbs <- pseudoAbs
 
 ## Validation options
 out$validationOptions <- validationDataSheet 
