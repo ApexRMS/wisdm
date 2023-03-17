@@ -1,0 +1,71 @@
+Random Forest Results
+
+Settings:
+	n covariates considered at each split  : 1
+	   (averaged over each used available split)
+
+	n trees                                : 1000
+	   (for each used available split)
+
+
+Relative performance of predictors in final model:
+
+                  0       1 MeanDecreaseAccuracy MeanDecreaseGini
+sagebrush    0.0279  0.0056               0.0250          13.0199
+mixed_shrub  0.0256  0.0168               0.0245          11.0710
+ndvi         0.0162  0.0237               0.0171          13.7416
+tri          0.0185  0.0056               0.0168          13.5279
+road_density 0.0150 -0.0008               0.0130          13.8515
+min_temp     0.0098  0.0113               0.0099          13.8663
+
+
+============================================================ 
+
+Evaluation Statistics applied to Cross validation split:
+
+ 
+	 Correlation Coefficient      : 0.183501  (sd 0.15678)
+
+  Threshold Methods based on 
+	 Mean Threshold               : 0.421 (sd 0.029026) 
+
+	 Confusion Matrix: 
+
+         observed
+predicted   1   0
+        1   8  11
+        0  66 489
+
+	 AUC                          :  0.62998  (sd 0.09257) 
+	 AUC-pr                       :  0.2705772  (sd 0.1273) 
+	 Percent Correctly Classified :  86.58886  (sd 1.9764) 
+	 Sensitivity                  :  0.1095238  (sd 0.10455) 
+	 Specificity                  :  0.978  (sd 0.013038) 
+	 Kappa                        :  0.1215578  (sd 0.15202) 
+	 True Skill Statistic         :  0.08752381  (sd 0.10637) 
+
+
+============================================================ 
+
+Evaluation Statistics applied to Final evaluation split:
+
+ 
+	 Correlation Coefficient      : 0.1539344
+
+  Threshold Methods based on 
+	 Threshold                    :  0.12 
+
+	 Confusion Matrix: 
+
+         observed
+predicted   1   0
+        1  39 228
+        0  35 272
+
+	 AUC                          :  0.5762 
+	 AUC-pr                       :  0.2245895 
+	 Percent Correctly Classified :  54.18118 
+	 Sensitivity                  :  0.527027 
+	 Specificity                  :  0.544 
+	 Kappa                        :  0.03364529 
+	 True Skill Statistic         :  0.07102703 
