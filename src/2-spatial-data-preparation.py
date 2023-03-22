@@ -11,10 +11,32 @@
 
 #%% Source dependencies ----------------------------------------------------------
 
+# Modify os path if multiple GDAL installations
+import os
+import glob
+from win32api import GetFileVersionInfo, LOWORD, HIWORD
+
+gdal_installations = []
+if "PATH" in os.environ:
+  for p in os.environ["PATH"].split(os.pathsep):
+    if p and glob.glob(os.path.join(p, "gdal*.dll")):
+      gdal_installations.append(os.path.abspath(p))
+
+if len(gdal_installations) > 1:
+    for folder in gdal_installations:
+        filename = os.path.join(folder, "gdal.dll")
+        info = GetFileVersionInfo (filename, "\\")
+        major_version = HIWORD (info['FileVersionMS'])
+        minor_version = LOWORD (info['FileVersionMS'])
+
+        if major_version < 3:
+            os.environ['PATH'] =- folder
+        if minor_version < 6:
+            os.environ['PATH'] =- folder
+
 import pysyncrosim as ps     
 import numpy as np          
 import pandas as pd          
-import os
 import rioxarray
 import xarray
 import rasterio
