@@ -25,14 +25,20 @@ if "PATH" in os.environ:
 if len(gdal_installations) > 1:
     for folder in gdal_installations:
         filename = os.path.join(folder, "gdal.dll")
+        
+        if not os.path.exists(filename):           
+            print("no gdal dlls found in " + folder)
+            os.environ['PATH'] = os.pathsep.join(
+                    [p for p in os.environ['PATH'].split(os.pathsep) if folder not in p])
+            continue
+
         info = GetFileVersionInfo (filename, "\\")
         major_version = HIWORD (info['FileVersionMS'])
         minor_version = LOWORD (info['FileVersionMS'])
 
-        if major_version < 3:
-            os.environ['PATH'] =- folder
-        if minor_version < 6:
-            os.environ['PATH'] =- folder
+        if (major_version < 3) | (minor_version < 6):
+            os.environ['PATH'] = os.pathsep.join(
+                [p for p in os.environ['PATH'].split(os.pathsep) if folder not in p])
 
 import pysyncrosim as ps     
 import numpy as np          
