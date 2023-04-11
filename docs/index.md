@@ -30,9 +30,7 @@ This package requires SyncroSim <a href="https://syncrosim.com/download/" target
 
 ## Getting Started
 
-The WISDM package is scheduled to be launched in March 2023. Sign up for the <a href="https://syncrosim.com/blog/" target="_blank">SyncroSim Blog</a> to be notified the day it is released!
-  
-<!--- For a guided tutorial on **WISDM**, including installation, set up, model run, and output visualization, see the [Getting Started](https://apexrms.github.io/wisdm/getting_started.html) page. -->
+For a guided tutorial on **WISDM**, including installation, set up, model run, and output visualization, see the [Getting Started](https://apexrms.github.io/wisdm/getting_started.html) page.
 
 <br>
 
