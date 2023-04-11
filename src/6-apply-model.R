@@ -78,7 +78,7 @@ if(nrow(outputOptionsSheet)<1){
 if(any(is.na(outputOptionsSheet))){
   outputOptionsSheet[is.na(outputOptionsSheet)] <- F
 }
-
+saveDatasheet(myScenario, outputOptionsSheet,  "wisdm_OutputOptions") 
 updateRunLog("Finished loading inputs in ", updateBreakpoint())
 
 # set up spatial multiprocessing -----------------------------------------------
