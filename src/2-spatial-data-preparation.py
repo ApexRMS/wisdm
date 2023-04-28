@@ -11,7 +11,7 @@
 
 #%% Source dependencies ----------------------------------------------------------
 
-# Modify os path if multiple GDAL installations
+## Modify os path if multiple GDAL installations ----
 import os
 import glob
 from win32api import GetFileVersionInfo, LOWORD, HIWORD
@@ -46,6 +46,7 @@ if len(gdal_installations) > 1:
                 os.environ['PATH'] = os.pathsep.join(
                     [p for p in os.environ['PATH'].split(os.pathsep) if folder not in p])
 
+## dependencies
 import pysyncrosim as ps     
 import numpy as np          
 import pandas as pd          
@@ -60,6 +61,12 @@ import dask
 from dask.distributed import Client, Lock
 from shapely.geometry import Point #, shape
 from rasterio.enums import Resampling #, MergeAlg
+
+## Modify the os PROJ path (when running with Conda) ----
+myLibrary = ps.Library()
+mySession = ps.Session()
+if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
+    os.environ['PROJ_LIB'] = mySession.conda_filepath + "\\envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj"
 
 #%% Connect to SyncroSim library ------------------------------------------------
 
