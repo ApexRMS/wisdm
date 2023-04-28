@@ -1,5 +1,0 @@
-# Syncrosim Generated Maxent Color Map (QGIS-compatible),,,,,
-INTERPOLATION:DISCRETE
-0,255,255,0,255,Zero
--0.0001,64,0,128,255,Negative
-100,255,165,0,255,Positive
