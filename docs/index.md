@@ -21,7 +21,7 @@ WISDM was designed to update and replace <a href="https://doi.org/10.1111/j.1600
 
 ## Requirements
 
-This package requires SyncroSim <a href="https://syncrosim.com/download/" target="_blank">version 2.4.20</a> or higher.
+This package requires SyncroSim <a href="https://syncrosim.com/download/" target="_blank">version 2.4.27</a> or higher. <br>
 <a href="https://www.java.com" target="_blank">Java</a> is also required if you choose to run Maxent models within the WISDM package.
 
 <!--- > Instructions for installing the above requirements for WISDM are provided on the [Getting Started](https://apexrms.github.io/wisdm/getting_started.html) page. -->
