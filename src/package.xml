@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.11">
+<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.12" url="https://apexrms.github.io/wisdm/">
 	<transformers>
 		<!--Primary Transformer-->
 		<transformer 
@@ -82,6 +82,7 @@
 						<column name="FieldDataOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
 						<column name="EPSG" displayName="Authority Code (e.g., EPSG:4326)" dataType="String" isOptional="True"/>
+						<column name="NetworkEnabled" displayName="Access online transformation library" dataType="Boolean"/>
 						<column name="AggregateAndWeight" displayName="Aggregate or Weight Data" dataType="Integer" validationType="List" formula1="0:Aggregate|1:Weight" isOptional="True"/>
 					    <column name="GenerateBackgroundSites" displayName="Generate background sites" dataType="Boolean" isOptional="True"/>
 					  	<column name="BackgroundSiteCount" displayName="Number of background sites added to field data" dataType="Integer" isOptional="True"/>
@@ -89,6 +90,9 @@
 					    <column name="KDESurface" displayName="KDE background surface method" dataType="Integer" validationType="List" formula1="0:Continuous|1:Binary" isOptional="True"/>
 					    <column name="Isopleth" displayName="Isopleth threshold used for binary mask creation (%)" dataType="Integer" isOptional="True"/>
 					  </columns>
+					  <defaultRecords>
+                		<record columns="NetworkEnabled|GenerateBackgroundSites" values="-1|0"/>
+              		  </defaultRecords>
 					</datasheet>
 				  </datasheets>
 				</datafeed>
