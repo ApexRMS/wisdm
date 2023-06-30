@@ -56,6 +56,7 @@ import rasterio
 import geopandas as gpd
 import shapely
 import dask
+import pyproj
 # import spatialUtils
 
 from dask.distributed import Client, Lock
@@ -66,7 +67,11 @@ from rasterio.enums import Resampling #, MergeAlg
 myLibrary = ps.Library()
 mySession = ps.Session()
 if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
-    os.environ['PROJ_LIB'] = mySession.conda_filepath + "\\envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj"
+    os.environ["PROJ_DATA"] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")
+    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
+    # pyproj.datadir.set_data_dir(os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj"))
+    # pyproj.network.set_ca_bundle_path(os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem"))
+    
 
 #%% Connect to SyncroSim library ------------------------------------------------
 
@@ -103,6 +108,12 @@ client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False
 # client
 
 #%% Check inputs and set defaults ---------------------------------------------
+
+# Set PROJ network connection
+if fieldDataOptions.NetworkEnabled.item() == "No":
+    pyproj.network.set_network_enabled(active=False)
+    # os.environ["PROJ_NETWORK"] = "OFF"
+    # pyproj.network.is_network_enabled()
 
 # Check that a template raster was provided
 if pd.isnull(templateRasterSheet.RasterFilePath.item()):
