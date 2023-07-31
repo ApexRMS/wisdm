@@ -35,7 +35,7 @@ The **Sidebar Navigation Menu** lists all the headings within the page, and all 
 The **Template Raster** datasheet contains information about the dimensions of the study area.
 
 ### Raster File
-The *Raster File* is a file containing the dimensions of the study area, and is commonly one of the covariate data rasters. This raster will be a file on the device, and there are options to add the raster file from the device, remove the raster file, and export the template raster file. The models will be clipped to the extent of this raster. 
+The *Raster File* is a file containing the dimensions of the study area. There are options to add the raster file from a location on the computer, remove the raster file, and export the template raster file. The models will be clipped to the extent of this raster and will have the same spatial reference and resolution as this raster. 
 
 ### Number of Multiprocessing Tiles (optional)
 This is an optional input. Multiprocessing tiles provide a way to divide up a model's processing so that it can run faster and more efficiently. For more information about multiprocessing, see [SyncroSim Reference - Multiprocessing](https://docs.syncrosim.com/how_to_guides/modelrun_multiproc.html)
@@ -43,16 +43,16 @@ This is an optional input. Multiprocessing tiles provide a way to divide up a mo
 
 <p id="heading02"> <h2>Covariate Data</h2> </p>
 
-The **Covariate Data** datasheet contains spatial information on each covariates. This information can be input directly, or imported from a csv (right click the datafeed -> Import) with the headers "CovariatesID"(covariate name), "RasterFilePath", "ResampleMethod" (optional), and "AggregationMethod" (optional).
+The **Covariate Data** datasheet contains spatial information on each covariate. This information can be input directly, or imported from a csv (right click the **Covariate Data** page and select Import) with the headers "CovariatesID"(covariate name), "RasterFilePath" (Path to the raster on your device), "ResampleMethod" (optional), and "AggregationMethod" (optional). Covariates represent spatial data, such as precipitation or slope, that can be used to predict habitat suitability for a species. 
 
 ### Covariate
 In the *Covariate* column, the names of covariates that will be used in the *Scenario* are listed. By default, this column is empty. 
 ### Raster File
 The *Raster File* column shows the file names of each covariate raster. 
 ### Resample Method
-This *Resample Method* column defines which resampling method each raster will be using. This column can be created by right-clicking a covariate or raster file and selecting "Resample Method". Resampling options include Nearest Neighbor, Bilinear, Cubic, Cubic Spline, and Lanczos. To learn more about resampling rasters, see [PDF - Resampling Methods, MicroImages.com](https://www.microimages.com/documentation/TechGuides/77resampling.pdf)
+The *Resample Method* column defines which resampling method each raster will be using. This column is initially hidden, and can be created by right-clicking a covariate or raster file and selecting "Resample Method". Resampling options include Nearest Neighbor, Bilinear, Cubic, Cubic Spline, and Lanczos. To learn more about resampling rasters, see [PDF - Resampling Methods, MicroImages.com](https://www.microimages.com/documentation/TechGuides/77resampling.pdf)
 ### Aggregation Method
-The *Aggregation Method* column defines which aggregation method each raster will be using. Similarly to *Resample Method*, this column can be created by right-clicking a covariate or raster file and selecting "Aggregation Method". Options for aggregation methods include Mean, Max, Min, and Majority. The aggregation method relates to changing the resolution of the raster. For more information about these aggregation methods see [Summarize Raster Within (Raster Analysis) - ESRI](https://pro.arcgis.com/en/pro-app/latest/tool-reference/raster-analysis/summarize-raster-within.htm) and [Aggregate (Spatial Analyst)](https://pro.arcgis.com/en/pro-app/latest/tool-reference/spatial-analyst/aggregate.htm).
+The *Aggregation Method* column defines which aggregation method each raster will be using. Similar to *Resample Method*, this column is initially hidden from view and can be created by right-clicking a covariate or raster file and selecting "Aggregation Method". Options for aggregation methods include Mean, Max, Min, and Majority. The aggregation method relates to changing the resolution of the raster. For more information about these aggregation methods see [Summarize Raster Within (Raster Analysis) - ESRI](https://pro.arcgis.com/en/pro-app/latest/tool-reference/raster-analysis/summarize-raster-within.htm) and [Aggregate (Spatial Analyst)](https://pro.arcgis.com/en/pro-app/latest/tool-reference/spatial-analyst/aggregate.htm).
 <br>
 
 <p id="heading03"> <h2>Field Data</h2> </p>
@@ -64,11 +64,11 @@ The *X* column represents X coordinates in the coordinate system defined in the 
 ### Y
 The *Y* column represents Y coordinates in the coordinate system defined in the **Options** tab. 
 ### Response
-The *Response* column identifies whether there was an absence or presence detected at each site. 1 represents a presence detected, while 0 represents an absence detected. 
+The *Response* column identifies whether there was an absence or presence detected at each site. 1 represents a presence detected, while 0 represents an absence location. 
 ### Site
-The *Site* column represents the site ID number. The site column can be added by right clicking a cell in the table. 
+The *Site* column represents the site ID number. The site column is initially hidden and can be added by right clicking a cell in the table. 
 ### Use In Model Evaluation
-*Use In Model Evaluation* is an option that can be chosen for each row in this column, and can be added to the **Field Data** table by right clicking a row in the table and selecting "Use In Model Evaluation". Selecting "Yes" will save certain points for testing the *Scenario's* models, and selecting "No" will allow certain points to be used in the modeling process. 
+*Use In Model Evaluation* is an option that can be chosen for each row in this column, and can be added to the **Field Data** table by right clicking a row in the table and selecting "Use In Model Evaluation". Selecting "Yes" will save selected points for testing the *Scenario's* models, and selecting "No" will allow selected points to be used in the modeling process. 
 ### Model Selection Split
 The *Model Selection Split* column reserves selected data from the model fitting process, but these data will still be included in model evaluation and the split data are stratified by the response. 
 ### Weight
@@ -101,13 +101,13 @@ The **Validation Options** datasheet sets parameters for model validation.
 ### Split data for model training and testing
 Checking "Yes" in the *Split data for model training and testing* tab will allow some of the data to be withheld from modeling and used for validating the models.
 ### Proportion of data used for model training
-The *Proportion of data used for model training* option accepts proportions as decimals. For example, if this proportion is 0.3, 30% of the *Field Data* will be withheld for model validation. 
+This field should be specified if the *Split data for model training and testing* field is marked "Yes". The *Proportion of data used for model training* option accepts proportions as decimals. For example, if this proportion is 0.3, 30% of the *Field Data* will be withheld for model validation. 
 ### Use cross validation for model selection
 Checking "Yes" in the *Use cross validation for model selection* tab will further split data into cross validation folds, testing the models on a subset of the data that was not used to train the model. 
 ### Stratify cross-validation folds by the response
 Checking "Yes" in the *Stratify cross-validation folds by the response* tab will ensure that the cross-validation folds will be representative of the distribution of the response values. 
 ### Number of cross-validation folds
-The *Number of cross-validation folds* tab specifies how many cross-validation folds will be included in the *Scenario*.
+The *Number of cross-validation folds* tab specifies how many cross-validation folds will be included in the *Scenario*. Input an integer that reflects the number of cross validation folds desired (ex.: 10).
 <p id="heading06"> <h2>Spatial Multiprocessing</h2> </p>
 
 The **Spatial Multiprocessing** datasheet contains a tiling raster used for spatial multiprocessing. 

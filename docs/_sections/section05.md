@@ -14,7 +14,7 @@ permalink: section05
 
 # **Output Options**
 
-This is the page for the **Output Options** tab with content organized into headings and, optionally, subsections.
+This is the page for the **Output Options** tab with content organized into headings and, optionally, subsections. For more information about viewing outputs, see [SyncroSim - Analyzing Results: Overview](https://docs.syncrosim.com/how_to_guides/results_overview.html).
 
 The **Sidebar Navigation Menu** lists all the headings within the page, and all the Sections within the Reference guide. 
 
@@ -23,6 +23,6 @@ Selecting "Yes" on the *Make Probability Map* argument will create a probability
 ### Make Residuals Map
 Selecting "Yes" on the *Make Residuals Map* argument will create a residuals map for the **Scenario**.
 ### Make Multivariate Environmental Similarity Surface (MESS) Map
-Selecting "Yes" on the *Make Multivariate Environmental Similarity Surface (MESS) Map* argument will create a MESS map for the **Scenario**.
+Selecting "Yes" on the *Make Multivariate Environmental Similarity Surface (MESS) Map* argument will create a MESS map for the **Scenario**. 
 ### Make Most Dissimilar Variable (MoD) Map
 Selecting "Yes" on the *Make Most Dissimilar Variable (MoD) Map* argument will create a MoD map for the **Scenario**.

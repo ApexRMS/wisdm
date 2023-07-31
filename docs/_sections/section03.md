@@ -29,7 +29,7 @@ The **Sidebar Navigation Menu** lists all the headings within the page, and all 
 
 <p id="heading01"> <h2>Site Data</h2> </p>
 
-The **Site Data** datasheet contains information about covariate values at each *Field Data* site. This datasheet will auto-populate after a *Scenario* has finished running. 
+The **Site Data** datasheet contains information about covariate values at each *Field Data* site (i.e. presence location or absence location provided in *Field Data*). This datasheet will auto-populate after a *Scenario* has finished running. 
 
 ### Site
 The *Site* column contains site IDs from the *Field Data* datasheet within the **Data Preparation** tab. It is repeated within this column for each covariate containing data for this site.
@@ -44,11 +44,11 @@ The *Value* tab contains the values of covariates at each site.
 The **Covariate Selection Options** datasheet contains options for how covariates should be treated during the modeling process for *Stage 4 - Variable Reduction*.
 
 ### Display Highest Correlations
-Selecting "Yes" for *Display Highest Correlations* means that only the variables that have a correlation with the variable that has the <u>most total correlations</u>, and other correlations will not be shown in the covariate correlation matrix. If "No" is selected, this means that all correlations will be shown in the matrix, including those not correlated with the variable that has the most correlations.
+Selecting "Yes" for *Display Highest Correlations* means that only the variables that are significantly correlated with the variable that has the <u>most total correlations</u> will be displayed in a correlation matrix. Other correlations between covariates excluding the variable with the most total correlations will not be shown in the covariate correlation matrix. If "No" is selected, this means that all correlations will be shown in the matrix, including those not correlated with the variable that has the most correlations.
 ### Correlation Threshold
 The *Correlation Threshold* argument is for the covariate correlation matrix interface. This entry should be between 0 and 1. For example, if the *Correlation Threshold* is 0.5, then any correlation cell value at 0.5 or higher will be colored to draw attention to the correlation. Higher correlations will be represented with redder shades, and lower correlations that are still above the threshold will be represented with yellower shades. 
 ### Number of Plots
-The *Number of Plots* argument represents the number of covariates that will be shown in the covariate correlation matrix window. If "Yes" is selected for *Display Highest Correlations*, this argument should be left blank. This number can also be changed within the window while the *Scenario* is running. 
+The *Number of Plots* argument represents the number of covariates (an integer) that will be shown in the covariate correlation matrix window. If "Yes" is selected for *Display Highest Correlations*, this argument should be left blank. This number can also be changed within the window while the *Scenario* is running. 
 
 <br>
 
