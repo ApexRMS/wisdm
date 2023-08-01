@@ -476,7 +476,8 @@
 	</transformers>
 	<layouts>
 		<!--Library Datafeeds Layout-->
-		<layout name="coreforms_LibraryDatafeeds">
+		<layout name="coreforms_LibraryDatafeeds"> 
+		  <item name="core_Backup"/>
 		  <item name="core_Rconfig"/>
 		  <item name="core_Pyconfig"/>
 		  <!--item name="core_Condaconfig"/-->
