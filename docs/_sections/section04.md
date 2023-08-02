@@ -30,12 +30,12 @@ The **Sidebar Navigation Menu** lists all the headings within the page, and all 
 
 <p id="heading01"> <h2>GLM</h2> </p>
 
-The **GLM** datasheet contains information about the Generalized Linear Model algorithm options.
+The **GLM** datasheet contains information about the Generalized Linear Model algorithm options. The GLM algorithm 
 
 ### Select Best Predictors
 Selecting "Yes" in the *Select Best Predictors* argument means that the GLM will use internal statistical methods to determine which predictors are significant to the model and will remove predictors that are unimportant for the *Scenario*. Selecting "No" requires the GLM to use all predictors offered to it.
 ### Simplification Method
-The *Simplification Method* will either be AIC (Akaike Information Criterion) or BIC (Bayesian Information Criterion), and these criteria relate to how the predictors are chosen for the GLM. For more information about these criteria, see [Aho, Derryberry, & Peterson](https://doi.org/10.1890/13-1452.1).
+The *Simplification Method* will either be AIC (Akaike Information Criterion) or BIC (Bayesian Information Criterion), and these criteria relate to how the predictors are chosen for the GLM. AIC and BIC measure how well the model fits the data based on the covariates already included in the GLM and evaluates changes to the criteria when adding or dropping covariates. For more information about these criteria, see [Aho, Derryberry, & Peterson](https://doi.org/10.1890/13-1452.1).
 ### Consider Squared Terms
 Selecting "Yes" for the *Consider Squared Terms* argument allows the GLM to consider relationships between the predictors and the response in a non-linear relationship by squaring the predictor values. 
 ### Consider Interactions
@@ -44,14 +44,14 @@ Selecting "Yes" for the *Consider Interactions* argument will allow the GLM to t
 
 <p id="heading02"> <h2>Random Forest</h2> </p>
 
-The **Random Forest** datasheet contains information about the Random Forest (RF) algorithm options. More information about random forest can be found in the [CRAN - Random Forest Reference Manual](https://cran.r-project.org/web/packages/randomForest/randomForest.pdf).
+The **Random Forest** datasheet contains information about the Random Forest (RF) algorithm, a machine-learning ensemble classifier. More information about random forest can be found in the [CRAN - Random Forest Reference Manual](https://cran.r-project.org/web/packages/randomForest/randomForest.pdf).
 
 ### Evaluate covariate importance
-Selecting "Yes" for the *Evaluate covariate importance* argument will allow the RF algorithm to evaluate covariate importance during the modeling process. 
+Selecting "Yes" for the *Evaluate covariate importance* argument will allow the RF algorithm to evaluate covariate importance during the modeling process by calculating the change in fit statistics for trees that include each covariate. 
 ### Calculate casewise importance
 Selecting "Yes" for the *Calculate casewise importance* argument will allow RF to calculate the importance of each covariate during the classification process, and measures how significantly covariates influence the output. For more information about covariate and casewise importance in the RF algorithm, see [Classification and Regression with Random Forest](https://haoen-cui.github.io/SOA-Exam-PA-R-Package-Documentation/randomForest/reference/randomForest.html)
 ### Number of variables sampled at split
-The *Number of variables sampled at split* argument will auto-populate after the model runs, and shows the number of variables actually used in the random forest, if not specified beforehand.
+The *Number of variables sampled at split* argument represents the number of variables randomly sampled ass candidates in each split of the random forest. 
 ### Maximum number of nodes
 The *Maximum number of nodes* argument specifies the maximum number of nodes the RF algorithm can have.
 ### Number of trees
@@ -68,12 +68,12 @@ Selecting "Yes" on *Sample with replacement* will allow each decision tree to be
 <br>
 <p id="heading03"> <h2>Maxent</h2> </p>
 
-The **Maxent** datasheet contains information about the Maxent algorithm options.
+The **Maxent** datasheet contains information about the Maxent algorithm, a machine learning technique that minimizes relative entropy between the probability density of the species and of the environment.
 
 ### Memory allocation (GB)
 The *Memory allocation (GB)* argument represents the memory that should be allocated to the Maxent algorithm, in gigabytes. If left blank, this field will auto-populate after the algorithm is finished running.
 ### Maximum number of background points
-The *Maximum number of background points* argument specifies the maximum number of background points that will be generated during the modeling process for the Maxent algorithm. If left blank, this field will auto-populate at the end of the modeling process. More background points will lead to a higher entropy of the model, but only one background point can be generated per raster cell. The default for this argument is 10,000. 
+The *Maximum number of background points* argument specifies the maximum number of background points that will be generated during the modeling process for the Maxent algorithm. If left blank, this field will auto-populate at the end of the modeling process. More background points will lead to a higher entropy of the model, and only one background point can be generated per raster cell. The default for this argument is 10,000. 
 ### Number of processing threads
 The *Number of processing threads* argument specifies the number of processing threads used for the Maxent algorithm. If this argument is not specified, the number of processing threads for Maxent will rely on the multiprocessing environment settings in **SyncroSim**.
 ### View maxent user interface during run
