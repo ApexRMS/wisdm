@@ -35,7 +35,7 @@ The **Sidebar Navigation Menu** lists all the headings within the page, and all 
 The **Template Raster** datasheet contains information about the dimensions of the study area.
 
 ### Raster File
-The *Raster File* is the template raster file containing the dimensions of the study area. There are options to add the raster file from a location on the computer, remove the raster file, and export the template raster file. The models will be snapped and clipped to the extent of this raster and will have the same spatial reference and resolution as this raster. 
+The *Raster File* is the template raster file containing the dimensions of the study area. The covariate rasters will be snapped and clipped to the extent of this raster and will have the same spatial reference and resolution as this raster. There are options to add the the template raster file from a location on the computer (by selecting the yellow folder), remove the raster file (by selecting the X), and export the template raster file (by selecting the export icon). 
 
 ### Number of Multiprocessing Tiles (optional)
 This is an optional input. Multiprocessing tiles provide a way to divide up a model's processing so that it can run faster and more efficiently by taking advantage of multiple cores. For more information about multiprocessing, see [SyncroSim Reference - Multiprocessing](https://docs.syncrosim.com/how_to_guides/modelrun_multiproc.html)
@@ -43,16 +43,16 @@ This is an optional input. Multiprocessing tiles provide a way to divide up a mo
 
 <p id="heading02"> <h2>Covariate Data</h2> </p>
 
-The **Covariate Data** datasheet contains spatial information on each covariate. This information can be input directly, or imported from a csv (right click the **Covariate Data** page and select Import) with the headers "CovariatesID"(covariate name), "RasterFilePath" (Path to the raster on your device), "ResampleMethod" (optional), and "AggregationMethod" (optional). Covariates represent spatial data, such as precipitation or slope, that can be used to predict habitat suitability for a species. 
+The **Covariate Data** datasheet contains spatial information about each covariate. Covariates, also known as predictors, represent spatial and environmental data, such as precipitation and slope, that models rely on to infer spatial patterns in order to predict habitat suitability for a species. This information can be input directly or imported from a CSV (right click the **Covariate Data** page and select Import) with the headers "CovariatesID"(covariate name), "RasterFilePath" (Path to the raster on your device), "ResampleMethod" (optional), and "AggregationMethod" (optional). 
 
 ### Covariate
 In the *Covariate* column, the names of covariates that will be used in the *Scenario* are listed. By default, this column is empty. 
 ### Raster File
 The *Raster File* column shows the file name of the corresponding *covariate* raster. 
 ### Resample Method
-The *Resample Method* column defines which resampling method each raster will be using. This column is initially hidden, and can be created by right-clicking a covariate or raster file and selecting "Resample Method". Resampling interpolates cell values when transforming the covariate raster to the CRS or resolution of the template raster. Resampling options include Nearest Neighbor, Bilinear, Cubic, Cubic Spline, and Lanczos. To learn more about resampling rasters, see [PDF - Resampling Methods, MicroImages.com](https://www.microimages.com/documentation/TechGuides/77resampling.pdf)
+The *Resample Method* column defines which resampling method each raster will be using. This column is initially hidden, and can be created by right-clicking a covariate or raster file and selecting "Resample Method". Resampling interpolates cell values when transforming the covariate raster to the coordinate reference system (CRS) or resolution of the template raster. Resampling options include Nearest Neighbor, Bilinear, Cubic, Cubic Spline, and Lanczos. To learn more about resampling rasters, see [PDF - Resampling Methods, MicroImages.com](https://www.microimages.com/documentation/TechGuides/77resampling.pdf)
 ### Aggregation Method
-The *Aggregation Method* column defines which aggregation method each raster will be using. Similar to *Resample Method*, this column is initially hidden from view and can be created by right-clicking a covariate or raster file and selecting "Aggregation Method". Options for aggregation methods include Mean, Max, Min, and Majority. The aggregation method relates to decreasing the resolution of the raster to match the template raster and ensuring that the data within each cell is still preserved (for example, re-scaling a 10m resolution covariate raster to a 100m resolution template raster). For more information about these aggregation methods, see [Summarize Raster Within (Raster Analysis) - ESRI](https://pro.arcgis.com/en/pro-app/latest/tool-reference/raster-analysis/summarize-raster-within.htm) and [Aggregate (Spatial Analyst)](https://pro.arcgis.com/en/pro-app/latest/tool-reference/spatial-analyst/aggregate.htm).
+The *Aggregation Method* column defines which aggregation method each raster will be using. Similar to *Resample Method*, this column is initially hidden from view and can be created by right-clicking a covariate or raster file and selecting "Aggregation Method". Aggregation of covariate layers occurs when the resolution of the raster needs to be decreased to match the template raster. Aggregating ensures that the data within each cell is preserved when decreasing the resolution of the covariate raster to match the template raster (for example, re-scaling a 10m resolution covariate raster to a 100m resolution template raster). Options for aggregation methods include Mean, Max, Min, and Majority. For more information about these aggregation methods, see [Summarize Raster Within (Raster Analysis) - ESRI](https://pro.arcgis.com/en/pro-app/latest/tool-reference/raster-analysis/summarize-raster-within.htm) and [Aggregate (Spatial Analyst)](https://pro.arcgis.com/en/pro-app/latest/tool-reference/spatial-analyst/aggregate.htm).
 <br>
 
 <p id="heading03"> <h2>Field Data</h2> </p>
@@ -60,9 +60,9 @@ The *Aggregation Method* column defines which aggregation method each raster wil
 The **Field Data** datasheet contains information about species presence and absence locations.
 
 ### X
-The *X* column represents X coordinates in the coordinate system defined in the **Options** tab. 
+The *X* column represents X coordinates (longitude) in the coordinate system defined in the **Options** tab. 
 ### Y
-The *Y* column represents Y coordinates in the coordinate system defined in the **Options** tab. 
+The *Y* column represents Y coordinates (latitude) in the coordinate system defined in the **Options** tab. 
 ### Response
 The *Response* column identifies whether there was an absence or presence detected at each site. 1 represents a location where the species is present, while 0 represents a location where the species is absent. 
 ### Site
@@ -72,7 +72,7 @@ The *Site* column represents the site ID number. The site column is initially hi
 ### Model Selection Split
 The *Model Selection Split* column reserves selected data from the model fitting process, but these data will still be included in model evaluation and the split data are stratified by the response (so that the proportion of presence and absence points is closer to equal in the testing and training split). 
 ### Weight
-The *Weight* column allows for weighting of certain points differently in the model, if "Weight" is selected on the *Aggregate or Weight Data* argument in the **Options** datasheet. If multiple points are included in a pixel, the points can be down-weighted so that the combination of the points have an equal weight in the model to one point in another pixel. This column can be added to the table by right clicking a row in the table and selecting "Weight". 
+The *Weight* column allows for weighting of certain points differently in the model, if "Weight" is selected on the *Aggregate or Weight Data* argument in the **Options** datasheet. If multiple points are included in a single pixel, the points can be down-weighted so that the combination of the points have an equal weight in the model to an individual point in another pixel. This column can be added to the table by right clicking a row in the table and selecting "Weight". 
 <br>
 
 <p id="heading04"> <h2>Options</h2> </p>

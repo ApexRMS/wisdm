@@ -30,16 +30,16 @@ The **Sidebar Navigation Menu** lists all the headings within the page, and all 
 
 <p id="heading01"> <h2>GLM</h2> </p>
 
-The **GLM** datasheet contains information about the Generalized Linear Model algorithm options. The GLM algorithm 
+The **GLM** datasheet contains information about the Generalized Linear Model (GLM) algorithm options.
 
 ### Select Best Predictors
 Selecting "Yes" in the *Select Best Predictors* argument means that the GLM will use internal statistical methods to determine which predictors are significant to the model and will remove predictors that are unimportant for the *Scenario*. Selecting "No" requires the GLM to use all predictors offered to it.
 ### Simplification Method
-The *Simplification Method* will either be AIC (Akaike Information Criterion) or BIC (Bayesian Information Criterion), and these criteria relate to how the predictors are chosen for the GLM. AIC and BIC measure how well the model fits the data based on the covariates already included in the GLM and evaluates changes to the criteria when adding or dropping covariates. For more information about these criteria, see [Aho, Derryberry, & Peterson](https://doi.org/10.1890/13-1452.1).
+The *Simplification Method* will either be AIC (Akaike Information Criterion) or BIC (Bayesian Information Criterion), and these criteria relate to how the predictors are chosen for the GLM. AIC and BIC measure how well the GLM fits the data based on the covariates selected during the covariate selection step and evaluates changes to the criteria when adding or dropping covariates. For more information about these criteria, see [Aho, Derryberry, & Peterson](https://doi.org/10.1890/13-1452.1).
 ### Consider Squared Terms
 Selecting "Yes" for the *Consider Squared Terms* argument allows the GLM to consider relationships between the predictors and the response in a non-linear relationship by squaring the predictor values. 
 ### Consider Interactions
-Selecting "Yes" for the *Consider Interactions* argument will allow the GLM to take interactions among covariates into account during the modeling process.
+Selecting "Yes" for the *Consider Interactions* argument will allow the GLM to take  into account interactions among covariates during the modeling process.
 <br>
 
 <p id="heading02"> <h2>Random Forest</h2> </p>
@@ -51,7 +51,7 @@ Selecting "Yes" for the *Evaluate covariate importance* argument will allow the 
 ### Calculate casewise importance
 Selecting "Yes" for the *Calculate casewise importance* argument will allow RF to calculate the importance of each covariate during the classification process, and measures how significantly covariates influence the output. For more information about covariate and casewise importance in the RF algorithm, see [Classification and Regression with Random Forest](https://haoen-cui.github.io/SOA-Exam-PA-R-Package-Documentation/randomForest/reference/randomForest.html)
 ### Number of variables sampled at split
-The *Number of variables sampled at split* argument represents the number of variables randomly sampled ass candidates in each split of the random forest. 
+The *Number of variables sampled at split* argument represents the number of variables randomly sampled as candidates in each split of the random forest. 
 ### Maximum number of nodes
 The *Maximum number of nodes* argument specifies the maximum number of nodes the RF algorithm can have.
 ### Number of trees
@@ -87,6 +87,6 @@ Selecting "Yes" on the *View maxent formatted input/output files* argument will 
 The **Model Outputs** datasheet contains information about the outputs of the models.
 
 ### Model RDS
-This table will populate after models have been run, and show the names of the model .rds files for algorithms that have completed execution.
+This table will populate after models have been run, and show the names of the model .rds files (which hold R objects) for algorithms that have completed execution.
 <br>
 
