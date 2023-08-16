@@ -21,87 +21,107 @@ permalink: section01
 
 # **General**
 
-This is the page for the **General** tab with content organized into headings and, optionally, subsections. The **General** tab can be found within the *Properties* pane by right-clicking the *Scenario*, or by clicking *Properties* on the **SyncroSim** application top menu bar.
+The **General** tab groups the following *Datasheets*:
+* Summary
+* Pipeline
+* Datafeeds
 
-The **Sidebar Navigation Menu** lists all the headings within the page and all the Sections within the Reference guide. 
+In the SyncroSim UI, the **General** tab can be accessed by right-clicking on a *Scenario* and selecting ***Properties*** from the context menu.
+
 <br>
-<br>
 
-<p id="heading01"> <h2>Summary</h2> </p>
+<p id="heading01"> <h2><b>Summary</b></h2> </p>
 
-The **Summary** datasheet contains general information about the *Scenario*. 
+The **Summary** *Datasheet* contains general information about the *Scenario*. 
 
 ### Name
-This column details the name of the *Scenario*. The name of the *Scenario* can be defined when opening a new *Scenario* and typing in the File Name. It can be changed in this column, or by right-clicking the *Scenario* and choosing *Rename...*.
+Defines the name of the *Scenario*. The name of the *Scenario* can be defined when creating a new *Scenario* and modified by editing this field. In the SyncroSim UI, the "Name" can also be edited by right-clicking the *Scenario* on the *Library Explorer* window and selecting ***Rename...***.
+
 ### Owner
-The owner of the *Scenario* can be defined in this column. 
+Defines the owner of the *Scenario*.
+
 ### Description
-Here, the description of the *Scenario* can be summarized, including objectives, species names, geographic extent, and other pertinent information to be captured.
+Provides a description of the *Scenario*, including objectives, species names, geographic extent, and other pertinent information to be captured.
 
 ### Project
-The *Project* is the second highest level of organization within the *Library Explorer*, beneath the *Library* level, and holds *Scenarios* under this level. This entry shows to which *Project* the current *Scenario* belongs. The default *Project* name is "Definitions", although this can be changed by right-clicking the *Project* on the left-hand navigation bar and selecting "Properties". Additionally, covariates can be defined at the *Project* level. 
+Defines the *Project* to which the *Scenario* belongs. The *Project* is the second highest level of organization within the *Library Explorer* window. It is nested within the *Library* level, and contains all of the *Scenarios*. In the SyncroSim UI, the default *Project* name "Definitions" can be modified by right-clicking the *Project* on the *Library Explorer* window, selecting ***Properties*** from the context menu, and editing the "Name" field. 
+> Covariates are defined at the *Project* scope.
 
 ### Library
-The *Library* is the highest level of organization within the *Library Explorer* and can hold *Projects*. R and Python configuration for each *Project* is controlled at the *Library* level. This entry shows to which *Library* the *Scenario* belongs. The *Project* name can be changed by right clicking the *Library* and selecting *Properties*. To learn more about *Libraries* and *Projects*, see [SyncroSim - Libraries, Projects & Scenarios: Overview](https://docs.syncrosim.com/how_to_guides/library_overview.html)
+Defines the *Library* to which the *Scenario* belongs. The *Library* is the highest level of organization within the *Library Explorer* window, and contains the *Project*. In the SyncroSim UI, the *Library* name can be modified by right-clicking the *Library* on the *Library Explorer* window, selecting ***Properties*** from the context menu, and editing the "Name" field .
+> R and Python configurations are controlled at the *Library* level.
+
 ### Last modified
-This entry shows when the *Scenario* was last modified, Month/Day/Year Hour:Minute:Second AM/PM. 
+Defines when the *Scenario* was last modified. It is presented in the following format: Month-Day-Year Hour:Minute:Second AM/PM. 
+
 ### Auto generation tags
-*Auto generation tags* are not a requirement, but can help autogenerate *Scenarios* for factorial combinations of parameter inputs. 
+Used to autogenerate *Scenarios* for factorial combinations of parameter inputs.
+
 ### Read only
-Checking "Read only" locks the *Scenario's* properties from being edited. 
+Checking "Read only" prevents the *Scenario* from being edited. 
+
 ### Merge Dependencies
-Checking "Merge dependencies" allows the dependencies for the source *Scenarios* to be merged, rather than prioritized. Dependencies allow different steps of the pipeline to be run in different scenarios. For more information about dependencies, see [SyncroSim - Sharing Data](https://docs.syncrosim.com/how_to_guides/properties_dependencies.html)
+Checking "Merge dependencies" allows the dependencies for the source *Scenario(s)* to be merged, rather than prioritized. Dependencies allow different steps of the pipeline to be run in different *Scenarios*. For more information about dependencies, see the [SyncroSim documentation](https://docs.syncrosim.com/how_to_guides/properties_dependencies.html).
+
 ### Ignore Dependencies...
-Selecting "Ignore Dependencies" will lead to a pane showing Datafeeds and Packages. Checking the box "Ignore" allows the *Scenario* to ignore the selected package when running. 
+Selecting "Ignore Dependencies" will lead to a panel showing *Datafeeds* and *Packages*. Checking the box "Ignore" allows the *Scenario* to ignore the selected *Package(s)* when running. 
+
 <br>
 
-<p id="heading02"> <h2>Pipeline</h2> </p>
+<p id="heading02"> <h2><b>Pipeline</b></h2> </p>
 
-The **Pipeline** datasheet controls the run order of the model transformers. 
+The **Pipeline** *Datasheet* controls the run order of the model transformers. 
 
 ### Stage
-*Stages* represent the stages that will be run in the model. The general stages in **WISDM** include:
-    1. Prepare Multiprocessing
-    2. Spatial Data Preparation
-    3. Data Preparation (Non-Spatial)
-    4. Variable Reduction
-    5. Models (Maxent, Random Forest, GLM)
-    6. Apply Model
-Within this pane, the stages needed in the *Scenario* can be selected. 
+Defines the transformers that will be run in the *Scenario*. The general stages in **WISDM** include:
+1. Prepare Multiprocessing
+2. Spatial Data Preparation
+3. Data Preparation (Non-Spatial)
+4. Variable Reduction
+5. Models (Maxent, Random Forest, GLM)
+6. Apply Model
+
 ### Run Order
-Found on the right-hand side of the *Pipeline* table, *Run Order* represents the order in which the stages will be run. 
+Sets the order in which the stages will be run.
+
 ### Jobs
-The *Jobs* argument is not currently used in WISDM, but within **SyncroSim**, it specifies the maximum number of jobs per stage. On the other hand, within **WISDM**, the number of jobs is defined by the number of multiprocessing tiles. 
+Not currently used by **WISDM**. Within SyncroSim, it sets the maximum number of jobs per stage. Within **WISDM**, the number of jobs is defined by the number of multiprocessing tiles. 
+
 <br>
 
-<p id="heading03"> <h2>Datafeeds</h2> </p>
+<p id="heading03"> <h2><b>Datafeeds</b></h2> </p>
 
-The **Datafeeds** datasheet controls which data are going into the *Scenario* and the properties of these data. 
+The **Datafeeds** *Datasheet* summarizes all the *Datafeeds* parametrized for the *Scenario*. 
 
 ### Data
-The *Data* tab in this datasheet shows whether the datafeed arguments have been filled in. When a new *Scenario* is opened, this tab will be blank if no data or information in other *Datafeeds* have been input yet. If information <u>has</u> been input in these *Datafeeds*, a green checkmark will appear under this tab next to the item that has been inputted.
+Determines whether a given *Datasheet* has been parametrized. When a new *Scenario* is created, the "Data" field will be blank, as no data or information has been provided yet. Once a *Datasheet* <u>has</u> been parametrized, the "Data" field will be set to True and in the SyncroSim UI, a green checkmark will appear.
+
 ### Package Name
-The *Package Name* tab specifies to which package within **SyncroSim** each *Datafeed* belongs. For example, package names include *wisdm*, *corestime*, *core*, etc.
+Defines to which *Package* a given *Datasheet* belongs. For **WISDM** models, three *Package* names will be displayed: "wisdm", "corestime", and "core".
+
 ### View
-The *View* tab will lead to the input datasheets for each *Datafeed*. Clicking the links under this tab will lead to the sections for the respective *Datafeeds*. 
+Displays the *Datasheet* and *Datafeed* names. In the SyncroSim UI, the name will be displayed as a hyperlink that leads to the respective *Datasheet*. 
+
 ### Datafeed
-This tab shows the names of each *Datafeed* in the *Scenario*. The *Datafeeds* in WISDM include:
-    Data Preparation
-        Template Raster
-        Covariate Data
-        Field Data
-        Field Data - Options
-        Validation Options
-    Variable Reduction
-        Site Data
-        Covariate Selection Options
-        Reduced Covariate List
-    Models
-        GLM
-        Random Forest
-        Maxent
-        Model Outputs
-    Output Options
+Defines the names of each *Datafeed* in the *Scenario*. In **WISDM**, the *Datafeeds* and their respective *Datasheets* include:
+* Data Preparation
+    * Template Raster
+    * Covariate Data
+    * Field Data
+    * Field Data - Options
+    * Validation Options
+* Variable Reduction
+    * Site Data
+    * Covariate Selection Options
+    * Reduced Covariate List
+* Models
+    * GLM
+    * Random Forest
+    * Maxent
+    * Model Outputs
+* Output Options
+
 ### Source Scenario
-The *Source Scenario* tab shows to which *Scenario* the respective *Datafeeds* and information belong. 
+Defines the *Scenario* from which each *Datasheet* is being drawn. 
+
 <br>
