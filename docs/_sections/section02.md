@@ -80,7 +80,7 @@ The *Weight* column allows for weighting of certain points differently in the mo
 The **Options** datasheet controls some of the *Scenario's* settings relating to the **Field Data**.
 
 ### Authority Code (e.g., EPSG:4326)
-The *Authority Code* contains coordinate system information for the **Field Data** points. This entry represents the coordinate system that the field data are in and should be the same authority code as that of the template raster. 
+The *Authority Code* contains coordinate reference system (CRS) information for the **Field Data** points. This entry represents the CRS that the field data are in. If left blank, WISDM assumes that the field data are in the same CRS as that of the template raster. 
 ### Aggregate or Weight Data
 The *Aggregate or Weight Data* argument specifies whether the **Field Data** points should be aggregated or weighted in the event that multiple points fall within the same pixel. Aggregating will combine multiple points into one, while weighting will ensure that all of the points are downweighted so that combined, they have the same influence as just one point. 
 ### Generate background sites
