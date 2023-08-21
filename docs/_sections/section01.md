@@ -91,10 +91,10 @@ Not currently used by **WISDM**. Within SyncroSim, it sets the maximum number of
 
 <p id="heading03"> <h2><b>Datafeeds</b></h2> </p>
 
-The **Datafeeds** *Datasheet* summarizes all the *Datafeeds* parametrized for the *Scenario*. 
+The **Datafeeds** *Datasheet* summarizes all the *Datafeeds* parameterized for the *Scenario*. 
 
 ### Data
-Determines whether a given *Datasheet* has been parametrized. When a new *Scenario* is created, the "Data" field will be blank, as no data or information has been provided yet. Once a *Datasheet* <u>has</u> been parametrized, the "Data" field will be set to True and in the SyncroSim UI, a green checkmark will appear.
+Determines whether a given *Datasheet* has been parameterized. When a new *Scenario* is created, the "Data" field will be blank, as no data or information has been provided yet. Once a *Datasheet* <u>has</u> been parameterized, the "Data" field will be set to True and in the SyncroSim UI, a green checkmark will appear.
 
 ### Package Name
 Defines to which *Package* a given *Datasheet* belongs. For **WISDM** models, three *Package* names will be displayed: "wisdm", "corestime", and "core".
