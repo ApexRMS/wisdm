@@ -137,7 +137,7 @@ fitModel <- function(dat,           # df of training data
       
       # prepare batch file
       capture.output(cat("java -mx", out$modOptions$MemoryLimit, "m", sep=""), file = out$batchPath)
-      cat(" -jar", paste0('"', file.path(ssimEnvironment()$PackageDirectory, "maxent.jar"), '"'), file = out$batchPath, append = T)
+      cat(" -jar", paste0('"', file.path(ssimEnvironment()$PackageDirectory, "maxent.jar", fsep = "\\"), '"'), file = out$batchPath, append = T)
       if(!out$modOptions$VisibleInterface){ cat(" -z", file = out$batchPath, append = T) }
       cat(paste0(' samplesfile="',out$swdPath, '"'), file = out$batchPath, append = T)
       cat(paste0(' environmentallayers="', out$backgroundPath, '"'), file = out$batchPath, append = T)
@@ -148,7 +148,7 @@ fitModel <- function(dat,           # df of training data
       if(!is.null(out$testDataPath)){
         cat(paste0(' testsamplesfile="',out$testDataPath,'"'), file = out$batchPath, append = T)
       }
-      cat(paste0(' outputdirectory="',file.path(out$tempDir, "Outputs"),'"'), file = out$batchPath, append = T)
+      cat(paste0(' outputdirectory="',file.path(out$tempDir, "Outputs", fsep = "\\"),'"'), file = out$batchPath, append = T)
       cat(" threads=",out$modOptions$MultiprocessingThreads, sep = "", file = out$batchPath, append = T)
       cat(" responsecurves jackknife writeclampgrid writemess warnings prefixes", file = out$batchPath, append = T) # reverse these default settings  
       cat(" redoifexists autorun", file = out$batchPath, append = T)
@@ -157,21 +157,21 @@ fitModel <- function(dat,           # df of training data
       shell(out$batchPath)
       
       # read lambdas output
-      modelMaxent <- read.maxent(file.path(out$tempDir, "Outputs", "species.lambdas"))
+      modelMaxent <- read.maxent(file.path(out$tempDir, "Outputs", "species.lambdas", fsep = "\\"))
       
     } else {
       
       # prepare batch file
       capture.output(cat("java -mx", out$modOptions$MemoryLimit, "m", sep=""), file = out$batchPath)
-      cat(" -jar", paste0('"', file.path(ssimEnvironment()$PackageDirectory, "maxent.jar"), '"'), file = out$batchPath, append = T)
+      cat(" -jar", paste0('"', file.path(ssimEnvironment()$PackageDirectory, "maxent.jar", fsep = "\\"), '"'), file = out$batchPath, append = T)
       if(!out$modOptions$VisibleInterface){ cat(" -z", file = out$batchPath, append = T) }
-      cat(paste0(' samplesfile="',file.path(out$tempDir, "CVsplits", "training-swd.csv"), '"'), file = out$batchPath, append = T)
-      cat(paste0(' environmentallayers="', file.path(out$tempDir, "CVsplits", "background-swd.csv"), '"'), file = out$batchPath, append = T)
+      cat(paste0(' samplesfile="',file.path(out$tempDir, "CVsplits", "training-swd.csv", fsep = "\\"), '"'), file = out$batchPath, append = T)
+      cat(paste0(' environmentallayers="', file.path(out$tempDir, "CVsplits", "background-swd.csv", fsep = "\\"), '"'), file = out$batchPath, append = T)
       if(length(out$factorInputVars)>0){
         for (i in out$factorInputVars){
           cat(paste0(" togglelayertype=",i), file = out$batchPath, append = T)
         }}
-      cat(paste0(' outputdirectory="',file.path(out$tempDir, "CVsplits"),'"'), file = out$batchPath, append = T)
+      cat(paste0(' outputdirectory="',file.path(out$tempDir, "CVsplits", fsep = "\\"),'"'), file = out$batchPath, append = T)
       cat(" threads=",out$modOptions$MultiprocessingThreads, sep = "", file = out$batchPath, append = T)
       cat(" writeclampgrid writemess warnings prefixes", file = out$batchPath, append = T) # reverse these default settings  
       cat(" redoifexists autorun", file = out$batchPath, append = T)
@@ -180,7 +180,7 @@ fitModel <- function(dat,           # df of training data
       shell(out$batchPath)
       
       # read lambdas output
-      modelMaxent <- read.maxent(file.path(out$tempDir, "CVsplits", "species.lambdas"))
+      modelMaxent <- read.maxent(file.path(out$tempDir, "CVsplits", "species.lambdas", fsep = "\\"))
     
     }
     return(modelMaxent)

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.12" url="https://apexrms.github.io/wisdm/">
+<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.13" url="https://apexrms.github.io/wisdm/">
 	<transformers>
 		<!--Primary Transformer-->
 		<transformer 
@@ -22,6 +22,19 @@
 	   <!--Global Transformer-->
 		<transformer name="Global">
 			<datafeeds>
+				<datafeed name="Network" dataScope="Library">
+				  <datasheets>
+					<datasheet name="Network" isSingleRow="True">
+					  <columns>
+						<column name="NetworkID" dataType="Integer" isPrimary="True"/>
+						<column name="NetworkEnabled" displayName="Access online transformation library" dataType="Boolean"/>
+					  </columns>
+					  <defaultRecords>
+                		<record columns="NetworkEnabled" values="-1"/>
+              		  </defaultRecords>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
 				<datafeed name="Covariates" dataScope="Project">
 				  <datasheets>
 					<datasheet name="Covariates" valueMember="CovariatesID" displayMember="CovariateName">
@@ -75,24 +88,30 @@
 					</datasheet>
 				  </datasheets>
 				</datafeed>
-				<datafeed name="FieldDataOptions" displayName="Options" dataScope="Scenario">
+				<datafeed name="FieldDataOptions" displayName="Field Data Options" dataScope="Scenario">
 				  <datasheets>
-					<datasheet  name="FieldDataOptions" displayName="Field Data Options" isSingleRow="True">
+					<datasheet  name="FieldDataOptions" isSingleRow="True">
 					  <columns>
 						<column name="FieldDataOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
 						<column name="EPSG" displayName="Authority Code (e.g., EPSG:4326)" dataType="String" isOptional="True"/>
-						<column name="NetworkEnabled" displayName="Access online transformation library" dataType="Boolean"/>
 						<column name="AggregateAndWeight" displayName="Aggregate or Weight Data" dataType="Integer" validationType="List" formula1="0:Aggregate|1:Weight" isOptional="True"/>
-					    <column name="GenerateBackgroundSites" displayName="Generate background sites" dataType="Boolean" isOptional="True"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+				<datafeed name="BackgroundDataOptions" displayName="Background Data Options" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="BackgroundDataOptions" isSingleRow="True">
+					  <columns>
+						<column name="BackgroundDataOptionsID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="GenerateBackgroundSites" displayName="Generate background sites" dataType="Boolean" defaultValue="0"/>
 					  	<column name="BackgroundSiteCount" displayName="Number of background sites added to field data" dataType="Integer" isOptional="True"/>
 						<column name="BackgroundGenerationMethod" displayName="Method used for background site generation" dataType="Integer" validationType="List" formula1="0:Kernel Density Estimate (KDE)|1:Minimum Convex Polygon (MCP)" isOptional="True"/>
 					    <column name="KDESurface" displayName="KDE background surface method" dataType="Integer" validationType="List" formula1="0:Continuous|1:Binary" isOptional="True"/>
 					    <column name="Isopleth" displayName="Isopleth threshold used for binary mask creation (%)" dataType="Integer" isOptional="True"/>
 					  </columns>
-					  <defaultRecords>
-                		<record columns="NetworkEnabled|GenerateBackgroundSites" values="-1|0"/>
-              		  </defaultRecords>
 					</datasheet>
 				  </datasheets>
 				</datafeed>
@@ -240,7 +259,7 @@
 		  <pipeline>
 		  	<datafeed name="TemplateRaster" type="Input"/>
 			<datafeed name="FieldData"/>
-			<datafeed name="FieldDataOptions" type="Input"/>
+			<datafeed name="BackgroundDataOptions" type="Input"/>
 			<datafeed name="ValidationOptions" type="Input"/>
 			<datafeed name="CovariateData"/>
 			<datafeed name="SiteData" type="Input"/>
@@ -481,7 +500,10 @@
 		  <item name="core_Rconfig"/>
 		  <item name="core_Pyconfig"/>
 		  <!--item name="core_Condaconfig"/-->
-		  <item name="core_Options"/>
+		  <group name="Options">
+		  	<item name="core_Options"/>
+			<item name="Network"/>
+		  </group>
 		</layout>  
 		<!--Project Datafeeds Layout-->
 		<layout name="coreforms_ProjectDatafeeds">
@@ -496,6 +518,7 @@
 			<group name="FieldData" displayName="Field Data">
 				<item name="FieldData" showIf="inPipeline"/>
 				<item name="FieldDataOptions" showIf="inPipeline"/>
+				<item name="BackgroundDataOptions" showIf="inPipeline"/>
 			</group>
 			<item name="ValidationOptions" showIf="inPipeline"/>
 			<item name="corestime_Multiprocessing" showIf="inPipeline"/>
@@ -560,4 +583,9 @@
 			</group>
 		</layout>
 	</layouts>	
+<updateProvider 
+  schemaVersion="1" 
+  minPackageVersion="1.0.13" 
+  className="SyncroSim.Core.XMLUpdateProvider" 
+  classAssembly="SyncroSim.Core"/>
 </package>

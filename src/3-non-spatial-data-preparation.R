@@ -32,7 +32,7 @@ templateSheet <- datasheet(myScenario, "TemplateRaster")
 covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
 covariateDataSheet <- datasheet(myScenario, "wisdm_CovariateData", optional = T, lookupsAsFactors = F)
 fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
-fieldDataOptionsSheet <- datasheet(myScenario, "wisdm_FieldDataOptions", optional = T)
+backgroundDataOptionsSheet <- datasheet(myScenario, "wisdm_BackgroundDataOptions", optional = T)
 validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
 siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", optional = T, lookupsAsFactors = F)
 
@@ -50,25 +50,25 @@ fieldDataSheet <- fieldDataSheet[!fieldDataSheet$Response == -9999,]
 #  Set defaults ----------------------------------------------------------------  
 
 ## Field data options sheet
-if(nrow(fieldDataOptionsSheet)<1){
-  fieldDataOptionsSheet <- addRow(fieldDataOptionsSheet, list(GenerateBackgroundSites = FALSE))
+if(nrow(backgroundDataOptionsSheet)<1){
+  backgroundDataOptionsSheet <- addRow(backgroundDataOptionsSheet, list(GenerateBackgroundSites = FALSE))
 }
-if(is.na(fieldDataOptionsSheet$GenerateBackgroundSites)){ fieldDataOptionsSheet$GenerateBackgroundSites <- FALSE }
-if(fieldDataOptionsSheet$GenerateBackgroundSites){
-  if(is.na(fieldDataOptionsSheet$BackgroundSiteCount)){fieldDataOptionsSheet$BackgroundSiteCount <- sum(fieldDataSheet$Response) }  
-  if(is.na(fieldDataOptionsSheet$BackgroundGenerationMethod)){fieldDataOptionsSheet$BackgroundGenerationMethod <- "Kernel Density Estimate (KDE)"}
-  if(is.na(fieldDataOptionsSheet$KDESurface)){
-    if(fieldDataOptionsSheet$BackgroundGenerationMethod == "Kernel Density Estimate (KDE)"){
-      fieldDataOptionsSheet$KDESurface <- "Continuous"
+if(is.na(backgroundDataOptionsSheet$GenerateBackgroundSites)){ backgroundDataOptionsSheet$GenerateBackgroundSites <- FALSE }
+if(backgroundDataOptionsSheet$GenerateBackgroundSites){
+  if(is.na(backgroundDataOptionsSheet$BackgroundSiteCount)){backgroundDataOptionsSheet$BackgroundSiteCount <- sum(fieldDataSheet$Response) }  
+  if(is.na(backgroundDataOptionsSheet$BackgroundGenerationMethod)){backgroundDataOptionsSheet$BackgroundGenerationMethod <- "Kernel Density Estimate (KDE)"}
+  if(is.na(backgroundDataOptionsSheet$KDESurface)){
+    if(backgroundDataOptionsSheet$BackgroundGenerationMethod == "Kernel Density Estimate (KDE)"){
+      backgroundDataOptionsSheet$KDESurface <- "Continuous"
     }}
-  if(is.na(fieldDataOptionsSheet$Isopleth)){
-    if(fieldDataOptionsSheet$KDESurface == "Binary" | fieldDataOptionsSheet$BackgroundGenerationMethod == "Minimum Convex Polygon (MCP)"){
-      fieldDataOptionsSheet$Isopleth <- 95
+  if(is.na(backgroundDataOptionsSheet$Isopleth)){
+    if(backgroundDataOptionsSheet$KDESurface == "Binary" | backgroundDataOptionsSheet$BackgroundGenerationMethod == "Minimum Convex Polygon (MCP)"){
+      backgroundDataOptionsSheet$Isopleth <- 95
     }
   }
 }
 
-saveDatasheet(myScenario, fieldDataOptionsSheet, "wisdm_FieldDataOptions")
+saveDatasheet(myScenario, backgroundDataOptionsSheet, "wisdm_BackgroundDataOptions")
 
 ## Validation Sheet
 if(nrow(validationDataSheet)<1){
@@ -96,17 +96,17 @@ saveDatasheet(myScenario, validationDataSheet, "wisdm_ValidationOptions")
 
 # Generate pseudo-absences (if applicable) -------------------------------------
 
-if(fieldDataOptionsSheet$GenerateBackgroundSites){
+if(backgroundDataOptionsSheet$GenerateBackgroundSites){
   
-  if(fieldDataOptionsSheet$BackgroundGenerationMethod == "Kernel Density Estimate (KDE)"){ 
+  if(backgroundDataOptionsSheet$BackgroundGenerationMethod == "Kernel Density Estimate (KDE)"){ 
     methodInputs <- list("method"="kde", 
-                   "surface"=fieldDataOptionsSheet$KDESurface, 
-                   "isopleth"=fieldDataOptionsSheet$Isopleth)
+                   "surface"=backgroundDataOptionsSheet$KDESurface, 
+                   "isopleth"=backgroundDataOptionsSheet$Isopleth)
     }
-  if(fieldDataOptionsSheet$BackgroundGenerationMethod == "Minimum Convex Polygon (MCP)"){ 
+  if(backgroundDataOptionsSheet$BackgroundGenerationMethod == "Minimum Convex Polygon (MCP)"){ 
     methodInputs <- list("method"="mcp",
                          "surface" = NA,
-                   "isopleth"=fieldDataOptionsSheet$Isopleth)
+                   "isopleth"=backgroundDataOptionsSheet$Isopleth)
     }
 
   templateRaster <- rast(templateSheet$RasterFilePath)
@@ -125,9 +125,9 @@ if(fieldDataOptionsSheet$GenerateBackgroundSites){
   # generate background (psuedo-absence) points
   backgroundPointGeneration(sp = "species",
                             outputDir = ssimTempDir,
-                            n = fieldDataOptionsSheet$BackgroundSiteCount+100,
+                            n = backgroundDataOptionsSheet$BackgroundSiteCount+100,
                             method = methodInputs,
-                            # target_file = fieldDataOptionsSheet, # this is an external input... 
+                            # target_file = backgroundDataOptionsSheet, # this is an external input... 
                             overwrite = T)
   
   # add background point to field data
@@ -167,13 +167,13 @@ if(fieldDataOptionsSheet$GenerateBackgroundSites){
   bgPts$PixelID <- NULL
   
   # remove extra bg sites
-  if(nrow(bgPts)>fieldDataOptionsSheet$BackgroundSiteCount){
-    bgPts <- sample(x = bgPts, size = fieldDataOptionsSheet$BackgroundSiteCount, replace = F)
+  if(nrow(bgPts)>backgroundDataOptionsSheet$BackgroundSiteCount){
+    bgPts <- sample(x = bgPts, size = backgroundDataOptionsSheet$BackgroundSiteCount, replace = F)
   }
-  if(nrow(bgPts)<fieldDataOptionsSheet$BackgroundSiteCount){
-    updateRunLog(paste0(nrow(bgPts), " psuedoabsence sites added to Field Data when ", fieldDataOptionsSheet$BackgroundSiteCount, 
+  if(nrow(bgPts)<backgroundDataOptionsSheet$BackgroundSiteCount){
+    updateRunLog(paste0(nrow(bgPts), " psuedoabsence sites added to Field Data when ", backgroundDataOptionsSheet$BackgroundSiteCount, 
                         " were requested."))
-    # fieldDataOptionsSheet$BackgroundSiteCount <- nrow(bgPts)
+    # backgroundDataOptionsSheet$BackgroundSiteCount <- nrow(bgPts)
   }
   
   ## Extract covariate data for background sites  -----
@@ -204,7 +204,7 @@ if(fieldDataOptionsSheet$GenerateBackgroundSites){
     PixelData[covariateDataSheet$CovariatesID[i]] <- vals
   }
   
-  # convert background site data to long format and add to exisiting site datasheet
+  # convert background site data to long format and add to existing site datasheet
   bgSiteData <- merge(cellPerPt[,c("PixelID", "SiteID")], PixelData)
   bgSiteData$PixelID <- NULL
   bgSiteData <- gather(data = bgSiteData, key = CovariatesID, value = Value, -SiteID)
@@ -276,7 +276,7 @@ if(validationDataSheet$SplitData == F & validationDataSheet$CrossValidate == F){
 
 # revert response for background sites
 updateFieldData <- dplyr::select(inputData, names(fieldDataSheet))
-if(fieldDataOptionsSheet$GenerateBackgroundSites){
+if(backgroundDataOptionsSheet$GenerateBackgroundSites){
   updateFieldData$Response[which(updateFieldData$SiteID %in% bgSiteIds)] <- -9998
 }
 

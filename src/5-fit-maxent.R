@@ -39,6 +39,16 @@ maxentSheet <- datasheet(myScenario, "wisdm_Maxent")
 mulitprocessingSheet <- datasheet(myScenario, "core_Multiprocessing")
 modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T, empty = T, lookupsAsFactors = F)
 
+# Error handling ---------------------------------------------------------------
+
+# check for for background data
+if(!any(fieldDataSheet$Response == -9998)){
+  if(any(siteDataSheet$Response == 0)){
+    stop("Maxent is a presence-background method; please select a method suitable for presence-absense data before continuing.")
+  }
+  stop("Maxent is a presence-background method; please generate pseudo-absences before continuing. Note: Pseuso-absences can be generated in the '3 - Data Preperation (Non-Spatial)' Stage of the Pipeline. See 'Background Data Options' for more details.")
+}
+
 #  Set defaults ----------------------------------------------------------------  
 
 ## Validation Sheet
@@ -144,7 +154,7 @@ out$pseudoAbs <- pseudoAbs
 out$validationOptions <- validationDataSheet 
 
 ## path to temp ssim storage 
-out$tempDir <- file.path(ssimTempDir, "Data")
+out$tempDir <- file.path(ssimTempDir, "Data", fsep = "\\")
 
 # Format and save data for use in Maxent -------------------------------------------
 
@@ -154,7 +164,7 @@ dir.create(file.path(ssimTempDir, "Data", "Outputs"))
 
 ## training data
 
-out$swdPath <- swdPath <- file.path(ssimTempDir, "Data", "Inputs", "training-swd.csv")
+out$swdPath <- swdPath <- file.path(ssimTempDir, "Data", "Inputs", "training-swd.csv", fsep = "\\")
 
 trainingData %>%
   mutate(Species = case_when(Response == 1 ~ "species")) %>%
@@ -167,7 +177,7 @@ out$data$train <- trainingData
 
 if(pseudoAbs){
   
-  out$backgroundPath <- backgroundPath <- file.path(ssimTempDir, "Data", "Inputs", "background-swd.csv")
+  out$backgroundPath <- backgroundPath <- file.path(ssimTempDir, "Data", "Inputs", "background-swd.csv", fsep = "\\")
   
   trainingData %>%
     mutate(Species = case_when(Response != 1 ~ "background")) %>%
@@ -180,7 +190,7 @@ if(pseudoAbs){
 ## testing data
 
 if(!is.null(testingData)){
-  out$testDataPath <- testDataPath <- file.path(ssimTempDir, "Data", "Inputs", "testing-swd.csv")
+  out$testDataPath <- testDataPath <- file.path(ssimTempDir, "Data", "Inputs", "testing-swd.csv", fsep = "\\")
   testingData %>%
     mutate(Species = case_when(Response == 1 ~ "species")) %>%
     drop_na(Species) %>%
@@ -192,7 +202,7 @@ if(!is.null(testingData)){
   
   }
 
-out$batchPath <- file.path(ssimTempDir,"Data", "Inputs", "runMaxent.bat")
+out$batchPath <- file.path(ssimTempDir,"Data", "Inputs", "runMaxent.bat", fsep = "\\")
 # out$maxJobs <- mulitprocessingSheet$MaximumJobs
 
 # Create output text file ------------------------------------------------------

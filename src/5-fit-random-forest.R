@@ -38,7 +38,13 @@
   RFSheet <- datasheet(myScenario, "wisdm_RandomForest")
   modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T, empty = T, lookupsAsFactors = F)
 
-  
+# Error handling ---------------------------------------------------------------
+
+  # check for both presence and absence data
+  if(all(fieldDataSheet$Response == 1) | all(fieldDataSheet$Response == 0)){
+    stop("Random Forest is a presence-absences (or presence-background) method; please ensure that the Field Data includes both presence and absence (or pseudo-absence) data before continuing.")
+  }
+
 #  Set defaults ----------------------------------------------------------------  
   
   # if response column contains only 1's and 0's response = presAbs

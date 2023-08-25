@@ -36,7 +36,13 @@
   GLMSheet <- datasheet(myScenario, "wisdm_GLM")
   modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T, empty = T, lookupsAsFactors = F)
 
-  
+# Error handling ---------------------------------------------------------------
+
+  # check for both presence and absence data
+  if(all(fieldDataSheet$Response == 1) | all(fieldDataSheet$Response == 0)){
+    stop("GLM is a presence-absences method; please ensure that the Field Data includes both presence and absence (or pseudo-absence) data before continuing.")
+  }
+ 
 #  Set defaults ----------------------------------------------------------------  
   
   ## GLM Sheet
