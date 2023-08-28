@@ -66,9 +66,16 @@ from rasterio.enums import Resampling #, MergeAlg
 ## Modify the os PROJ path (when running with Conda) ----
 myLibrary = ps.Library()
 mySession = ps.Session()
+
+result = mySession._Session__call_console(["--conda", "--config"])
+conda_fpath = result.stdout.decode('utf-8').strip().split(": ")[1]
 if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
-    os.environ["PROJ_DATA"] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")
-    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
+    os.environ["PROJ_DATA"] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")
+    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
+
+# if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
+#    os.environ["PROJ_DATA"] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")
+#    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
     # pyproj.datadir.set_data_dir(os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj"))
     # pyproj.network.set_ca_bundle_path(os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem"))
     
@@ -148,7 +155,7 @@ covariateDataSheet["rioAggregate"] = covariateDataSheet.AggregationMethod.replac
 # check if field data was provided
 if len(fieldDataSheet) == 0:
     # raise warning if field data was not provided
-    ps.environment.update_run_log("\nField data was not provided. Site data was not prepared, only the covaraite layers were prepared.\n")
+    ps.environment.update_run_log("Field data was not provided. Site data was not prepared, only the covaraite layers were prepared.")
     
  
 #%% Load template raster ----------------------------------------------------------------
@@ -186,9 +193,9 @@ if rasterio.dtypes.is_ndarray(templateMask):
           
     templatePolygons = gpd.GeoDataFrame(geometry=[templatePolygons], crs=templateCRS)
 else:
-    print('The template raster does not include a "No Data" mask.', 
+    ps.environment.update_run_log('The template raster does not include a "No Data" mask. ', 
     'All output covariate and site data will be clipped', 
-    'to the full extent of the template raster.')
+    ' to the full extent of the template raster.')
     templateMask = np.ones(templateRaster.shape, dtype=bool)
     templatePolygons = []
 
@@ -320,9 +327,9 @@ if len(fieldDataSheet) > 0:
     nFinal = len(sites.SiteID)
 
     if nFinal < nInitial:
-        print("\n", nInitial-nFinal, "sites out of", nInitial, 
-            "total sites in the input field data were outside the template extent \nand were removed from the output.",
-            nFinal, "sites were retained.\n")
+        ps.environment.update_run_log(nInitial-nFinal, " sites out of ", nInitial, 
+            " total sites in the input field data were outside the template extent and were removed from the output. ",
+            nFinal, " sites were retained.")
 
     # Update xy to match geometry
     sites.X = sites.geometry.apply(lambda p: p.x)
@@ -388,10 +395,10 @@ if len(fieldDataSheet) > 0:
                         weight_d = 1/len(sitesInd)
                         sites.Weight[sitesInd] = weight_d
                 else: 
-                    print("\nWeights were already present in the field data, new weights were not assigned.\n")
+                    ps.environment.update_run_log("Weights were already present in the field data, new weights were not assigned.")
 
         else: 
-            print("\nOnly one field data observation present per pixel; no aggregation or weighting required.\n")
+            ps.environment.update_run_log("Only one field data observation present per pixel; no aggregation or weighting required.")
 
     # Save updated field data to scenario 
     outputFieldDataSheet = sites.iloc[:,0:7]
