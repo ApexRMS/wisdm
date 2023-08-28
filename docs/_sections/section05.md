@@ -19,10 +19,10 @@ This is the page for the **Output Options** tab with content organized into head
 The **Sidebar Navigation Menu** lists all the headings within the page, and all the Sections within the Reference guide. 
 
 ### Make Probability Map
-Selecting "Yes" on the *Make Probability Map* argument will create a probability map with the extent of the template raster for the **Scenario** indicating the probability of finding the species in each pixel/cell, given the constraints and biases of the sampling design.
+Selecting "Yes" on the *Make Probability Map* argument will create a probability map with the extent of the template raster for the **Scenario** indicating the probability of finding the species in each pixel/cell, given the constraints and biases of the sampling design. If left blank, the default for this argument is "Yes".
 ### Make Residuals Map
-Selecting "Yes" on the *Make Residuals Map* argument will create a model deviance residuals map for the **Scenario** and can inform the user about any issues with the model fit should there be a spatial pattern in residuals.
+Selecting "Yes" on the *Make Residuals Map* argument will create a model deviance residuals map for the **Scenario** and can inform the user about any issues with the model fit should there be a spatial pattern in residuals. If left blank, the default for this argument is "No".
 ### Make Multivariate Environmental Similarity Surface (MESS) Map
-Selecting "Yes" on the *Make Multivariate Environmental Similarity Surface (MESS) Map* argument will create a MESS map for the **Scenario** that shows how well each point fits into the ranges of the points to which the model was fit. Negative values in this map indicate points outside of the training data ranges. 
+Selecting "Yes" on the *Make Multivariate Environmental Similarity Surface (MESS) Map* argument will create a MESS map for the **Scenario** that shows how well each point fits into the ranges of the points to which the model was fit. Negative values in this map indicate points outside of the training data ranges. If left blank, the default for this argument is "No".
 ### Make Most Dissimilar Variable (MoD) Map
-Selecting "Yes" on the *Make Most Dissimilar Variable (MoD) Map* argument will create a MoD map for the **Scenario**, and will indicate which covariate was the furthest from the range of observations used for model training.
+Selecting "Yes" on the *Make Most Dissimilar Variable (MoD) Map* argument will create a MoD map for the **Scenario**, and will indicate which covariate was the furthest from the range of observations used for model training. If left blank, the default for this argument is "No".
