@@ -5,6 +5,7 @@ email: info@apexrms.com
 header_pages:
   - index.md
   - getting_started.md
+  - reference.md
 collections:
   sections:
     output: true
