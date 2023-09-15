@@ -111,3 +111,16 @@ a {
  margin-left: 2rem;
  margin-bottom: 1rem; 
 }
+
+// Change footer col sizes
+.footer-col-1 {
+    width: calc(50% - (30px / 2));
+}
+
+.footer-col-2 {
+    width: calc(0% - (30px / 2));
+}
+
+.footer-col-3 {
+    width: calc(50% - (30px / 2));
+}
