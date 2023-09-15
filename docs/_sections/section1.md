@@ -30,7 +30,7 @@ Provides a name for the covariate. The *Covariate Name* is used by the **Site Da
 
 <div class=indentation> 
     <i>Default:</i> No.
-</div>
+</div><br>
 
 ### **Description**
 *Optional*. Provides a description of the covariate.
