@@ -67,7 +67,7 @@ Defines the path to the covariate's raster file. In the SyncroSim UI, the Raster
 </div>
 
 ### **Aggregation Method**
-Defines which aggregation method each raster will be using. Aggregation of covariate layers occurs when the resolution of the raster needs to be decreased to match the template raster. Aggregating ensures that the data within each cell is preserved when decreasing the resolution of the covariate raster to match the template raster (for example, re-scaling a 10 m resolution covariate raster to a 100 m resolution template raster). Options for aggregation methods include Mean, Max, Min, and Majority. For more information about these aggregation methods, see [Summarizing Raster](https://pro.arcgis.com/en/pro-app/latest/tool-reference/raster-analysis/summarize-raster-within.htm) and [Aggregating Rasters](https://pro.arcgis.com/en/pro-app/latest/tool-reference/spatial-analyst/aggregate.htm). In the SyncroSim UI, this column is initially hidden, and can be made visible by right-clicking anywhere inside the **Covariate Data** *Datasheet* and selecting "Aggregation Method" from the context menu.
+*Optional*. Defines which aggregation method each raster will be using. Aggregation of covariate layers occurs when the resolution of the raster needs to be decreased to match the template raster. Aggregating ensures that the data within each cell is preserved when decreasing the resolution of the covariate raster to match the template raster (for example, re-scaling a 10 m resolution covariate raster to a 100 m resolution template raster). Options for aggregation methods include Mean, Max, Min, and Majority. For more information about these aggregation methods, see [Summarizing Raster](https://pro.arcgis.com/en/pro-app/latest/tool-reference/raster-analysis/summarize-raster-within.htm) and [Aggregating Rasters](https://pro.arcgis.com/en/pro-app/latest/tool-reference/spatial-analyst/aggregate.htm). In the SyncroSim UI, this column is initially hidden, and can be made visible by right-clicking anywhere inside the **Covariate Data** *Datasheet* and selecting "Aggregation Method" from the context menu.
 
 <div class=indentation> 
     <i>Default:</i> If a covariate is categorical, "Majority" is the default aggregation method. If a covariate is not categorical, "Mean" is the default aggregation method. 
@@ -107,10 +107,10 @@ Defines whether there was an absence or presence detected at a given site, where
 The **Field Data Options** *Datasheet* controls some of the *Scenario's* settings relating to the **Field Data**.
 
 ### **Authority Code (e.g., EPSG:4326)**
-Sets the coordinate reference system (CRS) information for the **Field Data** points. This entry represents the CRS that the field data are in. If left blank, **WISDM** assumes that the field data are in the same CRS as that of the template raster. 
+*Optional*. Sets the coordinate reference system (CRS) information for the **Field Data** points. This entry represents the CRS that the field data are in. If left blank, **WISDM** assumes that the field data are in the same CRS as that of the template raster. 
 
 ### **Aggregate or Weight Data**
-Determines whether the **Field Data** points should be "Aggregated" or "Weighted" in the event that multiple points fall within the same pixel. Aggregating will combine multiple points into one, while weighting will ensure that all of the points are downweighted so that combined, they have the same influence as just one point. 
+*Optional*. Determines whether the **Field Data** points should be "Aggregated" or "Weighted" in the event that multiple points fall within the same pixel. Aggregating will combine multiple points into one, while weighting will ensure that all of the points are downweighted so that combined, they have the same influence as just one point. 
 
 <br>
 
@@ -126,28 +126,28 @@ Defines whether background sites should be generated for the *Scenario* ("Yes").
 </div>
 
 ### **Number of background sites added to field data**
-Sets the number of background points that should be generated for this *Scenario*. Depends on *Generate background sites* being set to "Yes". 
+*Optional*. Sets the number of background points that should be generated for this *Scenario*. Depends on *Generate background sites* being set to "Yes". 
 
 <div class=indentation> 
-    <i>Default:</i> Sum of presence points from the **Field Data** sheet.
+    <i>Default:</i> Sum of presence points from the <b>Field Data</b> <i>Datasheet</i>.
 </div>
 
 ### **Method used for background site generation**
-Defines the background surface method for generating background points based on the species presence values. Two options are available: "Kernel Density Estimate (KDE)" or "Minimum Convex Polygon (MCP)".
+*Optional*. Defines the background surface method for generating background points based on the species presence values. Two options are available: "Kernel Density Estimate (KDE)" or "Minimum Convex Polygon (MCP)".
 
 <div class=indentation> 
     <i>Default:</i> Kernel Density Estimate (KDE).
 </div>
 
 ### **KDE background surface method**
-Defines the type of *KDE background surface method* to be used if the *Method used for background site generation* is set to "Kernel Density Estimate (KDE)". Two options are available: "Continuous" or "Binary" . 
+*Optional*. Defines the type of *KDE background surface method* to be used if the *Method used for background site generation* is set to "Kernel Density Estimate (KDE)". Two options are available: "Continuous" or "Binary" . 
 
 <div class=indentation> 
     <i>Default:</i> Continuous.
 </div>
 
 ### **Isopleth threshold used for binary mask creation (%)**
-Sets the threshold value to be used when creating a binary mask if the *Method used for background site generation* is set to "Kernel Density Estimate (KDE)" and *KDE background surface method* is set to "Binary", or if *Method used for background site generation* is set to "Minimum Convex Polygon (MCP)". The isopleth threshold value is expressed as an integer, so an isopleth of 99% would require an input of 99 for this argument. 
+*Optional*. Sets the threshold value to be used when creating a binary mask if the *Method used for background site generation* is set to "Kernel Density Estimate (KDE)" and *KDE background surface method* is set to "Binary", or if *Method used for background site generation* is set to "Minimum Convex Polygon (MCP)". The isopleth threshold value is expressed as an integer, so an isopleth of 99% would require an input of 99 for this argument. 
 
 <div class=indentation> 
     <i>Default:</i> 95.
