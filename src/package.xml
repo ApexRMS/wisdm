@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.13" url="https://apexrms.github.io/wisdm/">
+<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.14" url="https://apexrms.github.io/wisdm/">
 	<transformers>
 		<!--Primary Transformer-->
 		<transformer 
@@ -11,7 +11,9 @@
 			<transformer name="Global"/>
 			<transformer name="PrepMultiprocessing"/>
 			<transformer name="SpatialDataPreparation"/>
-			<transformer name="DataPreparation"/>
+			<transformer name="SiteDataPreparation"/>
+			<transformer name="FieldDataPreparation"/>
+			<transformer name="BackgroundDataGeneration"/>
 			<transformer name="VariableReduction"/>
 			<transformer name="GLM"/>
 			<transformer name="RandomForest"/>
@@ -159,6 +161,7 @@
 					  <columns>
 						<column name="CovariateSelectionOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
+						<column name="SelectionMethod" displayName="Covariate Selection Method" dataType="Integer" validationType="List" formula1="0:Interactive (Correlation Viewer)|1:Automatic (Variance Inflation Factor)" defaultValue="0"/>
 						<column name="DisplayHighestCorrelations" displayName="Display Highest Correlations" dataType="Boolean" defaultValue="-1"/>
 						<column name="CorrelationThreshold" displayName="Correlation Threshold" dataType="Double" defaultValue="0.7" validationType="Decimal" validationCondition="Between" formula1="0"  formula2="1"/>
 						<column name="NumberOfPlots" displayName="Number of Plots" dataType="Integer" defaultValue="10"/>
@@ -193,6 +196,18 @@
 					</datasheet>
 				  </datasheets>
 				</datafeed>
+				<datafeed name="RestrictionRaster" displayName="Restriction Raster" dataScope="Scenario">
+				  <datasheets>
+					<datasheet name="RestrictionRaster" displayName="Restriction Raster" isSingleRow="True">
+					  <columns>
+						<column name="RestrictionRasterID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="RasterFilePath" displayName="Raster File" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="Description" dataType="String"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
 				<datafeed name="ModelOutputs" displayName="Model Outputs" dataScope="Scenario" isOutput="True">
 				  <datasheets>
 					<datasheet name="ModelOutputs" displayName="Model Outputs">
@@ -223,9 +238,9 @@
 		  name="PrepMultiprocessing"
 		  displayName ="1 - Prepare Multiprocessing"
 		  isRunnable="True"
-		  programName="RScript"
-		  programArguments="1-prep-multiprocessing.R"
-		  condaEnv="wisdm-r-conda.yml">
+		  programName="Python"
+		  programArguments="1-prep-multiprocessing.py"
+		  condaEnv="wisdm-py-conda.yml">
 			<pipeline>
 				<datafeed name="TemplateRaster" type="Input"/>
 				<datafeed name="corestime_Multiprocessing" type="Output"/>
@@ -242,24 +257,53 @@
 		  runContext="LocalOnly">
 		  <pipeline>
 			<datafeed name="TemplateRaster" type="Input"/>
+			<datafeed name="RestrictionRaster"/>
+			<datafeed name="CovariateData"/>
+		  </pipeline>
+		</transformer>
+		<!--Site Data Preparation Transformer-->
+		<transformer
+		  name="SiteDataPreparation"
+		  displayName ="3 - Site Data Preparation"
+		  isRunnable="True"
+		  programName="Python"
+		  programArguments="3-site-data-preparation.py"
+		  condaEnv="wisdm-py-conda.yml"
+		  runContext="LocalOnly">
+		  <pipeline>
+			<datafeed name="TemplateRaster" type="Input"/>
 			<datafeed name="FieldDataOptions" type="Input"/>
 			<datafeed name="FieldData"/>
 			<datafeed name="CovariateData"/>
 			<datafeed name="SiteData" type="Output"/>
 		  </pipeline>
 		</transformer>
-		<!--Non-Spatial Data Preparation Transformer-->
+		<!--Background Data Preparation Transformer-->
 		<transformer
-		  name="DataPreparation"
-		  displayName ="3 - Data Preparation (Non-Spatial)"
+		  name="BackgroundDataGeneration"
+		  displayName ="4 - Background Data Generation"
 		  isRunnable="True"
-		  programName="RScript"
-		  programArguments="3-non-spatial-data-preparation.R"
+		  programName="Rscript"
+		  programArguments="4-background-data-generation.R"
 		  condaEnv="wisdm-r-conda.yml">
 		  <pipeline>
 		  	<datafeed name="TemplateRaster" type="Input"/>
 			<datafeed name="FieldData"/>
 			<datafeed name="BackgroundDataOptions" type="Input"/>
+			<datafeed name="CovariateData"/>
+			<datafeed name="SiteData" type="Input"/>
+		  </pipeline>
+		</transformer>
+		<!--Split Data for Training/Testing Transformer-->
+		<transformer
+		  name="FieldDataPreparation"
+		  displayName ="5 - Prepare Training/Testing Data"
+		  isRunnable="True"
+		  programName="Rscript"
+		  programArguments="5-prepare-training-testing-data.R"
+		  condaEnv="wisdm-r-conda.yml">
+		  <pipeline>
+			<datafeed name="FieldData"/>
 			<datafeed name="ValidationOptions" type="Input"/>
 			<datafeed name="CovariateData"/>
 			<datafeed name="SiteData" type="Input"/>
@@ -268,17 +312,17 @@
 		<!--Variable Reduction Transformer-->
 		<transformer
 		  name="VariableReduction"
-		  displayName ="4 - Variable Reduction"
+		  displayName ="6 - Variable Reduction"
 		  isRunnable="True"
-		  programName="RScript"
-		  programArguments="4-variable-reduction.R"
+		  programName="Rscript"
+		  programArguments="6-variable-reduction.R"
 		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
 				<datafeed name="SiteData" type="Input"/>
 				<datafeed name="CovariateSelectionOptions" type ="Input"/>
+				<datafeed name="ReducedCovariates"/>
 				<datafeed name="CovariateCorrelationMatrix" type="Output"/>
-				<datafeed name="ReducedCovariates" type="Output"/>
 			</pipeline>
 			<datafeeds>
 				<datafeed name="CovariateCorrelationMatrix" dataScope="Scenario" isOutput="True">
@@ -297,10 +341,10 @@
 		<!--GLM Transformer-->
 		<transformer
 		  name="GLM"
-		  displayName ="5 - Generalized Linear Model"
+		  displayName ="7 - Generalized Linear Model"
 		  isRunnable="True"
-		  programName="RScript"
-		  programArguments="5-fit-glm.R"
+		  programName="Rscript"
+		  programArguments="7-fit-glm.R"
 		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
@@ -330,10 +374,10 @@
 		<!--Random Forest Transformer-->
 		<transformer
 		  name="RandomForest"
-		  displayName ="5 - Random Forest"
+		  displayName ="7 - Random Forest"
 		  isRunnable="True"
-		  programName="RScript"
-		  programArguments="5-fit-random-forest.R"
+		  programName="Rscript"
+		  programArguments="7-fit-random-forest.R"
 		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
@@ -368,10 +412,10 @@
 		<!--Maxent Transformer-->
 		<transformer
 		  name="Maxent"
-		  displayName ="5 - Maxent"
+		  displayName ="7 - Maxent"
 		  isRunnable="True"
-		  programName="RScript"
-		  programArguments="5-fit-maxent.R"
+		  programName="Rscript"
+		  programArguments="7-fit-maxent.R"
 		  condaEnv="wisdm-r-conda.yml">
 			<pipeline>
 				<datafeed name="FieldData" type="Input"/>
@@ -403,10 +447,10 @@
 		<!--Apply Model Transformer-->
 		<transformer
 		  name="ApplyModel"
-		  displayName ="6 - Apply Model"
+		  displayName ="8 - Apply Model"
 		  isRunnable="True"
-		  programName="RScript"
-		  programArguments="6-apply-model.R"
+		  programName="Rscript"
+		  programArguments="8-apply-model.R"
 		  className="SyncroSim.StochasticTime.StochasticTimeTransformer" 
 		  classAssembly="SyncroSim.StochasticTime"
 		  runContext="AllowRemote"
@@ -414,9 +458,10 @@
 			<pipeline>
 				<datafeed name="corestime_Multiprocessing" type="Input"/>
 				<datafeed name="TemplateRaster" type="Input"/>
+				<datafeed name="RestrictionRaster" type="Input"/>
 				<datafeed name="ModelOutputs" type="Input"/>
-				<datafeed name="CovariateData" type="Input"/>
-				<datafeed name="OutputOptions" type="Input"/>
+				<datafeed name="CovariateData"/>
+				<datafeed name="OutputOptions"/>
 				<datafeed name="SpatialOutputs" type="Output"/>
 			</pipeline>
 			<datafeeds>	
@@ -513,8 +558,11 @@
 		<!--Scenario Datafeeds Layout-->
 		<layout name="coreforms_ScenarioDatafeeds">
 		  <group name="DataPreparation" displayName="Data Preparation">
-			<item name="TemplateRaster" showIf="inPipeline"/>
-			<item name="CovariateData" showIf="inPipeline"/>
+		  	<group name="SpatialData" displayName="Spatial Data">
+				<item name="TemplateRaster" showIf="inPipeline"/>
+				<item name="CovariateData" showIf="inPipeline"/>
+				<item name="RestrictionRaster" showIf="inPipeline"/>
+			</group>
 			<group name="FieldData" displayName="Field Data">
 				<item name="FieldData" showIf="inPipeline"/>
 				<item name="FieldDataOptions" showIf="inPipeline"/>

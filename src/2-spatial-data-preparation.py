@@ -96,9 +96,10 @@ ssimInputDir = myScenario.library.location + ".input\Scenario-" + str(myScenario
 networkSheet = myScenario.library.datasheets("Network")
 covariatesSheet = myScenario.project.datasheets("Covariates")
 covariateDataSheet = myScenario.datasheets("CovariateData", show_full_paths=False)
-fieldDataSheet = myScenario.datasheets("FieldData")
-fieldDataOptions = myScenario.datasheets("FieldDataOptions")
+# fieldDataSheet = myScenario.datasheets("FieldData")
+# fieldDataOptions = myScenario.datasheets("FieldDataOptions")
 templateRasterSheet = myScenario.datasheets("TemplateRaster", show_full_paths=False)
+restrictionRasterSheet = myScenario.datasheets("RestrictionRaster", show_full_paths=True)
 multiprocessingSheet = myScenario.datasheets("core_Multiprocessing")
 
 # outputs
@@ -153,9 +154,9 @@ covariateDataSheet["rioResample"] = covariateDataSheet.ResampleMethod.replace(re
 covariateDataSheet["rioAggregate"] = covariateDataSheet.AggregationMethod.replace(resampleAggregateMethodName, resampleAggregateMethodCodes)
 
 # check if field data was provided
-if len(fieldDataSheet) == 0:
-    # raise warning if field data was not provided
-    ps.environment.update_run_log("Field data was not provided. Site data was not prepared, only the covaraite layers were prepared.")
+# if len(fieldDataSheet) == 0:
+#     # raise warning if field data was not provided
+#     ps.environment.update_run_log("Field data was not provided. Site data was not prepared, only the covaraite layers were prepared.")
     
  
 #%% Load template raster ----------------------------------------------------------------
@@ -276,6 +277,7 @@ for i in range(len(covariateDataSheet.CovariatesID)):
         'height': templateRaster.rio.height,
         'count': 1,
         'dtype': covariateRaster.dtype, 
+        "nodata": -9999,
         'compress': 'lzw',
         'crs': templateCRS,
         'transform': templateTransform
@@ -297,136 +299,86 @@ for i in range(len(covariateDataSheet.CovariatesID)):
 #%% Save updated covariate data to scenario 
 myScenario.save_datasheet(name="CovariateData", data=outputCovariateSheet) 
 
-#%% Prepare site data -------------------------------------------------------
+#%% Prepare restriction raster --------------------------------------------------
 
-if len(fieldDataSheet) > 0:
+# check if restriction raster was provided
+if len(restrictionRasterSheet.RasterFilePath) > 0:
 
-    nInitial = len(fieldDataSheet.SiteID)
-
-    # Create shapely points from the coordinate-tuple list
-    siteCoords = [Point(x, y) for x, y in zip(fieldDataSheet.X, fieldDataSheet.Y)]
-
-    # Define field data crs
-    if pd.isnull(fieldDataOptions.EPSG[0]):
-        fieldDataCRS = templateCRS
+    restrictionRaster = rioxarray.open_rasterio(restrictionRasterSheet.RasterFilePath.item(), chunks=True)
+    outputPath = os.path.join(ssimTempDir, os.path.basename(restrictionRasterSheet.RasterFilePath.item()))
+    
+    if pd.isnull(restrictionRaster.rio.crs):
+        raise ValueError(print("The restriction rasters has an invalid or unknown CRS. Ensure that the raster has a valid CRS before continuing."))  
     else:
-        fieldDataCRS = fieldDataOptions.EPSG[0]
+        if restrictionRaster.rio.crs.is_valid == False:
+           raise ValueError(print("The restriction rasters has an invalid or unknown CRS. Ensure that the raster has a valid CRS before continuing."))  
 
-    # Convert shapely object to a geodataframe with a crs
-    sites = gpd.GeoDataFrame(fieldDataSheet, geometry=siteCoords, crs=fieldDataCRS)
-
-    # Reproject points if site crs differs from template crs
-    if sites.crs != templateCRS:
-        sites = sites.to_crs(templateCRS)
-
-    # Clip sites to template extent
-    if rasterio.dtypes.is_ndarray(templatePolygons):
-        sites = gpd.clip(sites,templatePolygons)
+     # check if extent fully overlaps template extent: [left, bottom, right, top]
+    resExtent = list(rasterio.warp.transform_bounds(restrictionRaster.rio.crs, templateCRS,*restrictionRaster.rio.bounds()))
+    
+    overlap=[]
+    for j in range(2):
+        overlap.append(resExtent[j] <= templateExtent[j])
+    for j in range(2,4):
+        overlap.append(resExtent[j] >= templateExtent[j])
+    if any(overlap) == False:
+        raise ValueError(print("The extent of the restriction raster does not overlap the full extent of the template raster. Ensure that the restriciton raster overlaps the template extent before continuing."))
+    
+    # Determine if raster needs to be resampled or aggregated
+    # convert resolution to template units (following code is faster then reprojecting for large rasters)
+    resAffine = rasterio.warp.calculate_default_transform(restrictionRaster.rio.crs, templateCRS, 
+                                                            restrictionRaster.rio.width, restrictionRaster.rio.height,
+                                                            *restrictionRaster.rio.bounds())[0]
+    
+    resPixelSize = resAffine[0]*-resAffine[4]
+        
+    # if resolution is finer then template use aggregate method (if coarser use resample method) 
+    if resPixelSize < templatePixelSize:
+        rioResampleMethod = "nearest"
     else:
-        sites = gpd.clip(sites, templateExtent)
-    nFinal = len(sites.SiteID)
+        rioResampleMethod = "average"
 
-    if nFinal < nInitial:
-        ps.environment.update_run_log(nInitial-nFinal, " sites out of ", nInitial, 
-            " total sites in the input field data were outside the template extent and were removed from the output. ",
-            nFinal, " sites were retained.")
+    # reproject covariate raster ## TO DO - build out memory save version of reproject-match
+    # spatialUtils.parc(inputFile=covariatePath, 
+    #                 templateRaster=templateRaster, 
+    #                 outputFile=outputCovariatePath,
+    #                 chunks = {'x': chunkDims, 'y': chunkDims},
+    #                 resampling=Resampling[rioResampleMethod],
+    #                 transform=covAffine,
+    #                 mask = templatePolygons.geometry,
+    #                 client=client)
 
-    # Update xy to match geometry
-    sites.X = sites.geometry.apply(lambda p: p.x)
-    sites.Y = sites.geometry.apply(lambda p: p.y)
+    # reproject/resample/clip raster to match template 
+    restrictionRaster = restrictionRaster.rio.reproject_match(templateRaster,
+                                                            resampling=Resampling[rioResampleMethod])
+    
+    #Add NoData mask to raster
+    restrictionRaster = np.ma.masked_array(restrictionRaster, templateMask)
+    restrictionRaster.fill_value = -9999
+   
+    # Set raster output parameters
+    raster_params = {
+        'driver': 'GTiff',
+        'width': templateRaster.rio.width,
+        'height': templateRaster.rio.height,
+        'count': 1,
+        'dtype': restrictionRaster.dtype, 
+        "nodata": -9999,
+        'compress': 'lzw',
+        'crs': templateCRS,
+        'transform': templateTransform
+    }
+        
+    # Write processed raster to file with internal NoData mask 
+    with rasterio.Env(GDAL_TIFF_INTERNAL_MASK=True):
+        with rasterio.open(outputPath, mode="w", **raster_params,
+                            masked= True, tiled=True, windowed=True, overwrite=True) as src:
+            src.write(restrictionRaster)
+    
+    # Add covariate data to output dataframe
+    restrictionRasterSheet.RasterFilePath = outputPath
 
-    # Extract raster ids for each point
-    rasterCellIDs = []
-    rasterRows = []
-    rasterCols = []
-    with rasterio.open(templatePath) as src:
-        for point in sites.geometry:
-            x = point.xy[0][0]
-            y = point.xy[1][0]
-            row, col = src.index(x,y)
-            rasterCellIDs.append((row,col))
-            rasterRows.append(row)
-            rasterCols.append(col)
+    # Save updated covariate data to scenario 
+    myScenario.save_datasheet(name="RestrictionRaster", data=restrictionRasterSheet)     
 
-    sites["RasterRow"] = rasterRows
-    sites["RasterCol"] = rasterCols
-    sites["RasterCellID"] = rasterCellIDs
-
-    # If there are multiple points per cell - Aggregate or Weight sites
-    if pd.notnull(fieldDataOptions.AggregateAndWeight[0]):
-        if len(np.unique(sites.RasterCellID)) != len(sites.RasterCellID):
-            # find duplicates
-            seen = set()
-            dupes = []
-            for x in sites.RasterCellID.tolist():
-                if x in seen:
-                    dupes.append(x)
-                else:
-                    seen.add(x)
-            dupes = list(set(dupes)) # get unsorted unique list of tuples
-
-            # if Aggregate sites is selected       
-            if fieldDataOptions.AggregateAndWeight[0] == "Aggregate":
-                # if presence absence data
-                if all(sites.Response.isin([0,1])):
-                    for d in dupes:
-                        sitesInd = sites.index[sites.RasterCellID == d].to_list() 
-                        resp_d = sites.Response[sitesInd].to_list() 
-                        if sum(resp_d) == 0 or np.mean(resp_d) == 1: # if all absence or all presence
-                            sites.Response[sitesInd[1:]] = -9999 
-                        else: # if response is mix of presence/absence
-                            keep_d = (sites.Response[sitesInd] == 1).index[0] # keep a presence and convert rest of repeat sites to background points 
-                            sitesInd.remove(keep_d)
-                            sites.Response[sitesInd] = -9999 
-                else: # if count data 
-                    for d in dupes:
-                        sitesInd = sites.index[sites.RasterCellID == d].to_list() 
-                        resp_d = sites.Response[sitesInd].to_list()
-                        if sum(resp_d) == 0: # if all counts are zero
-                            sites.Response[sitesInd[1:]] = -9999 
-                        else: # if any counts are greater then zero
-                            sites.Response[sitesInd[0]] = sum(resp_d)
-                            sites.Response[sitesInd[1:]] = -9999 
-            else: # if weight sites is selected
-                if all(sites.Weight.isna()): # check for user defined weights;
-                    sites.Weight = 1
-                    for d in dupes:
-                        sitesInd = sites.index[sites.RasterCellID == d].to_list()
-                        weight_d = 1/len(sitesInd)
-                        sites.Weight[sitesInd] = weight_d
-                else: 
-                    ps.environment.update_run_log("Weights were already present in the field data, new weights were not assigned.")
-
-        else: 
-            ps.environment.update_run_log("Only one field data observation present per pixel; no aggregation or weighting required.")
-
-    # Save updated field data to scenario 
-    outputFieldDataSheet = sites.iloc[:,0:7]
-    myScenario.save_datasheet(name="FieldData", data=outputFieldDataSheet) 
-
-    # Drop sites with repeat cell repeats  
-    dropInd = sites.index[sites.Response == -9999].tolist()
-    sites = sites.drop(dropInd)
-
-    # Write sites to file (for testing)
-    # tempOutputPath = os.path.join(ssimTempDir, "sites.shp")
-    # sites.to_file(tempOutputPath)
-
-    # Create index arrays (note in xarray x=col and y=row from geodataframe)
-    yLoc = xarray.DataArray(sites.RasterRow, dims =["loc"])
-    xLoc = xarray.DataArray(sites.RasterCol, dims =["loc"])
-    sitesOut = sites[["SiteID"]] #, "RasterCellID"
-
-    # Extract covariate values for each site
-    for i in range(len(covariateDataSheet.CovariatesID)):
-        # Load processed covariate rasters and extract site values
-        outputCovariatePath = os.path.join(ssimTempDir, covariateDataSheet.RasterFilePath[i])
-        covariateRaster = rioxarray.open_rasterio(outputCovariatePath, chunks=True)
-        sitesOut[covariateDataSheet.CovariatesID[i]] = covariateRaster[0].isel(x=xLoc,y=yLoc).values.tolist()
-
-    # Convert site data to long format
-    siteData = pd.melt(sitesOut, id_vars= "SiteID", value_vars=sitesOut.columns[1:], var_name="CovariatesID", value_name="Value")
-
-    # Save site data to scenario 
-    myScenario.save_datasheet(name="SiteData", data=siteData) 
-
+# %%
