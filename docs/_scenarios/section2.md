@@ -7,16 +7,35 @@ permalink: reference/data-preparation
 
 <!--- Sidebar Navigation Menu --->
 <div class="sidenav">
-    {% for section in site.sections %}
-        <a href="{{site.baseurl}}{{ section.url }}"> <b>{{ section.title }}</b> </a>
-        {% if section.section == page.section %}
-            <a href="#heading01"> &emsp;Template Raster</a>
-            <a href="#heading02"> &emsp;Covariate Data</a>
-            <a href="#heading03"> &emsp;Field Data</a>
-            <a href="#heading04"> &emsp;Field Data Options</a>
-            <a href="#heading05"> &emsp;Background Data Options</a>
-            <a href="#heading06"> &emsp;Validation Options</a>
-            <a href="#heading07"> &emsp;Spatial Multiprocessing</a>
+    <li>Library</li>
+    {% for section in site.library %}
+        {% if section.section != page.section %}
+            <a href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% endif %}
+    {% endfor %}
+    <li>Project</li>
+    {% for section in site.project %}
+        {% if section.section != page.section %}
+            <a href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% endif %}
+    {% endfor %}
+    <li>Scenario</li>
+    {% for section in site.scenarios %}
+        {% if section.section != page.section %}
+            <a href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+            <a href="#heading01"> &emsp;&emsp;&emsp;Template Raster</a>
+            <a href="#heading02"> &emsp;&emsp;&emsp;Covariate Data</a>
+            <a href="#heading03"> &emsp;&emsp;&emsp;Field Data</a>
+            <a href="#heading04"> &emsp;&emsp;&emsp;Field Data Options</a>
+            <a href="#heading05"> &emsp;&emsp;&emsp;Background Data Options</a>
+            <a href="#heading06"> &emsp;&emsp;&emsp;Validation Options</a>
+            <a href="#heading07"> &emsp;&emsp;&emsp;Spatial Multiprocessing</a>
         {% endif %}
     {% endfor %}
 </div>

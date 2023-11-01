@@ -3,12 +3,12 @@
 
 @import "minima";
 
-/* Color of links and other bits an bolts of the website set as the same than on SyncroSim website */
+// Color of links and other bits an bolts of the website set as the same than on SyncroSim website
 :root {
     --apexOrange: #175cb6;
 }
 
-/* Links */
+// Links
 a {
     color: var(--apexOrange);
 }
@@ -43,20 +43,20 @@ a {
 // Avoid wrapping of email address
 .contact-list .u-email { font-size: 95%; }
 
-// size of wrapper
+// Size of wrapper
 .wrapper {
     max-width: calc(1000px - (30px * 2));
     padding-right: 15%;
     padding-left: 10%;
 }
 
-/* Size of page content (text within page) */
+// Size of page content (text within page)
 .page-content {
     padding-right: 15%;
     padding-left: 10%;
 }
 
-/* Alignment of footer */
+// Alignment of footer
 .site-footer{
     padding-right: 15%;
     padding-left: 10%;
@@ -68,27 +68,37 @@ a {
     margin-left: 0%;
     margin-right: 0%;
 }
-
 .footer-col-2 {
     width: calc(40% - (30px / 2));
 }
-
 .footer-col-3 {
     width: calc(25% - (30px / 2));
     text-align: right;
 }
 
-/* Sidebar box */
+// Change footer col sizes
+.footer-col-1 {
+    width: calc(50% - (30px / 2));
+}
+.footer-col-2 {
+    width: calc(0% - (30px / 2));
+}
+.footer-col-3 {
+    width: calc(50% - (30px / 2));
+}
+
+
+// Sidebar box
 .sidenav {
-    width: 14%;
+    width: 18%;
     position: fixed;
-    top: 170px;
+    top: 125px;
     right: 0px;
     background: #f1f1f1;
     padding: 12px 12px;
     display: inline-block;
 }
-/* Sidebar when link is selected */
+/* Link */
 .sidenav a {
     padding: 6px 6px 6px 12px;
     text-decoration: none;
@@ -96,31 +106,52 @@ a {
     color: #000;
     display: block;
 }
-/* Sidebar when cursor hovers */
-.sidenav a:hover {
-    background-color:#cecece;
-    color: white;
+/* Link on focus */
+.sidenav a:focus {
+    font-weight: 700;
+    background-color:#fff;
+    color: #000;
 }
-/* Adjust for small screens */
-@media screen and (max-width: 500px) {
+/* Link on hover */
+.sidenav a:hover {
+    background-color:#fff;
+    color: #000;
+}
+/* Link when selected (active page) */
+.selected {
+    font-weight: 700;
+    background-color:#fff;
+    color: #000;
+}
+/* Remove sidebar on small screens */
+@media screen and (max-width: 1130px) {
     .sidenav {display: none;}
 }
+/* Lists */
+.sidenav li {
+    padding: 6px 6px 6px 12px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+    color: #000;
+    display: block;
+}
 
-/* Indented text */
+
+// Indented text
 .indentation {
  margin-left: 2rem;
  margin-bottom: 1rem; 
 }
 
-// Change footer col sizes
-.footer-col-1 {
-    width: calc(50% - (30px / 2));
+// List with no bullet icon
+.no-bullets {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
 }
 
-.footer-col-2 {
-    width: calc(0% - (30px / 2));
-}
-
-.footer-col-3 {
-    width: calc(50% - (30px / 2));
+// Spacer smaller than <br>
+.spacer {
+    height: 12px;
 }

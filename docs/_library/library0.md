@@ -7,9 +7,28 @@ permalink: reference/network
 
 <!--- Sidebar Navigation Menu --->
 <div class="sidenav">
-    {% for section in site.sections %}
-        <a href="{{site.baseurl}}{{ section.url }}"> <b>{{ section.title }}</b> </a>
-        {% if section.section == page.section %}
+    <li>Library</li>
+    {% for section in site.library %}
+        {% if section.section != page.section %}
+            <a href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% endif %}
+    {% endfor %}
+    <li>Project</li>
+    {% for section in site.project %}
+        {% if section.section != page.section %}
+            <a href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% endif %}
+    {% endfor %}
+    <li>Scenario</li>
+    {% for section in site.scenarios %}
+        {% if section.section != page.section %}
+            <a href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
         {% endif %}
     {% endfor %}
 </div>

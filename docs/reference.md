@@ -11,10 +11,17 @@ In SyncroSim, all of the of inputs and outputs associated with a model are store
 
 **WISDM** has a *Library*, a *Project* and multiple *Scenario* scoped *Datasheets*. Within this Reference guide, you will find details on the function of each field within **WISDM** *Datasheets*. For details on *Datasheets* not covered in this reference guide, see the [SyncroSim Core Datasheets Overview](https://docs.syncrosim.com/?reference/ds_overview.html). 
 
-**WISDM** *Datasheets* are organized under the following tabs:
-
-{% for section in site.sections %}
+<li class="no-bullets">Library <i>Datasheet</i>:</li>
+{% for section in site.library %}
   <li> <a href="{{site.baseurl}}{{ section.url }}"> {{ section.title }}</a> </li>
 {% endfor %}
-
-<br>
+<div class="spacer"></div>
+<li class="no-bullets">Project <i>Datasheet</i>:</li>
+{% for section in site.project %}
+  <li> <a href="{{site.baseurl}}{{ section.url }}"> {{ section.title }}</a> </li>
+{% endfor %}
+<div class="spacer"></div>
+<li class="no-bullets">Scenario <i>Datasheets</i>:</li>
+{% for section in site.scenarios %}
+  <li> <a href="{{site.baseurl}}{{ section.url }}"> {{ section.title }}</a> </li>
+{% endfor %}

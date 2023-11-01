@@ -7,12 +7,31 @@ permalink: reference/general
 
 <!--- Sidebar Navigation Menu --->
 <div class="sidenav">
-    {% for section in site.sections %}
-        <a href="{{site.baseurl}}{{ section.url }}"> <b>{{ section.title }}</b> </a>
-        {% if section.section == page.section %}
-            <a href="#heading01"> &emsp;Summary</a>
-            <a href="#heading02"> &emsp;Pipeline</a>
-            <a href="#heading03"> &emsp;Datafeeds</a>
+    <li>Library</li>
+    {% for section in site.library %}
+        {% if section.section != page.section %}
+            <a href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% endif %}
+    {% endfor %}
+    <li>Project</li>
+    {% for section in site.project %}
+        {% if section.section != page.section %}
+            <a href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% endif %}
+    {% endfor %}
+    <li>Scenario</li>
+    {% for section in site.scenarios %}
+        {% if section.section != page.section %}
+            <a href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+            <a href="#heading01"> &emsp;&emsp;&emsp;Summary</a>
+            <a href="#heading02"> &emsp;&emsp;&emsp;Pipeline</a>
+            <a href="#heading03"> &emsp;&emsp;&emsp;Datafeeds</a>
         {% endif %}
     {% endfor %}
 </div>

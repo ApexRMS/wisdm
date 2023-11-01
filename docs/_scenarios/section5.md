@@ -7,13 +7,32 @@ permalink: reference/models
 
 <!--- Sidebar Navigation Menu --->
 <div class="sidenav">
-    {% for section in site.sections %}
-        <a href="{{site.baseurl}}{{ section.url }}"> <b>{{ section.title }}</b> </a>
-        {% if section.section == page.section %}
-            <a href="#heading01"> &emsp;GLM</a>
-            <a href="#heading02"> &emsp;Random Forest</a>
-            <a href="#heading03"> &emsp;Maxent</a>
-            <a href="#heading04"> &emsp;Model Outputs</a>
+    <li>Library</li>
+    {% for section in site.library %}
+        {% if section.section != page.section %}
+            <a href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% endif %}
+    {% endfor %}
+    <li>Project</li>
+    {% for section in site.project %}
+        {% if section.section != page.section %}
+            <a href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% endif %}
+    {% endfor %}
+    <li>Scenario</li>
+    {% for section in site.scenarios %}
+        {% if section.section != page.section %}
+            <a class="indent1" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+            <a href="#heading01"> &emsp;&emsp;&emsp;GLM</a>
+            <a href="#heading02"> &emsp;&emsp;&emsp;Random Forest</a>
+            <a href="#heading03"> &emsp;&emsp;&emsp;Maxent</a>
+            <a href="#heading04"> &emsp;&emsp;&emsp;Model Outputs</a>
         {% endif %}
     {% endfor %}
 </div>

@@ -5,15 +5,33 @@ title: Variable Reduction
 permalink: reference/variable-reduction
 ---
 
-
 <!--- Sidebar Navigation Menu --->
 <div class="sidenav">
-    {% for section in site.sections %}
-        <a href="{{site.baseurl}}{{ section.url }}"> <b>{{ section.title }}</b> </a>
-        {% if section.section == page.section %}
-            <a href="#heading01"> &emsp;Site Data</a>
-            <a href="#heading02"> &emsp;Covariate Selection Options</a>
-            <a href="#heading03"> &emsp;Reduced Covariate List</a>
+    <li>Library</li>
+    {% for section in site.library %}
+        {% if section.section != page.section %}
+            <a href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% endif %}
+    {% endfor %}
+    <li>Project</li>
+    {% for section in site.project %}
+        {% if section.section != page.section %}
+            <a href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% endif %}
+    {% endfor %}
+    <li>Scenario</li>
+    {% for section in site.scenarios %}
+        {% if section.section != page.section %}
+            <a href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+        {% else %}
+            <a class="selected" href="{{site.baseurl}}{{ section.url }}"> &emsp;{{ section.title }} </a>
+            <a href="#heading01"> &emsp;&emsp;&emsp;Site Data</a>
+            <a href="#heading02"> &emsp;&emsp;&emsp;Covariate Selection Options</a>
+            <a href="#heading03"> &emsp;&emsp;&emsp;Reduced Covariate List</a>
         {% endif %}
     {% endfor %}
 </div>

@@ -7,5 +7,10 @@ header_pages:
   - getting_started.md
   - reference.md
 collections:
-  sections:
+  scenarios:
     output: true
+  library:
+    output: true
+  project:
+    output: true
+  
