@@ -10,14 +10,16 @@
 # source dependencies ----------------------------------------------------------
 
 library(rsyncrosim)
-library(tidyr)
-library(dplyr)
+library(tidyverse)
 library(zip) # install.packages("zip")
 # library(splines)
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "00-helper-functions.R"))
 source(file.path(packageDir, "07-fit-model-functions.R"))
+
+# disable scientific notation 
+options(scipen = 999)
 
 # Connect to library -----------------------------------------------------------
 

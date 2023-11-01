@@ -182,7 +182,8 @@ if len(fieldDataSheet) > 0:
 
     # Create shapely points from the coordinate-tuple list
     siteCoords = [Point(x, y) for x, y in zip(fieldDataSheet.X, fieldDataSheet.Y)]
-
+    # gpd.GeoSeries(siteCoords).plot()
+    
     # Define field data crs
     if pd.isnull(fieldDataOptions.EPSG[0]):
         fieldDataCRS = templateCRS

@@ -153,6 +153,14 @@ fitModel <- function(dat,           # df of training data
       cat(" responsecurves jackknife writeclampgrid writemess warnings prefixes", file = out$batchPath, append = T) # reverse these default settings  
       cat(" redoifexists autorun", file = out$batchPath, append = T)
       
+      # Note than maxent can't handle spaces in the batch file path
+      # - if there are spaces in tempDir, copy the batch file to a system temp file
+      # - also update batchPath location in the local scope
+      if (str_detect(out$tempDir, " ")) {
+        batchTempFile <- tempfile(pattern = "runMaxent", fileext = ".bat")
+        file.copy(out$batchPath, batchTempFile, overwrite = T)
+        out$batchPath <- batchTempFile
+      }
       # run maxent
       shell(out$batchPath)
       
@@ -175,6 +183,15 @@ fitModel <- function(dat,           # df of training data
       cat(" threads=",out$modOptions$MultiprocessingThreads, sep = "", file = out$batchPath, append = T)
       cat(" writeclampgrid writemess warnings prefixes", file = out$batchPath, append = T) # reverse these default settings  
       cat(" redoifexists autorun", file = out$batchPath, append = T)
+      
+      # Note than maxent can't handle spaces in the batch file path
+      # - if there are spaces in tempDir, copy the batch file to a system temp file
+      # - also update batchPath location in the local scope
+      if (str_detect(out$tempDir, " ")) {
+        batchTempFile <- tempfile(pattern = "runMaxent", fileext = ".bat")
+        file.copy(out$batchPath, batchTempFile, overwrite = T)
+        out$batchPath <- batchTempFile
+      }
       
       # run maxent
       shell(out$batchPath)
