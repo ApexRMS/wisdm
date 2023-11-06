@@ -48,7 +48,8 @@ modelOutputsSheet <- datasheet(myScenario, "ModelOutputs", optional = T, lookups
 outputOptionsSheet <- datasheet(myScenario, "OutputOptions", optional = T)
 spatialOutputsSheet <- datasheet(myScenario, "SpatialOutputs", optional = T, lookupsAsFactors = F)
 
-# progress bar
+# Set progress bar -------------------------------------------------------------
+
 steps <- (nrow(modelOutputsSheet) * sum(outputOptionsSheet, na.rm = T))+2
 progressBar(type = "begin", totalSteps = steps)
 

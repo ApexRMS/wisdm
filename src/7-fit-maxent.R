@@ -21,6 +21,11 @@ source(file.path(packageDir, "07-fit-model-functions.R"))
 # disable scientific notation 
 options(scipen = 999)
 
+# Set progress bar -------------------------------------------------------------
+
+steps <- 11
+progressBar(type = "begin", totalSteps = steps)
+
 # Connect to library -----------------------------------------------------------
 
 # Active project and scenario
@@ -40,6 +45,8 @@ siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
 maxentSheet <- datasheet(myScenario, "wisdm_Maxent")
 mulitprocessingSheet <- datasheet(myScenario, "core_Multiprocessing")
 modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T, empty = T, lookupsAsFactors = F)
+
+progressBar()
 
 # Error handling ---------------------------------------------------------------
 
@@ -83,6 +90,7 @@ if(mulitprocessingSheet$EnableMultiprocessing){
   }
  
 saveDatasheet(myScenario, maxentSheet, "wisdm_Maxent")   
+progressBar()
 
 # Prep data for model fitting --------------------------------------------------
 
@@ -125,6 +133,7 @@ if(!validationDataSheet$CrossValidate){ trainingData$ModelSelectionSplit <- FALS
 
 testingData <- trainTestDatasets$`TRUE`
 if(!is.null(testingData)){ testingData$ModelSelectionSplit <- FALSE }
+progressBar()
 
 # Model definitions ------------------------------------------------------------
 
@@ -219,6 +228,7 @@ if(nrow(out$data$train)/(length(out$inputVars)-1)<10){
   updateRunLog(paste("\nYou have approximately ", round(nrow(out$data$train)/(ncol(out$data$train)-1),digits=1),
                      " observations for every predictor\n consider reducing the number of predictors before continuing\n",sep=""))
 }
+progressBar()
 
 # Fit model --------------------------------------------------------------------
 
@@ -247,6 +257,7 @@ coeftbl <- modSummary
 rownames(coeftbl) <- NULL
 updateRunLog(pander::pandoc.table.return(coeftbl, style = "simple", split.tables = 100))
 capture.output(cat("\n\n"), modSummary, file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"), append=TRUE)
+progressBar()
 
 # Test model predictions -------------------------------------------------------
 
@@ -255,6 +266,7 @@ out$data$train$predicted <- pred.fct(x=out$data$train, mod=finalMod, modType=mod
 if(validationDataSheet$SplitData){
   out$data$test$predicted <- pred.fct(x=out$data$test, mod=finalMod, modType=modType)
 }
+progressBar()
 
 # Run Cross Validation (if specified) ------------------------------------------
 if(validationDataSheet$CrossValidate){
@@ -262,16 +274,19 @@ if(validationDataSheet$CrossValidate){
   out <- cv.fct(out = out,
                 nfolds = validationDataSheet$NumberOfFolds)
 }
+progressBar()
 
 # Generate Model Outputs -------------------------------------------------------
 
 ## AUC/ROC - Residual Plots - Variable Importance -  Calibration - Confusion Matrix ##
 
 out <- suppressWarnings(makeModelEvalPlots(out=out))
+progressBar()
 
 ## Response Curves ##
 
 response.curves(out)
+progressBar()
 
 # Save model outputs -----------------------------------------------------------
 
@@ -308,3 +323,4 @@ if(maxentSheet$SaveMaxentFiles){
 
 # save outputs datasheet
 saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs", append = T)
+progressBar(type = "end")

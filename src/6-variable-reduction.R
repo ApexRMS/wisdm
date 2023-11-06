@@ -18,6 +18,11 @@ library(shiny)
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "06-variable-reduction-functions.R"))
 
+# Set progress bar -------------------------------------------------------------
+
+steps <- 6
+progressBar(type = "begin", totalSteps = steps)
+
 # Connect to library -----------------------------------------------------------
 
 # Active project and scenario
@@ -34,6 +39,8 @@ siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
 covariateSelectionSheet <- datasheet(myScenario, "wisdm_CovariateSelectionOptions", optional = T)
 covariateCorrelationSheet <- datasheet(myScenario, "wisdm_CovariateCorrelationMatrix", optional = T)
 reducedCovariatesSheet <- datasheet(myScenario, "wisdm_ReducedCovariates")
+
+progressBar()
 
 # Set defaults -----------------------------------------------------------------
 
@@ -56,7 +63,6 @@ saveDatasheet(myScenario, covariateSelectionSheet, "wisdm_CovariateSelectionOpti
 if(any(is.na(reducedCovariatesSheet$CovariatesID))){
   reducedCovariatesSheet <- na.omit(reducedCovariatesSheet)
 }
-
 
 # Prep inputs ------------------------------------------------------------------
 
@@ -104,6 +110,8 @@ siteData$Response[siteData$Response == -9998] <- 0
 # covariate site data
 covData <- select(siteData, -Response)
 
+progressBar()
+
 # Automatic selection (using VIF) ----------------------------------------------
 
 if(covariateSelectionSheet$SelectionMethod == "Automatic (Variance Inflation Factor)"){
@@ -140,7 +148,7 @@ if(covariateSelectionSheet$SelectionMethod == "Automatic (Variance Inflation Fac
       updateRunLog(paste0(row, " ~ ", col, ": ", round(i,4)))
     }
   }
-
+progressBar()
 } # end if "Automatic"
 
 # Interactive Selection (using viewer) ------------------------------------------
@@ -211,7 +219,7 @@ if(covariateSelectionSheet$SelectionMethod == "Interactive (Correlation Viewer)"
   covariateCorrelationSheet <- addRow(covariateCorrelationSheet, data.frame(InitialMatrix = file.path(ssimTempDir, "InitialCovariateCorrelationMatrix.png"), 
                                                                           SelectedMatrix = file.path(ssimTempDir, "SelectedCovariateCorrelationMatrix.png")))
   saveDatasheet(myScenario, covariateCorrelationSheet, "wisdm_CovariateCorrelationMatrix")
-
+  progressBar()
 } # end if "Interactive" 
 
 # save reduced covariate list --------------------------------------------------
@@ -220,5 +228,5 @@ selectedCovariates <- unique(c(as.character(reducedCovariatesSheet$CovariatesID)
 
 reducedCovariatesSheet <- data.frame(CovariatesID = selectedCovariates)
 saveDatasheet(myScenario, reducedCovariatesSheet, "wisdm_ReducedCovariates")
-
+progressBar(type = "end")
 

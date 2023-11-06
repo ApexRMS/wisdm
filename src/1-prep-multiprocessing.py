@@ -26,6 +26,11 @@ import math
 import dask
 from dask.distributed import Client
 
+#%% Set progress bar ---------------------------------------------------------
+
+steps = 6
+ps.environment.progress_bar(report_type = "begin", total_steps = steps)
+
 #%% Connect to SyncroSim library --------------------------------------------
 
 # Load current scenario
@@ -43,6 +48,9 @@ templateRasterSheet = myScenario.datasheets("TemplateRaster", show_full_paths=Tr
 multiprocessingSheet = myScenario.datasheets("core_Multiprocessing")
 
 spatialMultiprocessingSheet = myScenario.datasheets("corestime_Multiprocessing")
+
+# update progress bar
+ps.environment.progress_bar()
 
 #%% Set up dask client ------------------------------------------------------
 if multiprocessingSheet.EnableMultiprocessing.item() == "Yes":
@@ -92,12 +100,19 @@ templatePath = templateRasterSheet.RasterFilePath.item()
 templateRaster = rioxarray.open_rasterio(templatePath)
 
 # Set desired number of cells per tile
-if templateRasterSheet.TileCount.item() is None:
-    numTiles = templateRaster.size/5e6
-    if numTiles < 10:
+if templateRasterSheet.TileCount.isnull().item():
+    if templateRaster.size <= 1000:
+        raise ValueError("Template raster has only " + str(templateRaster.size) + " pixels. Multiprocessing is not required.")
+    elif templateRaster.size <= 10000:
+        numTiles = templateRaster.size/1000
+    elif templateRaster.size <= 100000:
+        numTiles = templateRaster.size/10000
+    elif templateRaster.size <= 1e6:
+        numTiles = templateRaster.size/100000
+    elif templateRaster.size > 1e6:
         numTiles = templateRaster.size/1e6
-    if numTiles > 20:
-        numTiles = templateRaster.size/1e7
+        if numTiles > 20:
+            numTiles = templateRaster.size/5e6
 else:
     numTiles = templateRasterSheet.TileCount.item()   
     
@@ -105,6 +120,9 @@ tile_size = templateRaster.size/numTiles # 7500000
 
 # Create contiguous tiles
 # contig = True
+
+# update progress bar
+ps.environment.progress_bar()
 
 #%% Build tiling grid --------------------------------------------------------
 
@@ -158,6 +176,9 @@ with rasterio.open(templatePath) as src:
 # Resample to match primary stratum resolution
 resample_grid(grid_filepath, templatePath, "smp-grid.tif", ssimTempDir)
 
+# update progress bar
+ps.environment.progress_bar()
+
 #%% Mask to analysis area ----
 
 mask = templateRaster.to_numpy()
@@ -175,6 +196,9 @@ smp_grid = smp_grid.astype(int) * mask
 oldVals = np.unique(smp_grid)
 num_tiles = len(oldVals)-1
 output_filename = "smpGrid-" + str(num_tiles) + "-" + str(int(tile_size/1e3)) + "k.tif"
+
+# update progress bar
+ps.environment.progress_bar()
 
 #%%  Reclassify tiles ----
 
@@ -202,4 +226,6 @@ with rasterio.open(os.path.join(ssimTempDir, output_filename), "w", compress='de
 spatialMultiprocessingSheet["MaskFileName"] = [os.path.join(ssimTempDir, output_filename)]
 myScenario.save_datasheet(name="corestime_Multiprocessing", data=spatialMultiprocessingSheet) 
 
+# update progress bar
+ps.environment.progress_bar(report_type = "end")
 # %%

@@ -18,6 +18,11 @@
   packageDir <- Sys.getenv("ssim_package_directory")
   source(file.path(packageDir, "00-helper-functions.R"))
   source(file.path(packageDir, "07-fit-model-functions.R"))
+
+# Set progress bar -------------------------------------------------------------
+
+steps <- 11
+progressBar(type = "begin", totalSteps = steps)
   
 # Connect to library -----------------------------------------------------------
 
@@ -37,6 +42,8 @@
   siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
   RFSheet <- datasheet(myScenario, "wisdm_RandomForest")
   modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T, empty = T, lookupsAsFactors = F)
+
+  progressBar()
 
 # Error handling ---------------------------------------------------------------
 
@@ -92,8 +99,8 @@
   }
   if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}
   if(is.na(validationDataSheet$SplitData)){validationDataSheet$SplitData <- FALSE}
+  progressBar()
 
-  
 # Prep data for model fitting --------------------------------------------------
 
   siteDataWide <- spread(siteDataSheet, key = CovariatesID, value = "Value")
@@ -133,7 +140,8 @@
   trainingData <- trainTestDatasets$`FALSE`
   if(!validationDataSheet$CrossValidate){trainingData$ModelSelectionSplit <- FALSE}
   testingData <- trainTestDatasets$`TRUE`
-  
+  progressBar()
+
 # Model definitions ------------------------------------------------------------
 
   # create object to store intermediate model selection/evaluation inputs
@@ -187,7 +195,7 @@
     updateRunLog(paste("\nYou have approximately ", round(nrow(trainingData)/(ncol(trainingData)-1),digits=1),
                              " observations for every predictor\n consider reducing the number of predictors before continuing\n",sep=""))
   }
-
+  progressBar()
   
 # Fit model --------------------------------------------------------------------
 
@@ -229,7 +237,8 @@
   rownames(coeftbl) <- NULL
   colnames(coeftbl)[1] <- "Variable"  
   updateRunLog(pander::pandoc.table.return(coeftbl, style = "simple", split.tables = 100))
-  
+  progressBar()
+
 # Test model predictions -------------------------------------------------------
   
   # For the training set for Random Forest take out of bag predictions rather than the regular predictions
@@ -239,6 +248,7 @@
   if(validationDataSheet$SplitData){
     out$data$test$predicted <- pred.fct(x=out$data$test, mod=finalMod, modType=modType)
   }
+  progressBar()
 
 ## Run Cross Validation (if specified) -----------------------------------------
   
@@ -247,16 +257,19 @@
     out <- cv.fct(out = out,
                   nfolds = validationDataSheet$NumberOfFolds)
   }
-  
+  progressBar()
+
 # Generate Model Outputs -------------------------------------------------------
  
   ## AUC/ROC - Residual Plots - Variable Importance -  Calibration - Confusion Matrix ##
   
   out <- suppressWarnings(makeModelEvalPlots(out=out))
-  
+  progressBar()
+
   ## Response Curves ##
   
   response.curves(out)
+  progressBar()
 
 # Save model outputs -----------------------------------------------------------
 
@@ -286,5 +299,5 @@
   if("rf_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_AUCPRPlot.png") } 
   
   saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs", append = T)
-  
+  progressBar(type = "end")
   

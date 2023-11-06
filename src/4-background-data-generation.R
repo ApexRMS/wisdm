@@ -34,6 +34,11 @@ fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
 backgroundDataOptionsSheet <- datasheet(myScenario, "wisdm_BackgroundDataOptions", optional = T)
 siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", optional = T, lookupsAsFactors = F)
 
+# Set progress bar -------------------------------------------------------------
+
+steps <- 5 + length(covariateDataSheet$CovariatesID)
+progressBar(type = "begin", totalSteps = steps)
+
 # Prep inputs ------------------------------------------------------------------
 
 # drop no data (-9999) sites that resulted from spatial aggregation 
@@ -90,6 +95,8 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
                               outputDir = ssimTempDir,
                               dat = fieldDataSheet)
   
+  progressBar()
+  
   # generate background (psuedo-absence) points
   backgroundPointGeneration(sp = "species",
                             outputDir = ssimTempDir,
@@ -98,6 +105,8 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
                             # target_file = backgroundDataOptionsSheet, # this is an external input... 
                             overwrite = T)
   
+  progressBar()
+
   # add background point to field data
   bgData <- read.csv(file.path(ssimTempDir, paste0("species_", methodInputs$method, "_bg_pts.csv")))
   
@@ -144,6 +153,8 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
     # backgroundDataOptionsSheet$BackgroundSiteCount <- nrow(bgPts)
   }
   
+  progressBar()
+
   ## Extract covariate data for background sites  -----
   
   # rasterize bg data
@@ -170,6 +181,7 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
     outMat <- mi*matPts
     vals <- outMat[keep]
     PixelData[covariateDataSheet$CovariatesID[i]] <- vals
+    progressBar()
   }
   
   # convert background site data to long format and add to existing site datasheet
@@ -191,3 +203,5 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
   # save updated field data to scenario
   saveDatasheet(myScenario, fieldDataSheet, "wisdm_FieldData", append = F)
 }
+
+progressBar(type = "end")

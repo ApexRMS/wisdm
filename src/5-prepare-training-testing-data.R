@@ -17,6 +17,11 @@ library(pander)
 packageDir <- (Sys.getenv("ssim_package_directory"))
 source(file.path(packageDir, "05-training-testing-data-prep-functions.R"))
 
+# Set progress bar -------------------------------------------------------------
+
+steps <- 5 
+progressBar(type = "begin", totalSteps = steps)
+
 # Connect to library -----------------------------------------------------------
 
 # Active project and scenario
@@ -71,6 +76,7 @@ if(validationDataSheet$CrossValidate){
 }
 
 saveDatasheet(myScenario, validationDataSheet, "wisdm_ValidationOptions")
+progressBar()
 
 # Split data for testing/training and validation -------------------------------
 
@@ -89,6 +95,7 @@ if(validationDataSheet$SplitData){
   inputData$UseInModelEvaluation <- FALSE
 }
 
+progressBar()
 
 # Define Cross Validation folds (if specified) 
 if(validationDataSheet$CrossValidate){
@@ -98,6 +105,8 @@ if(validationDataSheet$CrossValidate){
                                      nFolds = validationDataSheet$NumberOfFolds,
                                      stratify = validationDataSheet$StratifyFolds)
 }
+
+progressBar()
 
 # Check categorical variables and update field data sheet (if no validation specified)
 if(validationDataSheet$SplitData == F & validationDataSheet$CrossValidate == F){
@@ -128,3 +137,4 @@ if(length(bgSiteIds) > 0){
 
 # save updated field data to scenario
 saveDatasheet(myScenario, updateFieldData, "wisdm_FieldData", append = F)
+progressBar(type = "end")

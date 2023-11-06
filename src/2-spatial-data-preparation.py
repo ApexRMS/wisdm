@@ -105,7 +105,12 @@ multiprocessingSheet = myScenario.datasheets("core_Multiprocessing")
 # outputs
 outputCovariateSheet = myScenario.datasheets("CovariateData", empty = True)
 
-#%% set up dask client
+#%% Set progress bar ---------------------------------------------------------
+
+steps = 3 + len(covariateDataSheet.CovariatesID)
+ps.environment.progress_bar(report_type = "begin", total_steps = steps)
+
+#%% Set up dask client -------------------------------------------------------
 if multiprocessingSheet.EnableMultiprocessing.item() == "Yes":
     num_threads = multiprocessingSheet.MaximumJobs.item()
 else:
@@ -115,6 +120,7 @@ else:
 dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space')})
 client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
 # client
+
 
 #%% Check inputs and set defaults ---------------------------------------------
 
@@ -177,29 +183,8 @@ templateExtent = list(templateRaster.rio.bounds())
 templateTransform = templateRaster.rio.transform()
 templatePixelSize = templateResolution[0]*-templateResolution[1]
 
-if rasterio.dtypes.is_ndarray(templateMask):
-    # Create template to polygon
-    templatePolygons = []
-    for shape, value in rasterio.features.shapes(templateMask.astype(np.int16), mask=np.invert(templateMask), transform=templateTransform):
-        # shapely.geometry.shape(shape)
-        templatePolygons.append(shapely.geometry.shape(shape))
-
-    templatePolygons = shapely.geometry.MultiPolygon(templatePolygons)
-    if not templatePolygons.is_valid:
-        templatePolygons = templatePolygons.buffer(0)
-        # Sometimes buffer() converts a simple Multipolygon to just a Polygon,
-        # need to keep it a Multi throughout
-        if templatePolygons.geom_type == 'Polygon':
-            templatePolygons = shapely.geometry.MultiPolygon([templatePolygons])
-          
-    templatePolygons = gpd.GeoDataFrame(geometry=[templatePolygons], crs=templateCRS)
-else:
-    ps.environment.update_run_log('The template raster does not include a "No Data" mask. ', 
-    'All output covariate and site data will be clipped', 
-    ' to the full extent of the template raster.')
-    templateMask = np.ones(templateRaster.shape, dtype=bool)
-    templatePolygons = []
-
+# update progress bar
+ps.environment.progress_bar()
 
 # Loop through and "PARC" covariate rasters -------------------------------------------
 
@@ -295,6 +280,9 @@ for i in range(len(covariateDataSheet.CovariatesID)):
     outputRow[dropResAggCol] = float('nan')
 
     outputCovariateSheet = pd.concat([outputCovariateSheet, pd.DataFrame([outputRow])])
+    
+    # update progress bar
+    ps.environment.progress_bar()
 
 #%% Save updated covariate data to scenario 
 myScenario.save_datasheet(name="CovariateData", data=outputCovariateSheet) 
@@ -381,4 +369,6 @@ if len(restrictionRasterSheet.RasterFilePath) > 0:
     # Save updated covariate data to scenario 
     myScenario.save_datasheet(name="RestrictionRaster", data=restrictionRasterSheet)     
 
+# update progress bar
+ps.environment.progress_bar(report_type="end")
 # %%
