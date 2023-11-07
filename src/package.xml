@@ -131,9 +131,9 @@
 					</datasheet>
 				  </datasheets>
 				</datafeed>
-				<datafeed name="ReducedCovariates" displayName="Reduced Covariate List" dataScope="Scenario">
+				<datafeed name="ReducedCovariates" displayName="Retained Covariate List" dataScope="Scenario">
 				  <datasheets>
-					<datasheet  name="ReducedCovariates" displayName="Reduced Covariate List">
+					<datasheet  name="ReducedCovariates" displayName="Retained Covariate List">
 					  <columns>
 						<column name="ReducedCovariatesID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
