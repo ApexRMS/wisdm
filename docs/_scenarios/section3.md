@@ -1,6 +1,6 @@
 ---
 layout: default
-section: 2
+section: 3
 title: Data Preparation
 permalink: reference/data-preparation
 ---

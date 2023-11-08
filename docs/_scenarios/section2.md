@@ -1,6 +1,6 @@
 ---
 layout: default
-section: 3
+section: 2
 title: General
 permalink: reference/general
 ---
