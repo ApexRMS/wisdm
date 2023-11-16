@@ -61,7 +61,7 @@ server <- function(input, output, session) { #
   observeEvent(input$update, {
     v$options$CorrelationThreshold <- input$minCor
     v$options$NumberOfPlots <- input$numPlots
-    SelectedCovariates <<- v$selectedCovs <- input$show_vars 
+    selectedCovariates <<- v$selectedCovs <- input$show_vars 
   })
   
   output$image <- renderImage({
