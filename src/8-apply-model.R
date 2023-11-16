@@ -161,6 +161,13 @@ for (i in 1:nrow(modelOutputsSheet)){
     modFamily <- "binomial"
   }
   
+  if(modType == "brt"){
+    modVars <- mod$contributions$var
+    trainingData <-  mod$trainingData
+    # mod$trainingData <- NULL
+    # modFamily <- "binomial"
+  }
+  
   # identify factor variables
   factorVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T)]
   factorVars <- factorVars[factorVars %in% modVars]
@@ -196,16 +203,13 @@ for (i in 1:nrow(modelOutputsSheet)){
   if(modType == "maxent"){
     predictFct = maxent.predict
   }
+  if(modType == "brt"){
+    predictFct = brt.predict
+  }
   # if(modType == "mars") {
   #   predictFct = mars.predict
   #   library(mda)
   # }
-  # if(modType == "brt")  {
-  #   model.covs<-levels(summary(out$mods$final.mod,plotit=FALSE)[,1])
-  #   predictFct = brt.predict
-  #   library(gbm)
-  # }
-  
   
   # prep prediction data ---------------------------------------------------------
   
@@ -281,6 +285,7 @@ for (i in 1:nrow(modelOutputsSheet)){
     writeRaster(x = probRaster, 
                 filename = file.path(ssimTempDir, paste0(modType,"_prob_map.tif")), 
                 datatype = "INT4S",
+                NAflag = -9999,
                 overwrite = TRUE)
     progressBar()
     updateRunLog("Finished Probability Map in ", updateBreakpoint())
@@ -317,9 +322,10 @@ for (i in 1:nrow(modelOutputsSheet)){
         messRaster <- rast(templateRaster, vals = pred.rng)
         if(!is.null(maskValues)){messRaster <- extend(messRaster, maskExt)}
         writeRaster(x = messRaster, 
-                      filename = file.path(ssimTempDir, paste0(modType,"_mess_map.tif")), 
-                      datatype = "INT4S",
-                      overwrite = TRUE)  # is.int(messRaster) 
+                    filename = file.path(ssimTempDir, paste0(modType,"_mess_map.tif")), 
+                    datatype = "INT4S",
+                    NAflag = -9999,
+                    overwrite = TRUE)  # is.int(messRaster) 
         
         remove(messRaster)
         progressBar()
@@ -336,6 +342,7 @@ for (i in 1:nrow(modelOutputsSheet)){
           writeRaster(x = modRaster, 
                       filename = file.path(ssimTempDir, paste0(modType,"_mod_map.tif")), 
                       datatype = "INT4S", # "INT1U"
+                      NAflag = -9999,
                       overwrite = TRUE)  # is.int(modRaster) 
           
           remove(modRaster)
@@ -374,6 +381,7 @@ for (i in 1:nrow(modelOutputsSheet)){
         writeRaster(x = residRaster, 
                     filename = file.path(ssimTempDir, paste0(modType,"_resid_map.tif")), 
                     datatype = "FLT8S", 
+                    NAflag = -9999,
                     overwrite = TRUE) 
         progressBar()
         updateRunLog("Finished Residuals Map in ", updateBreakpoint())

@@ -62,25 +62,9 @@ pred.fct <- function(mod,      # mod = the model fit object
   if(modType == "maxent"){
     y[complete.cases(x)]<-try(maxent.predict(mod, x[complete.cases(x),]), silent=TRUE)
   }
-  # if(modType=="brt"){
-  #   # retrieve key items from the global environment #
-  #   # make predictions from complete data only #
-  #   #y <- rep(NA,nrow(x))
-  #   #y[complete.cases(x)] <- predict.gbm(model, x[complete.cases(x),],model$target.trees,type="response")
-  #   if(class(model[[1]])=="gbm"){
-  #     prd<-function(model,x){
-  #       preds <- rep(NA,nrow(x))
-  #       preds[complete.cases(x)]<-predict.gbm(model,newdata=x[complete.cases(x),],n.trees=model$target.trees,type="response")
-  #       return(preds) 
-  #     }         
-  #     #getting the predictions from each split of the data then taking out one column and getting the average
-  #     lst.preds<-try(lapply(model,FUN=prd,x=x))
-  #     y<-try(apply(do.call("rbind",lst.preds),2,mean))
-  #   }  else{
-  #     # make predictions from full data #
-  #     y[complete.cases(x)] <- try(predict.gbm(model,x[complete.cases(x),],model$target.trees,type="response"),silent=TRUE)        
-  #   }
-  # }
+  if(modType == "brt"){
+    y[complete.cases(x)] <- try(predict(mod, x[complete.cases(x),], mod$gbm.call$best.trees, type="response"), silent=TRUE)
+  }
 
   # if(modType=="udc"){
   #   
@@ -181,24 +165,23 @@ maxent.predict <- function(model,x){
   return(prediction)
 }
 
-# ## brt precict function --------------------------------------------------------
-# 
-# brt.predict <- function(model,x) {
-#   # retrieve key items from the global environment #
-#   # make predictions from complete data only #
-#   #y <- rep(NA,nrow(x))
-#   #y[complete.cases(x)] <- predict.gbm(model, x[complete.cases(x),],model$target.trees,type="response")
-#   
-#   # make predictions from full data #
-#   y <- predict.gbm(model,x,model$target.trees,type="response")
-#   # encode missing values as -1.
-#   a<-complete.cases(x)
-#   y[!(a)]<- NaN
-#   
-#   # return predictions.
-#   return(y)
-# }
-# 
+## brt predict function --------------------------------------------------------
+
+brt.predict <- function(model,x) {
+  
+  y <- rep(NA,nrow(x))
+  y[complete.cases(x)] <- gbm::predict.gbm(model, x[complete.cases(x),], model$gbm.call$best.trees, type="response")
+
+  # # make predictions from full data #
+  # y <- predict.gbm(model, x, model$target.trees, type="response")
+  # # encode missing values as -1.
+  # a <- complete.cases(x)
+  # y[!(a)]<- NaN
+
+  # return predictions.
+  return(y)
+}
+ 
 # ## mars predict function -------------------------------------------------------
 # 
 # mars.predict <- function(model,x) {

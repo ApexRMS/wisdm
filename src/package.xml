@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.14" url="https://apexrms.github.io/wisdm/">
+<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.15" url="https://apexrms.github.io/wisdm/">
 	<transformers>
 		<!--Primary Transformer-->
 		<transformer 
@@ -18,6 +18,7 @@
 			<transformer name="GLM"/>
 			<transformer name="RandomForest"/>
 			<transformer name="Maxent"/>
+			<transformer name="BRT"/>
 			<transformer name="ApplyModel"/>
 		</include>
 		</transformer>
@@ -69,6 +70,7 @@
                 		<record columns="ModelName|ModelType"	values="Generalized Linear Model|glm"/>
 						<record columns="ModelName|ModelType"	values="Random Forest|rf"/>
 						<record columns="ModelName|ModelType" values="Maxent|maxent"/>
+						<record columns="ModelName|ModelType" values="Boosted Regression Trees|brt"/>
               		  </defaultRecords>
 					</datasheet>
 				  </datasheets>
@@ -444,6 +446,40 @@
 				</datafeed>
 			</datafeeds>
 		</transformer>
+		<!--BRT Transformer-->
+		<transformer
+		  name="BRT"
+		  displayName ="7 - Boosted Regression Trees"
+		  isRunnable="True"
+		  programName="Rscript"
+		  programArguments="7-fit-brt.R"
+		  condaEnv="wisdm-r-conda.yml">
+			<pipeline>
+				<datafeed name="FieldData" type="Input"/>
+				<datafeed name="CovariateData" type="Input"/>
+				<datafeed name="ValidationOptions" type="Input"/>
+				<datafeed name="ReducedCovariates" type="Input"/>
+				<datafeed name="SiteData" type="Input"/>
+				<datafeed name="BRT"/>
+				<datafeed name="ModelOutputs" type="Output"/>
+			</pipeline>
+			<datafeeds>
+				<datafeed name="BRT" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="BRT" isSingleRow="True">
+					  <columns>
+						<column name="BRTID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="LearningRate" displayName="Learning rate" dataType="Double"/>
+						<column name="BagFraction" displayName="Bag fraction" dataType="Double"/>
+						<column name="MaximumTrees" displayName="Maximum number of trees" dataType="Integer"/>
+						<column name="NumberOfTrees" displayName="Number of trees added per stage" dataType="Integer"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+			</datafeeds>
+		</transformer>
 		<!--Apply Model Transformer-->
 		<transformer
 		  name="ApplyModel"
@@ -577,9 +613,10 @@
 			<item name="ReducedCovariates" showIf="inPipeline"/>
 		  </group>
 		  <group name="Models">
+		  	<item name="BRT" showIf="inPipeline"/>
 			<item name="GLM" showIf="inPipeline"/>
-			<item name="RandomForest" displayName="Random Forest" showIf="inPipeline"/>
 			<item name="Maxent" showIf="inPipeline"/>
+			<item name="RandomForest" displayName="Random Forest" showIf="inPipeline"/>
 			<item name="ModelOutputs" showIf="inPipeline"/>
 		  </group>
 		<item name="OutputOptions" showIf="inPipeline"/>
@@ -632,8 +669,8 @@
 		</layout>
 	</layouts>	
 <updateProvider 
-  schemaVersion="1" 
-  minPackageVersion="1.0.13" 
+  schemaVersion="3" 
+  minPackageVersion="1.0.15" 
   className="SyncroSim.Core.XMLUpdateProvider" 
   classAssembly="SyncroSim.Core"/>
 </package>
