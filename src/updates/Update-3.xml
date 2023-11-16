@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<update>
+  <action code="Exec" condition="TableExists" criteria="core_StageName|core_StageValue|core_Transformer">
+    <item>INSERT INTO core_Transformer(TransformerID, ProjectID, TransformerName, TransformerDisplayName, PackageName, PackageDisplayName) VALUES(32, 1, "wisdm_BRT", "7 - Boosted Regression Trees", "wisdm", "Workbench for Integrated Species Distribution Modeling")</item>
+    <item>INSERT INTO core_StageName(StageNameID, ProjectID, Name, Description, TransformerID, IsAuto) VALUES(33, 1, "7 - Boosted Regression Trees", "7 - Boosted Regression Trees", 32, -1)</item>
+    <item>INSERT INTO core_StageValue(StageValueID, ProjectID, StageNameID, TransformerID, RunOrder, IsAuto) VALUES(34, 1, 33, 32, -2147483648, -1)</item>
+    <item>INSERT INTO wisdm_Models(ModelsID, ProjectID, ModelName, ModelType) VALUES(40, 1, "Boosted Regression Trees", "brt")</item>
+  </action>
+  <action code="Exec" condition="TableNotExists" criteria="wisdm_BRT">
+    <item> CREATE TABLE wisdm_BRT(BRTID INTEGER, ScenarioID INTEGER, LearningRate DOUBLE, BagFraction DOUBLE, MaximumTrees INTEGER, NumberOfTrees INTEGER)</item>
+  </action>
+</update>
