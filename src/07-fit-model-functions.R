@@ -339,6 +339,49 @@ fitModel <- function(dat,           # df of training data
     #   return(out)
     # }
     # else return(final.mod)
+  #================================================================
+  #                        GAM
+  #================================================================= 
+  
+  if(out$modType == "gam") {
+    
+    # calculating the case weights (equal weights)
+    # the order of weights should be the same as presences and backgrounds in the training data
+    prNum <- as.numeric(table(dat$Response)["1"])                                # number of presences
+    bgNum <- as.numeric(table(dat$Response)["0"])                                # number of backgrounds
+    wt <- ifelse(dat$Response == 1, 1, prNum / bgNum)
+    
+    factor.mask <- na.omit(match(out$factorInputVars,out$inputVars))
+    cont.mask <- seq(1:length(out$inputVars))
+    if(length(factor.mask)!=0){cont.mask<-cont.mask[-c(factor.mask)]}
+ 
+    if(out$modOptions$AllowShrinkageSmoothers){  
+      
+      if(out$modOptions$ConsiderLinearTerms){ # creates formula with smooth and linear terms
+        startModel = as.formula(paste("Response","~",paste(paste(out$inputVars, collapse=" + "), 
+                                                           paste0("s(", out$inputVars, ", bs='ts')",collapse=" + "), sep = " + ")))
+        } else { # creates formula with smooth terms oly
+          startModel = as.formula(paste("Response","~", paste0("s(", out$inputVars, ", bs='ts')",collapse=" + "), sep = ""))
+        }
+      
+      } else {
+        
+        if(out$modOptions$ConsiderLinearTerms){ # creates full scope with smooth and linear terms
+          startModel = as.formula(paste("Response","~",paste(paste(out$inputVars, collapse=" + "), 
+                                                             paste0("s(", out$inputVars, ")",collapse=" + "), sep = " + ")))
+        } else { # creates full scope with smooth terms
+          startModel = as.formula(paste("Response","~", paste0("s(", out$inputVars, ")",collapse=" + "), sep = ""))
+        }
+      }
+    
+    modelGAM <- mgcv::gam(formula = startModel,
+                          data = dat,
+                          family = binomial(link = "logit"),
+                          weights = wt,
+                          method = "REML")
+    
+    return(modelGAM)
+  }
   
   # #================================================================
   # #          Habitat Suitability Criterion
@@ -2010,7 +2053,7 @@ response.curves <- function(out){
   
   # if(out$modType %in% c("mars")){ nVars <- nrow(out$mod$summary)
   # if(out$modType %in% c("udc")) nVars <- out$mods$n.vars.final
-  if(out$modType %in% c("glm", "rf", "maxent", "brt")){ nVars <- out$nVarsFinal  }
+  if(out$modType %in% c("glm", "rf", "maxent", "brt", "gam")){ nVars <- out$nVarsFinal  }
   
   pcol <- ceiling(sqrt(nVars))
   prow <- ceiling(nVars/pcol)

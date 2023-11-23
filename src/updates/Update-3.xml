@@ -5,8 +5,13 @@
     <item>INSERT INTO core_StageName(StageNameID, ProjectID, Name, Description, TransformerID, IsAuto) VALUES(33, 1, "7 - Boosted Regression Trees", "7 - Boosted Regression Trees", 32, -1)</item>
     <item>INSERT INTO core_StageValue(StageValueID, ProjectID, StageNameID, TransformerID, RunOrder, IsAuto) VALUES(34, 1, 33, 32, -2147483648, -1)</item>
     <item>INSERT INTO wisdm_Models(ModelsID, ProjectID, ModelName, ModelType) VALUES(40, 1, "Boosted Regression Trees", "brt")</item>
+    <item>INSERT INTO core_Transformer(TransformerID, ProjectID, TransformerName, TransformerDisplayName, PackageName, PackageDisplayName) VALUES(35, 1, "wisdm_GAM", "7 - Generalized Additive Model", "wisdm", "Workbench for Integrated Species Distribution Modeling")</item>
+    <item>INSERT INTO core_StageName(StageNameID, ProjectID, Name, Description, TransformerID, IsAuto) VALUES(36, 1, "7 - Generalized Additive Model", "7 - Generalized Additive Model", 35, -1)</item>
+    <item>INSERT INTO core_StageValue(StageValueID, ProjectID, StageNameID, TransformerID, RunOrder, IsAuto) VALUES(37, 1, 36, 35, -2147483648, -1)</item>
+    <item>INSERT INTO wisdm_Models(ModelsID, ProjectID, ModelName, ModelType) VALUES(41, 1, "Generalized Additive Model", "gam")</item>
   </action>
-  <action code="Exec" condition="TableNotExists" criteria="wisdm_BRT">
-    <item> CREATE TABLE wisdm_BRT(BRTID INTEGER, ScenarioID INTEGER, LearningRate DOUBLE, BagFraction DOUBLE, MaximumTrees INTEGER, NumberOfTrees INTEGER)</item>
+  <action code="Exec" condition="TableNotExists" criteria="wisdm_BRT|wisdm_GAM">
+    <item>CREATE TABLE wisdm_BRT(BRTID INTEGER, ScenarioID INTEGER, LearningRate DOUBLE, BagFraction DOUBLE, MaximumTrees INTEGER, NumberOfTrees INTEGER)</item>
+    <item>CREATE TABLE wisdm_GAM(GAMID INTEGER, ScenarioID INTEGER, AllowShrinkageSmoothers BOOLEAN, ConsiderLinearTerms BOOLEAN)</item>
   </action>
 </update>

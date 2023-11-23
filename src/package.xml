@@ -19,6 +19,7 @@
 			<transformer name="RandomForest"/>
 			<transformer name="Maxent"/>
 			<transformer name="BRT"/>
+			<transformer name="GAM"/>
 			<transformer name="ApplyModel"/>
 		</include>
 		</transformer>
@@ -71,6 +72,7 @@
 						<record columns="ModelName|ModelType"	values="Random Forest|rf"/>
 						<record columns="ModelName|ModelType" values="Maxent|maxent"/>
 						<record columns="ModelName|ModelType" values="Boosted Regression Trees|brt"/>
+						<record columns="ModelName|ModelType"	values="Generalized Additive Model|gam"/>
               		  </defaultRecords>
 					</datasheet>
 				  </datasheets>
@@ -480,6 +482,38 @@
 				</datafeed>
 			</datafeeds>
 		</transformer>
+		<!--GAM Transformer-->
+		<transformer
+		  name="GAM"
+		  displayName ="7 - Generalized Additive Model"
+		  isRunnable="True"
+		  programName="Rscript"
+		  programArguments="7-fit-gam.R"
+		  condaEnv="wisdm-r-conda.yml">
+			<pipeline>
+				<datafeed name="FieldData" type="Input"/>
+				<datafeed name="CovariateData" type="Input"/>
+				<datafeed name="ValidationOptions" type="Input"/>
+				<datafeed name="ReducedCovariates" type="Input"/>
+				<datafeed name="SiteData" type="Input"/>
+				<datafeed name="GAM"/>
+				<datafeed name="ModelOutputs" type="Output"/>
+			</pipeline>
+			<datafeeds>
+				<datafeed name="GAM" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="GAM" isSingleRow="True">
+					  <columns>
+						<column name="GAMID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="AllowShrinkageSmoothers" displayName="Allow smooth terms to shrink to zero" dataType="Boolean"/>
+						<column name="ConsiderLinearTerms" displayName="Consider linear terms" dataType="Boolean"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+			</datafeeds>
+		</transformer>
 		<!--Apply Model Transformer-->
 		<transformer
 		  name="ApplyModel"
@@ -614,6 +648,7 @@
 		  </group>
 		  <group name="Models">
 		  	<item name="BRT" showIf="inPipeline"/>
+			<item name="GAM" showIf="inPipeline"/>
 			<item name="GLM" showIf="inPipeline"/>
 			<item name="Maxent" showIf="inPipeline"/>
 			<item name="RandomForest" displayName="Random Forest" showIf="inPipeline"/>

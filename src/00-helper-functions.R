@@ -65,6 +65,9 @@ pred.fct <- function(mod,      # mod = the model fit object
   if(modType == "brt"){
     y[complete.cases(x)] <- try(predict(mod, x[complete.cases(x),], mod$gbm.call$best.trees, type="response"), silent=TRUE)
   }
+  if(modType %in% c("gam")){
+    y[complete.cases(x)] <- try(predict.gam(mod, x[complete.cases(x)], type="response"), silent=TRUE) 
+  }
 
   # if(modType=="udc"){
   #   
@@ -181,7 +184,17 @@ brt.predict <- function(model,x) {
   # return predictions.
   return(y)
 }
- 
+
+## gam predict function --------------------------------------------------------
+
+gam.predict <- function(model,x) {
+  
+  y <- rep(NA,nrow(x))
+  y[complete.cases(x)] <- mgcv::predict.gam(model, x[complete.cases(x),], type="response")
+  
+  # return predictions.
+  return(y)
+}
 # ## mars predict function -------------------------------------------------------
 # 
 # mars.predict <- function(model,x) {

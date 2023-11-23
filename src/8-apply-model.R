@@ -135,39 +135,37 @@ for (i in 1:nrow(modelOutputsSheet)){
   mod <- readRDS(paste0(ssimOutputDir,"\\Scenario-", resultScenario,"\\wisdm_ModelOutputs\\",modelOutputsSheet$ModelRDS[i]))
   
   if(modType == "glm"){
-    
     modVars <- attr(terms(formula(mod)),"term.labels")
     # have to remove all the junk with powers and interactions for mess map production to work
     modVars <- unique(unlist(strsplit(gsub("I\\(","",gsub("\\^2)","",modVars)),":")))
-    
     trainingData <-  mod$data
     if(max(trainingData$Response)>1){ modFamily <-"poisson" 
     } else { modFamily <- "binomial" }
   }
-  
   if(modType == "rf"){
-    
     modVars <- rownames(mod$importance)
-    
     trainingData <-  mod$trainingData
     if(max(trainingData$Response)>1){ modFamily <-"poisson" 
     } else { modFamily <- "binomial" }
   }
-  
   if(modType == "maxent"){
     modVars <- mod$Raw.coef$V1
     trainingData <-  mod$trainingData
     mod$trainingData <- NULL
     modFamily <- "binomial"
   }
-  
   if(modType == "brt"){
     modVars <- mod$contributions$var
     trainingData <-  mod$trainingData
     # mod$trainingData <- NULL
     # modFamily <- "binomial"
   }
-  
+  if(modType == "gam"){
+    modVars <- attr(mod$terms, "term.labels")
+    trainingData <-  mod$trainingData
+    # mod$trainingData <- NULL
+    # modFamily <- "binomial"
+  }
   # identify factor variables
   factorVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T)]
   factorVars <- factorVars[factorVars %in% modVars]
@@ -205,6 +203,9 @@ for (i in 1:nrow(modelOutputsSheet)){
   }
   if(modType == "brt"){
     predictFct = brt.predict
+  }
+  if(modType == "gam"){
+    predictFct = gam.predict
   }
   # if(modType == "mars") {
   #   predictFct = mars.predict

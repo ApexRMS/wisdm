@@ -24,4 +24,5 @@ dependencies:
   - r-data.table=1.14.8
   - r-spatstat.geom=3.0_6
   - r-dismo=1.3_5
+  - r-mgcv=1.9_0
   - mkl
