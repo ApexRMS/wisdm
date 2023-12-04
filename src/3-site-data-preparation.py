@@ -102,6 +102,7 @@ multiprocessingSheet = myScenario.datasheets("core_Multiprocessing")
 
 # outputs
 # outputCovariateSheet = myScenario.datasheets("CovariateData", empty = True)
+
 #%% Set progress bar ---------------------------------------------------------
 
 steps = 5 + len(covariateDataSheet.CovariatesID)
@@ -287,8 +288,9 @@ if pd.notnull(fieldDataOptions.AggregateAndWeight[0]):
     else: 
         ps.environment.update_run_log("Only one field data observation present per pixel; no aggregation or weighting required.")
 
-# Save updated field data to scenario 
+#%% Save updated field data to scenario 
 outputFieldDataSheet = sites.iloc[:,0:7]
+outputFieldDataSheet.SiteID = outputFieldDataSheet.SiteID.astype(int) # ensure SiteID is type integer
 myScenario.save_datasheet(name="FieldData", data=outputFieldDataSheet) 
   
 # update progress bar
