@@ -128,6 +128,7 @@ progressBar(type = "begin", totalSteps = steps)
   
   ## Model options
   out$modOptions <- BRTSheet
+  # out$modOptions$stepSize <- out$modOptions$NumberOfTrees
   out$modOptions$thresholdOptimization <- "Sens=Spec"	# To Do: link to defined Threshold Optimization Method in UI - currently set to default: sensitivity=specificity 
   
   ## Model family 
@@ -174,14 +175,28 @@ progressBar(type = "begin", totalSteps = steps)
   progressBar()
   
 # Fit model --------------------------------------------------------------------
-
+  
   finalMod <- fitModel(dat = trainingData, 
                        out = out)
+  if(is.null(finalMod)){
+    repeat{
+      # out$modOptions$stepSize <- out$modOptions$stepSize-10
+      # out$modOptions$NumberOfTrees <- out$modOptions$NumberOfTrees-10
+      out$modOptions$LearningRate <- out$modOptions$LearningRate/2
+      
+      finalMod <- fitModel(dat = trainingData,
+                           out = out)
+     if(!is.null(finalMod)) break
+    }
+    # updateRunLog(paste0("Smaller step size required for model fitting. 'Number of Trees' reduced from ", BRTSheet$NumberOfTrees, " to ", out$modOptions$NumberOfTrees, "."))
+    # BRTSheet$NumberOfTrees <- out$modOptions$NumberOfTrees
+    updateRunLog(paste0("Smaller learning rate required for model fitting. Learning rate reduced from ", BRTSheet$LearningRate, " to ", out$modOptions$LearningRate, "."))
+    BRTSheet$LearningRate <- noquote(format(out$modOptions$LearningRate, scientific = F))
+    
+    saveDatasheet(myScenario, BRTSheet, "wisdm_BRT")
+  }
   
   finalMod$trainingData <- trainingData
-  
-  # save model to temp storage
-  saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
   
   # add relevant model details to out 
   out$finalMod <- finalMod
@@ -223,6 +238,25 @@ progressBar(type = "begin", totalSteps = steps)
   }
   progressBar()
 
+# Evaluate thresholds (for use with binary output) ----------------------------
+  
+  predOcc <- out$data$train[out$data$train$Response >= 1 , "predicted"]
+  predAbs <- out$data$train[out$data$train$Response == 0 , "predicted"]
+  
+  evalOut <- modelEvaluation(predOcc = predOcc, predAbs = predAbs)
+  
+  finalMod$binThresholds <- thresholds <- evalOut@thresholds
+  
+  names(thresholds) <- c("Max kappa", "Max sensitivity and specificity", "No omission", 
+                         "Prevalence", "Sensitivity equals specificity")
+  
+  updateRunLog("\nThresholds:\n")
+  tbl <- round(thresholds, 6) 
+  updateRunLog(pander::pandoc.table.return(tbl, style = "simple", split.tables = 100))
+  
+  # save model info to temp storage
+  saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
+  
 ## Run Cross Validation (if specified) -----------------------------------------
   
   if(validationDataSheet$CrossValidate){
