@@ -166,9 +166,10 @@
 						<column name="CovariateSelectionOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
 						<column name="SelectionMethod" displayName="Covariate Selection Method" dataType="Integer" validationType="List" formula1="0:Interactive (Correlation Viewer)|1:Automatic (Variance Inflation Factor)" defaultValue="0"/>
-						<column name="DisplayHighestCorrelations" displayName="Display Highest Correlations" dataType="Boolean" defaultValue="-1"/>
+						<column name="DisplayHighestCorrelations" displayName="Display Highest Correlations" dataType="Boolean"/>
 						<column name="CorrelationThreshold" displayName="Correlation Threshold" dataType="Double" defaultValue="0.7" validationType="Decimal" validationCondition="Between" formula1="0"  formula2="1"/>
-						<column name="NumberOfPlots" displayName="Number of Plots" dataType="Integer" defaultValue="10"/>
+						<column name="NumberOfPlots" displayName="Number of Plots" dataType="Integer"/>
+						<column name="VIFThreshold" displayName="Variance Inflation Factor Threshold" dataType="Integer"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -295,7 +296,7 @@
 			<datafeed name="FieldData"/>
 			<datafeed name="BackgroundDataOptions" type="Input"/>
 			<datafeed name="CovariateData"/>
-			<datafeed name="SiteData" type="Input"/>
+			<datafeed name="SiteData"/>
 		  </pipeline>
 		</transformer>
 		<!--Split Data for Training/Testing Transformer-->
@@ -309,7 +310,6 @@
 		  <pipeline>
 			<datafeed name="FieldData"/>
 			<datafeed name="ValidationOptions" type="Input"/>
-			<datafeed name="CovariateData"/>
 			<datafeed name="SiteData" type="Input"/>
 		  </pipeline>
 		</transformer>
@@ -542,6 +542,8 @@
 						<column name="OutputOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
 						<column name="MakeProbabilityMap" displayName="Make Probability Map" dataType="Boolean"/>
+						<column name="MakeBinaryMap" displayName="Make Binary Map" dataType="Boolean"/>
+						<column name="ThresholdOptimization" displayName="Binary Threshold Optimization Method" dataType="Integer" validationType="List" formula1="0:Max kappa|1:Max sensitivity and specificity|2:No omission|3:Prevalence|4:Sensitivity equals specificity"/>
 						<column name="MakeResidualsMap" displayName="Make Residuals Map" dataType="Boolean"/>
 						<column name="MakeMessMap" displayName="Make Multivariate Environmental Similarity Surface (MESS) Map" dataType="Boolean"/>
 						<column name="MakeModMap" displayName="Make Most Dissimilar Variable (MoD) Map" dataType="Boolean"/>
@@ -559,6 +561,7 @@
 						<column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True"/>
 						<column name="ModRaster" dataType="String" isExternalFile="True" isRaster="True"/>
 						<column name="ResidualsRaster" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="BinaryRaster" dataType="String" isExternalFile="True" isRaster="True"/>
 						<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
 					  </columns>
 					</datasheet>
@@ -602,6 +605,10 @@
 		<transformer 
 		  name="ResidMapExport" dataSheet="SpatialOutputs" column="ResidualsRaster" isFolderExport="True" 
 		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		</transformer>
+		<transformer
+			name="BinMapExport" dataSheet="SpatialOutputs" column="BinaryRaster" isFolderExport="True"
+			className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
 		</transformer>
 		<transformer 
 		  name="MaxentFilesExport" dataSheet="ModelOutputs" column="MaxentFiles" isFolderExport="True" 
@@ -672,6 +679,7 @@
 				</group>
 				<group name="MapOutputs" displayName="Map Outputs">
 					<item name="ProbMapExport" displayName="Probability"/>
+					<item name="BinMapExport" displayName="Binary"/>
 					<item name="MessMapExport" displayName="MESS"/>
 					<item name="ModMapExport" displayName="MoD"/>
 					<item name="ResidMapExport" displayName="Residuals"/>
@@ -687,6 +695,7 @@
 			</group>
 			<group name="MapOutputs" displayName="Map Outputs">
 				<item name="ProbabilityMap" displayName="Probability" dataSheet="SpatialOutputs" column="ProbabilityRaster" filter="ModelsID" extendedIdentifier="(Probability)"/>
+				<item name="BinaryMap" displayName="Binary" dataSheet="SpatialOutputs" column="BinaryRaster" filter="ModelsID" extendedIdentifier="(Binary)"/>
 				<item name="MessMap" displayName="MESS" dataSheet="SpatialOutputs" column="MessRaster" filter="ModelsID" extendedIdentifier="(MESS)"/>
 				<item name="ModMap" displayName="MoD" dataSheet="SpatialOutputs" column="ModRaster" filter="ModelsID" extendedIdentifier="(MoD)"/>
 				<item name="ResidualsMap" displayName="Residuals" dataSheet="SpatialOutputs" column="ResidualsRaster" filter="ModelsID" extendedIdentifier="(Residuals)"/>
