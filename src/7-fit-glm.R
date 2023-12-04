@@ -177,7 +177,7 @@ progressBar(type = "begin", totalSteps = steps)
                       out = out)
   
   # save model to temp storage
-  saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
+  # saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
   
   # add relevant model details to out 
   out$finalMod <- finalMod
@@ -215,6 +215,25 @@ progressBar(type = "begin", totalSteps = steps)
   }
   progressBar()
 
+# Evaluate thresholds (for use with binary output) ----------------------------
+  
+  predOcc <- out$data$train[out$data$train$Response >= 1 , "predicted"]
+  predAbs <- out$data$train[out$data$train$Response == 0 , "predicted"]
+  
+  evalOut <- modelEvaluation(predOcc = predOcc, predAbs = predAbs)
+  
+  finalMod$binThresholds <- thresholds <- evalOut@thresholds
+  
+  names(thresholds) <- c("Max kappa", "Max sensitivity and specificity", "No omission", 
+                         "Prevalence", "Sensitivity equals specificity")
+  
+  updateRunLog("\nThresholds:\n")
+  tbl <- round(thresholds, 6) 
+  updateRunLog(pander::pandoc.table.return(tbl, style = "simple", split.tables = 100))
+  
+  # save model info to temp storage
+  saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
+  
 # Run Cross Validation (if specified) ------------------------------------------
   
   if(validationDataSheet$CrossValidate){
