@@ -50,7 +50,7 @@ spatialOutputsSheet <- datasheet(myScenario, "SpatialOutputs", optional = T, loo
 
 # Set progress bar -------------------------------------------------------------
 
-steps <- (nrow(modelOutputsSheet) * sum(outputOptionsSheet, na.rm = T))+2
+steps <- (nrow(modelOutputsSheet) * sum(outputOptionsSheet == T, na.rm = T))+2
 progressBar(type = "begin", totalSteps = steps)
 
 # Set defaults -----------------------------------------------------------------
@@ -79,6 +79,11 @@ if(nrow(outputOptionsSheet)<1){
 }
 if(any(is.na(outputOptionsSheet))){
   outputOptionsSheet[is.na(outputOptionsSheet)] <- F
+}
+if(outputOptionsSheet$MakeBinaryMap){
+  if(is.na(outputOptionsSheet$ThresholdOptimization)){
+    outputOptionsSheet$ThresholdOptimization <- "Sensitivity equals specificity"
+  }
 }
 saveDatasheet(myScenario, outputOptionsSheet,  "wisdm_OutputOptions") 
 updateRunLog("Finished loading inputs in ", updateBreakpoint())
@@ -263,11 +268,10 @@ for (i in 1:nrow(modelOutputsSheet)){
   
   updateRunLog("Finished preparing mapping inputs in ", updateBreakpoint())
   
-  # create probability map -------------------------------------------------------
+  # create probability map -----------------------------------------------------
     
   if(outputOptionsSheet$MakeProbabilityMap){ 
     preds <- matrix(predictFct(model = mod, x = temp), ncol = ncol(templateRaster), byrow = T)
-    preds <- round((preds*100), 0)
     
     # apply restriction raster, if provided
     if(!is.null(restrictRaster)){
@@ -277,6 +281,7 @@ for (i in 1:nrow(modelOutputsSheet)){
       resVals <-  matrix(resVals, ncol = ncol(templateRaster), byrow = T)
       preds <- preds*resVals
     }
+    preds <- round((preds*100), 0)
     preds[is.na(preds)] <- -9999  # typeof(preds)
     
     probRaster <- rast(templateRaster, vals = preds) 
@@ -292,9 +297,71 @@ for (i in 1:nrow(modelOutputsSheet)){
     updateRunLog("Finished Probability Map in ", updateBreakpoint())
   }
   
- 
+  # create binary map ---------------------------------------------------------- 
+  
+  if(outputOptionsSheet$MakeBinaryMap){
     
-  # create MESS and MoD maps -----------------------------------------------------  
+    if(!outputOptionsSheet$MakeProbabilityMap){
+      updateRunLog("\nWarning: Binary map cannot be generated without generating the Probability map.\n")
+    } else {
+      # 
+      # presenceRecords <- trainingData[trainingData$Response >= 1 , c("X", "Y")]
+      # absenceRecords <- trainingData[trainingData$Response == 0 , c("X", "Y")]
+      # covRasts <- rast(covData$RasterFilePath)
+      # names(covRasts) <- covData$CovariatesID
+      # 
+      # if(modType == "maxent"){
+      #   maxentMod <- dismo::maxent(x = trainingData[,8:ncol(trainingData)], 
+      #                            p = trainingData$Response)
+      #   evalOut <- dismo::evaluate(p = presenceRecords,
+      #                              a = absenceRecords, 
+      #                              model = maxentMod, 
+      #                              x = covRasts)
+      # } else {
+      #   evalOut <- dismo::evaluate(p = presenceRecords,
+      #                              a = absenceRecords, 
+      #                              model = mod, 
+      #                              x = covRasts)  
+      # }
+      # thresholds <- dismo::threshold(evalOut)
+      
+      thresholds <- mod$binThresholds
+      names(thresholds) <- c("Max kappa", "Max sensitivity and specificity", "No omission", 
+                           "Prevalence", "Sensitivity equals specificity")
+      
+      binThreshold <- as.numeric(thresholds[outputOptionsSheet$ThresholdOptimization])
+      
+      readStart(probRaster)
+      probVals <- readValues(probRaster, row = 1, nrows = nrow(templateRaster))
+      readStop(probRaster)
+      probVals[probVals == -9999] <- NA
+      probVals <- probVals/100
+      probVals <- ifelse(probVals >= binThreshold, 1, 0)
+      probVals <-  matrix(probVals, ncol = ncol(templateRaster), byrow = T)
+      probVals[is.na(probVals)] <- -9999
+      binRaster <- rast(templateRaster, vals = probVals)
+      
+      # rclMat <- matrix(nrow = 2, ncol = 3)
+      # rclMat[1,] <- c(0,binThreshold, 0)
+      # rclMat[2,] <- c(binThreshold, 1,1)
+      # 
+      # probs <- rast(templateRaster, vals = predsOG) 
+      # binRaster <- classify(probs, rclMat)
+      
+      if(!is.null(maskValues)){binRaster <- extend(binRaster, maskExt)}
+      writeRaster(x = binRaster, 
+                  filename = file.path(ssimTempDir, paste0(modType,"_bin_map.tif")), 
+                  datatype = "INT4S", 
+                  NAflag = -9999,
+                  overwrite = TRUE) 
+      progressBar()
+      updateRunLog("Finished Binary Map in ", updateBreakpoint())
+    
+    }
+  }
+  
+    
+  # create MESS and MoD maps ---------------------------------------------------  
     
   if(outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap){
     
@@ -400,6 +467,9 @@ for (i in 1:nrow(modelOutputsSheet)){
                               
     if(outputOptionsSheet$MakeProbabilityMap){
       spatialOutputsSheet$ProbabilityRaster[outputRow] <- file.path(ssimTempDir,paste0(modType,"_prob_map.tif"))
+    }
+    if(outputOptionsSheet$MakeBinaryMap){
+      spatialOutputsSheet$BinaryRaster[outputRow] <- file.path(ssimTempDir,paste0(modType,"_bin_map.tif"))
     }
     if(outputOptionsSheet$MakeMessMap & is.null(factorVars)){
       spatialOutputsSheet$MessRaster[outputRow] <- file.path(ssimTempDir,paste0(modType,"_mess_map.tif"))
