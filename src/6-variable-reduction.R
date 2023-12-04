@@ -46,17 +46,10 @@ progressBar()
 
 ## Covariate selection 
 if(nrow(covariateSelectionSheet)<1){
-  covariateSelectionSheet <- addRow(covariateSelectionSheet, list(SelectionMethod = "Interactive (Correlation Viewer)",
-                                                                  DisplayHighestCorrelations = TRUE,
-                                                                  CorrelationThreshold = 0.7, 
-                                                                  NumberOfPlots = 5))
+  covariateSelectionSheet <- addRow(covariateSelectionSheet, list(SelectionMethod = "Interactive (Correlation Viewer)"))
 }
-if(is.na(covariateSelectionSheet$SelectionMethod)){covariateSelectionSheet$SelectionMethod <- "Interactive (Correlation Viewer)"}
-if(is.na(covariateSelectionSheet$DisplayHighestCorrelations)){covariateSelectionSheet$DisplayHighestCorrelations <- TRUE}
-if(is.na(covariateSelectionSheet$CorrelationThreshold)){covariateSelectionSheet$CorrelationThreshold <- 0.7}
-if(is.na(covariateSelectionSheet$NumberOfPlots)){covariateSelectionSheet$NumberOfPlots <- 5}
 
-saveDatasheet(myScenario, covariateSelectionSheet, "wisdm_CovariateSelectionOptions")
+if(is.na(covariateSelectionSheet$SelectionMethod)){covariateSelectionSheet$SelectionMethod <- "Interactive (Correlation Viewer)"}
 
 ## Reduced covariates
 
@@ -116,12 +109,18 @@ progressBar()
 
 if(covariateSelectionSheet$SelectionMethod == "Automatic (Variance Inflation Factor)"){
   
+  ## Covariate selection 
+  if(is.na(covariateSelectionSheet$CorrelationThreshold)){covariateSelectionSheet$CorrelationThreshold <- 0.7}
+  if(is.na(covariateSelectionSheet$VIFThreshold)){covariateSelectionSheet$VIFThreshold <- 10}
+  
+  saveDatasheet(myScenario, covariateSelectionSheet, "wisdm_CovariateSelectionOptions")
+  
   source(file.path(packageDir, "usdm-vif.R"))
   
   if(length(reducedCovariatesSheet$CovariatesID)>0){
-    colin <- vifcor(x = covData, th = covariateSelectionSheet$CorrelationThreshold, keep = as.character(reducedCovariatesSheet$CovariatesID))
+    colin <- vifstep(x = covData, th = covariateSelectionSheet$VIFThreshold, keep = as.character(reducedCovariatesSheet$CovariatesID))
   } else{
-    colin <- vifcor(x = covData, th = covariateSelectionSheet$CorrelationThreshold)
+    colin <- vifstep(x = covData, th = covariateSelectionSheet$VIFThreshold)
   }
   
   selectedCovariates <-  colin@results$Variables
@@ -154,6 +153,13 @@ progressBar()
 # Interactive Selection (using viewer) ------------------------------------------
 
 if(covariateSelectionSheet$SelectionMethod == "Interactive (Correlation Viewer)"){
+  
+  ## Covariate selection 
+  if(is.na(covariateSelectionSheet$DisplayHighestCorrelations)){covariateSelectionSheet$DisplayHighestCorrelations <- TRUE}
+  if(is.na(covariateSelectionSheet$CorrelationThreshold)){covariateSelectionSheet$CorrelationThreshold <- 0.7}
+  if(is.na(covariateSelectionSheet$NumberOfPlots)){covariateSelectionSheet$NumberOfPlots <- 5}
+  
+  saveDatasheet(myScenario, covariateSelectionSheet, "wisdm_CovariateSelectionOptions")
   
   # prep deviance explained data
   devExp <- vector()
