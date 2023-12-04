@@ -216,20 +216,39 @@ fitModel <- function(dat,           # df of training data
     wt <- ifelse(dat$Response == 1, 1, prNum / bgNum)
     
     # tmp <- Sys.time()
-    
-    modelBRT <- gbm.step(data = dat,
-                    gbm.x = 8:ncol(dat),                                         # column indices for covariates
-                    gbm.y = 4,                                                   # column index for response
-                    family = out$modelFamily,
-                    tree.complexity = ifelse(prNum < 50, 1, 5),
-                    learning.rate = out$modOptions$LearningRate,
-                    bag.fraction = out$modOptions$BagFraction,
-                    max.trees = out$modOptions$MaximumTrees,
-                    n.trees = out$modOptions$NumberOfTrees,
-                    n.folds = out$validationOptions$NumberOfFolds,               # number of cross-validation folds
-                    site.weights = wt,
-                    plot.main = FALSE,                                           # avoid plotting hold-out deviance curve
-                    silent = TRUE)                                               # avoid printing the cv results
+    if(fullFit){
+      modelBRT <- gbm.step(data = dat,
+                           gbm.x = 8:ncol(dat),                                  # column indices for covariates
+                           gbm.y = 4,                                            # column index for response
+                           family = out$modelFamily,
+                           tree.complexity = ifelse(prNum < 50, 1, 5),
+                           learning.rate = out$modOptions$LearningRate,
+                           bag.fraction = out$modOptions$BagFraction,
+                           max.trees = out$modOptions$MaximumTrees,
+                           n.trees = out$modOptions$NumberOfTrees,
+                           # step.size = out$modOptions$stepSize,
+                           n.folds = out$validationOptions$NumberOfFolds,        # number of cross-validation folds
+                           site.weights = wt,
+                           plot.main = FALSE)                                    # avoid plotting hold-out deviance curve
+                           # silent = TRUE)                                      # avoid printing the cv results
+      
+    } else {
+      modelBRT <- gbm.step(data = dat,
+                           gbm.x = 8:ncol(dat),                                  # column indices for covariates
+                           gbm.y = 4,                                            # column index for response
+                           family = out$modelFamily,
+                           tree.complexity = ifelse(prNum < 50, 1, 5),
+                           learning.rate = out$modOptions$LearningRate,
+                           bag.fraction = out$modOptions$BagFraction,
+                           max.trees = out$modOptions$MaximumTrees,
+                           n.trees = out$modOptions$NumberOfTrees,
+                           # step.size = out$modOptions$stepSize,
+                           n.folds = 10,                                          # number of cross-validation folds
+                           site.weights = wt,
+                           plot.main = FALSE)                                    # avoid plotting hold-out deviance curve
+      
+    }
+
     
      # Sys.time() - tmp
      return(modelBRT)
@@ -503,7 +522,7 @@ cv.fct <- function(out,         # out list
   family <- out$modelFamily
   data <- out$data$train
   preds <- out$data$train$predicted
-  data$predicted <- NULL
+  if(out$modType == "brt"){data$predicted <- NULL}
   xdat <- subset(data, select = out$inputVars)
   obs <- out$data$train$Response
   site.weights <- out$data$train$Weight
