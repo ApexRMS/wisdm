@@ -22,7 +22,7 @@ if "PATH" in os.environ:
     if p and glob.glob(os.path.join(p, "gdal*.dll")):
       gdal_installations.append(os.path.abspath(p))
 
-if len(gdal_installations) > 1:
+if len(gdal_installations) > 0:
     for folder in gdal_installations:
         filenames = [f for f in os.listdir(folder) if f.startswith("gdal") & f.endswith(".dll")]
 
