@@ -51,7 +51,7 @@ import pysyncrosim as ps
 import numpy as np          
 import pandas as pd          
 import rioxarray
-import xarray
+import xarray as xr
 import rasterio
 import geopandas as gpd
 import shapely
@@ -62,6 +62,7 @@ import pyproj
 from dask.distributed import Client, Lock
 from shapely.geometry import Point #, shape
 from rasterio.enums import Resampling #, MergeAlg
+from rasterio.vrt import WarpedVRT
 
 ## Modify the os PROJ path (when running with Conda) ----
 myLibrary = ps.Library()
@@ -167,21 +168,22 @@ covariateDataSheet["rioAggregate"] = covariateDataSheet.AggregationMethod.replac
  
 #%% Load template raster ----------------------------------------------------------------
 
-# set defualt chunk dimensions
+# set defualt chunk dimensions and no data value
+warpMemoryLimit = 4096 #MB
 chunkDims = 4096 #1024
+nodata_value = -9999
 
 templatePath = ssimInputDir + "\\wisdm_TemplateRaster\\" + templateRasterSheet.RasterFilePath.item()
-templateRaster = rioxarray.open_rasterio(templatePath, chunks={'x': chunkDims, 'y': chunkDims}, masked=True)
-templateMask = templateRaster.to_masked_array().mask[0]
+templateRaster = rioxarray.open_rasterio(templatePath, chunks={'x': chunkDims, 'y': chunkDims}, masked=True, lock = False)
+templateMask = templateRaster.isnull().load() # Load into memory once to save time later. Note this is inverted from a regular mask since it is faster
 
 # Get information about template
 templateCRS = templateRaster.rio.crs
 if templateCRS.is_valid == False:
     raise ValueError("Template has an invalid CRS (authority code). See {documention} for a list of accepted authority codes.")
-templateResolution = templateRaster.rio.resolution()
-templateExtent = list(templateRaster.rio.bounds())
 templateTransform = templateRaster.rio.transform()
-templatePixelSize = templateResolution[0]*-templateResolution[1]
+templatePixelSize = np.abs(templateRaster.rio.resolution()).prod()
+templateBounds = templateRaster.rio.bounds()
 
 # update progress bar
 ps.environment.progress_bar()
@@ -203,76 +205,48 @@ if len(invalidCRS)>0:
     raise ValueError(print("The following covariate rasters have an invalid or unknown CRS:", *invalidCRS, "Ensure that the covariate rasters have a valid CRS before continuing.", sep="\n") )      
 
 #%% Prep covariate rasters
+# Load and process covariate rasters
 for i in range(len(covariateDataSheet.CovariatesID)):
 
-    # Load and process covariate rasters
+    # Determine input and output file paths
     covariatePath = ssimInputDir + "\\wisdm_CovariateData\\" + covariateDataSheet.RasterFilePath[i]
-    covariateRaster = rioxarray.open_rasterio(covariatePath, chunks={'x': chunkDims, 'y': chunkDims})        
     outputCovariatePath = os.path.join(ssimTempDir, os.path.basename(covariatePath))
 
-    # check if covariate extent fully overlaps template extent: [left, bottom, right, top]
-    covExtent = list(rasterio.warp.transform_bounds(covariateRaster.rio.crs, templateCRS,*covariateRaster.rio.bounds()))
-    
-    overlap=[]
-    for j in range(2):
-        overlap.append(covExtent[j] <= templateExtent[j])
-    for j in range(2,4):
-        overlap.append(covExtent[j] >= templateExtent[j])
-    if any(overlap) == False:
-        raise ValueError(print("The extent of the", covariateDataSheet.CovariatesID[i], "raster does not overlap the full extent of the template raster. Ensure all covariate rasters overlap the template extent before continuing."))
-    
-    # Determine if raster needs to be resampled or aggregated
-    # convert covariate resolution to template units (following code is faster then reprojecting for large rasters)
-    covAffine = rasterio.warp.calculate_default_transform(covariateRaster.rio.crs, templateCRS, 
-                                                            covariateRaster.rio.width, covariateRaster.rio.height,
-                                                            *covariateRaster.rio.bounds())[0]
-    
-    covPixelSize = covAffine[0]*-covAffine[4]
-        
-    # if covariate resolution is finer then template use aggregate method (if coarser use resample method) 
-    if covPixelSize < templatePixelSize:
-        rioResampleMethod = covariateDataSheet.rioAggregate[i]
-        dropResAggCol = "ResampleMethod"
-    else:
-        rioResampleMethod = covariateDataSheet.rioResample[i] 
-        dropResAggCol = "AggregationMethod"
+    # Decide which resample method to use based on pixel size
+    with rioxarray.open_rasterio(covariatePath, chunks = True) as covariateRaster:
+        covPixelSize = np.abs(covariateRaster.rio.resolution()).prod()
 
-    # reproject covariate raster ## TO DO - build out memory save version of reproject-match
-    # spatialUtils.parc(inputFile=covariatePath, 
-    #                 templateRaster=templateRaster, 
-    #                 outputFile=outputCovariatePath,
-    #                 chunks = {'x': chunkDims, 'y': chunkDims},
-    #                 resampling=Resampling[rioResampleMethod],
-    #                 transform=covAffine,
-    #                 mask = templatePolygons.geometry,
-    #                 client=client)
+        # if covariate resolution is finer then template use aggregate method (if coarser use resample method) 
+        if covPixelSize < templatePixelSize:
+            rioResampleMethod = Resampling[covariateDataSheet.rioAggregate[i]]
+            dropResAggCol = "ResampleMethod"
+        else:
+            rioResampleMethod = Resampling[covariateDataSheet.rioResample[i]]
+            dropResAggCol = "AggregationMethod"
 
-    # reproject/resample/clip covariate raster to match template 
-    covariateRaster = covariateRaster.rio.reproject_match(templateRaster,
-                                                            resampling=Resampling[rioResampleMethod])
-    
-    #Add NoData mask to covariate raster
-    covariateRaster = np.ma.masked_array(covariateRaster, templateMask)
-    covariateRaster.fill_value = -9999
-   
-    # Set raster output parameters
-    raster_params = {
-        'driver': 'GTiff',
-        'width': templateRaster.rio.width,
-        'height': templateRaster.rio.height,
-        'count': 1,
-        'dtype': covariateRaster.dtype, 
-        "nodata": -9999,
-        'compress': 'lzw',
-        'crs': templateCRS,
-        'transform': templateTransform
-    }
-        
-    # Write processed covariate raster to file with internal NoData mask 
-    with rasterio.Env(GDAL_TIFF_INTERNAL_MASK=True):
-        with rasterio.open(outputCovariatePath, mode="w", **raster_params,
-                            masked= True, tiled=True, windowed=True, overwrite=True) as src:
-            src.write(covariateRaster)
+    # Connect to covariate raster file
+    with rasterio.open(covariatePath) as src:
+
+       # Calculate reprojection using a warped virtual layer
+       with WarpedVRT(src, resampling = rioResampleMethod, crs = templateCRS, transform = templateTransform, height = templateRaster.rio.height, width = templateRaster.rio.width, warp_mem_limit= warpMemoryLimit, warp_extras={'NUM_THREADS':num_threads}) as vrt:
+
+          # Convert to rioxarray
+          with rioxarray.open_rasterio(vrt, chunks = {'x': chunkDims, 'y': chunkDims}, lock = False) as covariateRaster:
+             
+            # Check that covariate layer overlaps template
+            # - Note that bounds are ordered xmin, ymin, xmax, ymax
+            tb = templateBounds
+            cb = covariateRaster.rio.bounds()
+            if cb[0] > tb[0] or cb[1] > tb[1] or cb[2] < tb[2] or cb[3] < tb[3]:
+                raise ValueError(print("The extent of the", covariateDataSheet.CovariatesID[i], "raster does not overlap the full extent of the template raster. Ensure all covariate rasters overlap the template extent before continuing."))
+
+            # Mask and set no data value
+            # - Note that the mask is inverted from a regular mask, which is why the arguments to `where` look reversed
+            covariateRaster.data = xr.where(templateMask, nodata_value, covariateRaster)
+            covariateRaster.rio.write_nodata(nodata_value, inplace=True)
+
+            # Write to disk
+            covariateRaster.rio.to_raster(outputCovariatePath, tiled = True, lock = Lock("rio", client=client), windowed=True, overwrite = True, compress = 'lzw')
     
     # Add covariate data to output dataframe
     outputRow = covariateDataSheet.iloc[i, 0:4]
@@ -306,9 +280,9 @@ if len(restrictionRasterSheet.RasterFilePath) > 0:
     
     overlap=[]
     for j in range(2):
-        overlap.append(resExtent[j] <= templateExtent[j])
+        overlap.append(resExtent[j] <= templateBounds[j])
     for j in range(2,4):
-        overlap.append(resExtent[j] >= templateExtent[j])
+        overlap.append(resExtent[j] >= templateBounds[j])
     if any(overlap) == False:
         raise ValueError(print("The extent of the restriction raster does not overlap the full extent of the template raster. Ensure that the restriciton raster overlaps the template extent before continuing."))
     
