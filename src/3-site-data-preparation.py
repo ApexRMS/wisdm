@@ -69,8 +69,12 @@ mySession = ps.Session()
 result = mySession._Session__call_console(["--conda", "--config"])
 conda_fpath = result.stdout.decode('utf-8').strip().split(": ")[1]
 if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
-    os.environ["PROJ_DATA"] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")
+    os.environ['GDAL_DATA'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\gdal")
+    os.environ['GDAL_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
     os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
+    os.environ["PROJ_DATA"] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")
+    os.environ.setdefault("PROJ_LIB", os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj"))
+    os.environ.setdefault("CURL_CA_BUNDLE", os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem"))
 
 # if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
 #    os.environ["PROJ_DATA"] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")

@@ -76,6 +76,8 @@ fitModel <- function(dat,           # df of training data
     }
     return(modelGLMStep)
   }
+
+
   #================================================================
   #                        RF
   #=================================================================
@@ -122,16 +124,37 @@ fitModel <- function(dat,           # df of training data
                     plot=F)
       mtry <- mtr[mtr[,2] == min(mtr[,2]),1][1]
     }
+    
     cat("\nnow fitting full random forest model using mtry=",mtry,"\n")
-    modelRF <- randomForest(x = x, y = y, xtest = xtest, ytest = ytest, importance = importance, ntree = n.trees,
-                            mtry = mtry, replace = samp.replace, 
-                            sampsize = ifelse(is.null(sampsize),(ifelse(samp.replace,nrow(x),ceiling(.632*nrow(x)))),sampsize),
-                            nodesize = nodesize, # ifelse(is.null(nodesize),(if (!is.null(y) && !is.factor(y)) 5 else 1),nodesize),
-                            maxnodes = maxnodes, localImp = localImp, nPerm = nPerm, 
-                            keep.forest = ifelse(is.null(keep.forest),!is.null(y) && is.null(xtest),keep.forest),
-                            corr.bias = corr.bias, keep.inbag = keep.inbag)
+    modelRF <- randomForest(
+      x = x,
+      y = y,
+      xtest = xtest,
+      ytest = ytest,
+      importance = importance,
+      ntree = n.trees,
+      mtry = mtry,
+      replace = samp.replace,
+      sampsize = ifelse(is.null(sampsize),
+                        rep(min(ceiling(table(y) * 0.632)), 2), # balanced downsample based on smallest class
+                        sampsize),
+      nodesize = nodesize,
+      # ifelse(is.null(nodesize),(if (!is.null(y) && !is.factor(y)) 5 else 1),nodesize),
+      maxnodes = maxnodes,
+      localImp = localImp,
+      nPerm = nPerm,
+      keep.forest = ifelse(
+        is.null(keep.forest),
+        !is.null(y) && is.null(xtest),
+        keep.forest
+      ),
+      corr.bias = corr.bias,
+      keep.inbag = keep.inbag
+    )
   return(modelRF)
   }
+
+
   #================================================================
   #                        MAXENT
   #=================================================================
