@@ -59,7 +59,7 @@ In the SyncroSim UI, the **Data Preparation** tab can be accessed by right-click
 The **Template Raster** *Datasheet* contains information about the dimensions of the study area.
 
 ### **Raster File**
-Defines the template raster file containing the target dimensions of the study area. The *Covariate Raster File* will be snapped and clipped to the extent of this raster and will have the same spatial reference and resolution as this raster. In the SyncroSim UI, the Raster File can be selected by clicking on the yellow folder icon, removed by clicking on the X icon, and exported by clicking on upwards arrow icon. 
+Defines the template raster (.tif) file containing the target dimensions of the study area. The *Covariate Raster File* will be snapped and clipped to the extent of this raster and will have the same spatial reference and resolution as this raster. In the SyncroSim UI, the Raster File can be selected by clicking on the yellow folder icon, removed by clicking on the X icon, and exported by clicking on upwards arrow icon. 
 
 ### **Number of Multiprocessing Tiles**
 *Optional*. Sets the number of multiprocessing tiles to divide up a model's processing across multiple cores. This option allows to model to run faster and more efficiently. For more information about multiprocessing, see [SyncroSim Reference - Multiprocessing](https://docs.syncrosim.com/how_to_guides/modelrun_multiproc.html).
@@ -76,7 +76,7 @@ In the SyncroSim UI, this information can be input directly or imported from a C
 Defines the names of the covariates that will be used in the *Scenario*. 
 
 ### **Raster File**
-Defines the path to the covariate's raster file. In the SyncroSim UI, the Raster File can be selected by clicking on the yellow folder icon, removed by clicking on the X icon, and exported by clicking on upwards arrow icon. 
+Defines the path to the covariate's raster (.tif) file. In the SyncroSim UI, the Raster File can be selected by clicking on the yellow folder icon, removed by clicking on the X icon, and exported by clicking on upwards arrow icon. 
 
 ### **Resample Method**
 *Optional*. Defines which resampling method each raster will use. Resampling interpolates cell values when transforming the covariate raster to the coordinate reference system (CRS) or resolution of the template raster. Resampling options include Nearest Neighbor, Bilinear, Cubic, Cubic Spline, and Lanczos. To learn more about resampling rasters, see [Resampling Methods](https://www.microimages.com/documentation/TechGuides/77resampling.pdf). In the SyncroSim UI, this column is initially hidden, and can be made visible by right-clicking anywhere inside the **Covariate Data** *Datasheet* and selecting "Resample Method" from the context menu. 
@@ -94,15 +94,27 @@ Defines the path to the covariate's raster file. In the SyncroSim UI, the Raster
 
 <br>
 
-<p id="heading03"> <h2><b>Field Data</b></h2> </p>
+<p id="heading03"> <h2><b>Restriction Raster</b></h2> </p>
 
-The **Field Data** *Datafeed* contains information about species presence and absence locations.
+The **Restriction Raster** *Datasheet* contains information pertaining to the optional restriction layer.
+
+### **Raster File**
+This is an optional input that accepts a raster (.tif) file that gets multiplied across the probability raster during the apply model stage. It is recommended that this is a binary raster, where 0 indicates restricted areas where prediction is not necessary. The *Raster File* could otherwise be a probability raster (i.e., values ranging from 0.0 to 1.0), which would act as a weighted restriction layer, adjusting the values of all pixels based on the pixel restriction values.
+
+### **Description**
+This is also an optional input that can be used to detail the corresponding **Raster File**.
+
+<br>
+
+<p id="heading04"> <h2><b>Field Data</b></h2> </p>
+
+The **Field Data** *Datasheet* contains information about species presence and absence locations.
 
 ### **X**
-Defines the X coordinates (longitude) in the coordinate system defined in the <a href="#heading04">Options</a> tab. 
+Defines the X coordinates (longitude) in the coordinate system defined in the <a href="#heading05">Options</a> tab. 
 
 ### **Y**
-Defines the Y coordinates (latitude) in the coordinate system defined in the <a href="#heading04">Options</a> tab. 
+Defines the Y coordinates (latitude) in the coordinate system defined in the <a href="#heading05">Options</a> tab. 
 
 ### **Response**
 Defines whether there was an absence or presence detected at a given site, where 1 represents a location where the species was present and 0 represents a location where the species was absent. 
@@ -111,17 +123,17 @@ Defines whether there was an absence or presence detected at a given site, where
 *Optional*. Sets the site ID number. In the SyncroSim UI, this column is initially hidden, and can be made visible by right-clicking anywhere inside the **Field Data** *Datasheet* and selecting "Site" from the context menu. 
 
 ### **Use In Model Evaluation**
-*Optional*. Determines whether a given row of data was saved for testing the Scenario's models (Yes) or used in the modeling process (No). This column is auto-filled based on the parameters defined under <a href="#heading05">Validation Options</a>.
+*Optional*. Determines whether a given row of data was saved for testing the Scenario's models (Yes) or used in the modeling process (No). This column is auto-filled based on the parameters defined under <a href="#heading07">Validation Options</a>.
 
 ### **Model Selection Split**
-*Optional*. Sets in which cross-validation fold a given row of data will be included. This column is auto-filled based on the parameters defined under <a href="#heading05">Validation Options</a>. Its values will range from 1 to the defined *Number of cross-validation folds*. Rows of data marked for *Model Selection Split* will be reserved from the model fitting process but will still be included in model evaluation. Additionally, the split data can be stratified by the response variable to ensure the proportion of presence and absence points is balanced between the testing and training split provided *Stratify cross-validation folds by the response* is set to "Yes".
+*Optional*. Sets in which cross-validation fold a given row of data will be included. This column is auto-filled based on the parameters defined under <a href="#heading07">Validation Options</a>. Its values will range from 1 to the defined *Number of cross-validation folds*. Rows of data marked for *Model Selection Split* will be reserved from the model fitting process but will still be included in model evaluation. Additionally, the split data can be stratified by the response variable to ensure the proportion of presence and absence points is balanced between the testing and training split provided *Stratify cross-validation folds by the response* is set to "Yes".
 
 ### **Weight**
-*Optional*. Sets the weight of a given data point. This column is only used by the model if *Aggregate or Weight Data* in the <a href="#heading04">Options</a> *Datasheet* is set to "Weights". If multiple species presence/absence points are included in a single pixel, these points can be down-weighted so that pixels with multiple points can have an equal weight to pixels with a single point. In the SyncroSim UI, this column is initially hidden, and can be made visible by right-clicking anywhere inside the **Field Data** *Datasheet* and selecting "Weight" from the context menu. 
+*Optional*. Sets the weight of a given data point. This column is only used by the model if *Aggregate or Weight Data* in the <a href="#heading05">Options</a> *Datasheet* is set to "Weights". If multiple species presence/absence points are included in a single pixel, these points can be down-weighted so that pixels with multiple points can have an equal weight to pixels with a single point. In the SyncroSim UI, this column is initially hidden, and can be made visible by right-clicking anywhere inside the **Field Data** *Datasheet* and selecting "Weight" from the context menu. 
 
 <br>
 
-<p id="heading04"> <h2><b>Field Data Options</b></h2> </p>
+<p id="heading05"> <h2><b>Field Data Options</b></h2> </p>
 
 The **Field Data Options** *Datasheet* controls some of the *Scenario's* settings relating to the **Field Data**.
 
@@ -133,7 +145,7 @@ The **Field Data Options** *Datasheet* controls some of the *Scenario's* setting
 
 <br>
 
-<p id="heading05"> <h2><b>Background Data Options</b></h2> </p>
+<p id="heading06"> <h2><b>Background Data Options</b></h2> </p>
 
 The **Background Data Options** *Datasheet* controls some of the *Scenario's* settings relating to the **Field Data**.
 
@@ -174,7 +186,7 @@ Defines whether background sites should be generated for the *Scenario* ("Yes").
 
 <br>
 
-<p id="heading06"> <h2><b>Validation Options</b></h2> </p>
+<p id="heading07"> <h2><b>Validation Options</b></h2> </p>
 
 The **Validation Options** *Datasheet* sets parameters for model validation.
 
@@ -215,7 +227,7 @@ Sets the number of cross-validation folds to include in the *Scenario*.
 
 <br>
 
-<p id="heading07"> <h2><b>Spatial Multiprocessing</b></h2> </p>
+<p id="heading08"> <h2><b>Spatial Multiprocessing</b></h2> </p>
 
 The **Spatial Multiprocessing** *Datasheet* contains a tiling raster used for spatial multiprocessing.
 
