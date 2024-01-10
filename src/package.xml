@@ -21,6 +21,7 @@
 			<transformer name="BRT"/>
 			<transformer name="GAM"/>
 			<transformer name="ApplyModel"/>
+			<transformer name="EnsembleModel"/>
 		</include>
 		</transformer>
 	   <!--Global Transformer-->
@@ -569,6 +570,56 @@
 				</datafeed>
 			</datafeeds>
 		</transformer>
+		<!--Ensemble Model Transformer-->
+		<transformer
+		  name="EnsembleModel"
+		  displayName ="9 - Ensemble Model"
+		  isRunnable="True"
+		  programName="Python"
+		  programArguments="9-ensemble-model.py"
+		  className="SyncroSim.StochasticTime.StochasticTimeTransformer" 
+		  classAssembly="SyncroSim.StochasticTime"
+		  runContext="LocalOnly"
+		  condaEnv="wisdm-py-conda.yml">
+			<pipeline>
+				<datafeed name="corestime_Multiprocessing" type="Input"/>
+				<datafeed name="TemplateRaster" type="Input"/>
+				<datafeed name="EnsembleOptions" type="Input"/>
+				<datafeed name="SpatialOutputs"/>
+				<datafeed name="EnsembleOutputs" type="Output"/>
+			</pipeline>
+			<datafeeds>	
+				<datafeed name="EnsembleOptions" displayName="Ensemble Options" dataScope="Scenario">
+				  <datasheets>
+					<datasheet  name="EnsembleOptions" displayName="Ensemble Options" isSingleRow="True">
+					  <columns>
+						<column name="EnsembleOptionsID" dataType="Integer" isPrimary="True"/>
+						<column name="ScenarioID" dataType="Integer"/>
+						<column name="MakeProbabilityEnsemble" displayName="Make Probability Ensemble Map" dataType="Boolean"/>
+						<column name="ProbabilityMethod" displayName="Probability Ensemble Method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
+						<column name="MakeBinaryEnsemble" displayName="Make Binary Ensemble Map" dataType="Boolean"/>
+						<column name="BinaryMethod" displayName="Binary Ensemble Method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>	
+				<datafeed name="EnsembleOutputs" dataScope="Scenario">
+				  <datasheets>
+					<datasheet name="EnsembleOutputs">
+					  <columns>
+					  	<column name="EnsembleOutputsID" dataType="Integer" isPrimary="True"/>
+					  	<column name="ScenarioID" dataType="Integer"/>
+						<column name="ProbabilityRasterMean" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="ProbabilityRasterSum" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="BinaryRasterMean" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="BinaryRasterSum" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
+					  </columns>
+					</datasheet>
+				  </datasheets>
+				</datafeed>
+			</datafeeds>
+		</transformer>
 		 <!--Export Transformers-->
 		<transformer
 		  name="CovariateCorrelationExportInitial" dataSheet="CovariateCorrelationMatrix" column="InitialMatrix" 
@@ -640,13 +691,13 @@
 				<item name="CovariateData" showIf="inPipeline"/>
 				<item name="RestrictionRaster" showIf="inPipeline"/>
 			</group>
-			<group name="FieldData" displayName="Field Data">
+		  	<group name="FieldData" displayName="Field Data">
 				<item name="FieldData" showIf="inPipeline"/>
 				<item name="FieldDataOptions" showIf="inPipeline"/>
 				<item name="BackgroundDataOptions" showIf="inPipeline"/>
-			</group>
-			<item name="ValidationOptions" showIf="inPipeline"/>
-			<item name="corestime_Multiprocessing" showIf="inPipeline"/>
+		  	</group>
+		  	<item name="ValidationOptions" showIf="inPipeline"/>
+		  	<item name="corestime_Multiprocessing" showIf="inPipeline"/>
 		  </group>
 		  <group name="VariableReduction" displayName="Variable Reduction">
 			<item name="SiteData" showIf="inPipeline"/>
@@ -661,7 +712,10 @@
 			<item name="RandomForest" displayName="Random Forest" showIf="inPipeline"/>
 			<item name="ModelOutputs" showIf="inPipeline"/>
 		  </group>
-		<item name="OutputOptions" showIf="inPipeline"/>
+		  <group name="OutputOptions" displayName="Output Options">
+		  	<item name="OutputOptions" showIf="inPipeline"/>
+			<item name="EnsembleOptions" showIf="inPipeline"/>
+		  </group>
 		</layout> 
 		<!--Result Transformers Layout-->
 		<layout name="coreforms_ResultTransformers">
@@ -709,6 +763,12 @@
 				<item name="AUCPRPlot" displayName="AUCPR" dataSheet="ModelOutputs" column="AUCPRPlot" filter="ModelsID" extendedIdentifier="(AUCPR)"/>
 				<item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="ModelOutputs" column="ConfusionMatrix" filter="ModelsID" extendedIdentifier="(Confusion Matrix)"/>
 				<item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="ModelOutputs" column="VariableImportancePlot" filter="ModelsID" extendedIdentifier="(Variable Importance)"/>		
+			</group>
+			<group name="EnsembleOutputs" displayName="Ensemble Outputs">
+				<item name="ProbabilityMapMean" displayName="Probability Ensemble (Mean)" dataSheet="EnsembleOutputs" column="ProbabilityRasterMean"/>
+				<item name="ProbabilityMapSum" displayName="Probability Ensemble (Sum)" dataSheet="EnsembleOutputs" column="ProbabilityRasterSum"/>
+				<item name="BinaryMapMean" displayName="Binary Ensemble (Mean)" dataSheet="EnsembleOutputs" column="BinaryRasterMean"/>
+				<item name="BinaryMapSum" displayName="Binary Ensemble (Sum)" dataSheet="EnsembleOutputs" column="BinaryRasterSum"/>
 			</group>
 		</layout>
 	</layouts>	
