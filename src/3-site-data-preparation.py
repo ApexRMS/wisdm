@@ -71,11 +71,11 @@ conda_fpath = result.stdout.decode('utf-8').strip().split(": ")[1]
 if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
     os.environ['GDAL_DATA'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\gdal")
     os.environ['GDAL_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
-    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
     os.environ["PROJ_DATA"] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")
-    os.environ.setdefault("PROJ_LIB", os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj"))
-    os.environ.setdefault("CURL_CA_BUNDLE", os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem"))
-
+    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
+    # os.environ.setdefault("PROJ_LIB", os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj"))
+    # os.environ.setdefault("CURL_CA_BUNDLE", os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem"))
+   
 # if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
 #    os.environ["PROJ_DATA"] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")
 #    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
@@ -330,3 +330,4 @@ myScenario.save_datasheet(name="SiteData", data=siteData)
 
 # update progress bar
 ps.environment.progress_bar(report_type = "end")
+# %%
