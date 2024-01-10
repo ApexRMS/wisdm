@@ -86,6 +86,7 @@ if(outputOptionsSheet$MakeBinaryMap){
   }
 }
 saveDatasheet(myScenario, outputOptionsSheet,  "wisdm_OutputOptions") 
+
 updateRunLog("Finished loading inputs in ", updateBreakpoint())
 
 # set up spatial multiprocessing -----------------------------------------------
@@ -107,10 +108,6 @@ if(name(myLibrary) == "Partial"){
 
   # trim tiling raster to extent of single tile
   maskFile <- mask(x = maskFile, mask = maskFile,  maskvalues = maskValues) # plot(maskFile)
-  
-  maskCells <- which(!is.na(values(maskFile)))
-  startRow <- rowFromCell(maskFile, maskCells[1])
-
   maskFile <- trim(x = maskFile)
  
 } else { maskValues <- NULL }
@@ -241,8 +238,9 @@ for (i in 1:nrow(modelOutputsSheet)){
       for(k in 1:nrow(covData)){
         rast_k <- rast(covData$RasterFilePath[k])
         if(!is.null(maskValues)){
+          rast_k <- crop(rast_k, maskFile)
           readStart(rast_k)
-          temp[,k] <- readValues(rast_k, row = startRow, nrows = nrow(templateRaster))
+          temp[,k] <- readValues(rast_k) #, row = startRow, nrows = nrow(templateRaster))
           readStop(rast_k)
         } else {
           temp[,k] <- as.vector(values(rast_k))
@@ -282,7 +280,7 @@ for (i in 1:nrow(modelOutputsSheet)){
       preds <- preds*resVals
     }
     preds <- round((preds*100), 0)
-    preds[is.na(preds)] <- -9999  # typeof(preds)
+    # preds[is.na(preds)] <- -9999  # typeof(preds)
     
     probRaster <- rast(templateRaster, vals = preds) 
     
@@ -304,26 +302,6 @@ for (i in 1:nrow(modelOutputsSheet)){
     if(!outputOptionsSheet$MakeProbabilityMap){
       updateRunLog("\nWarning: Binary map cannot be generated without generating the Probability map.\n")
     } else {
-      # 
-      # presenceRecords <- trainingData[trainingData$Response >= 1 , c("X", "Y")]
-      # absenceRecords <- trainingData[trainingData$Response == 0 , c("X", "Y")]
-      # covRasts <- rast(covData$RasterFilePath)
-      # names(covRasts) <- covData$CovariatesID
-      # 
-      # if(modType == "maxent"){
-      #   maxentMod <- dismo::maxent(x = trainingData[,8:ncol(trainingData)], 
-      #                            p = trainingData$Response)
-      #   evalOut <- dismo::evaluate(p = presenceRecords,
-      #                              a = absenceRecords, 
-      #                              model = maxentMod, 
-      #                              x = covRasts)
-      # } else {
-      #   evalOut <- dismo::evaluate(p = presenceRecords,
-      #                              a = absenceRecords, 
-      #                              model = mod, 
-      #                              x = covRasts)  
-      # }
-      # thresholds <- dismo::threshold(evalOut)
       
       thresholds <- mod$binThresholds
       names(thresholds) <- c("Max kappa", "Max sensitivity and specificity", "No omission", 
@@ -331,22 +309,10 @@ for (i in 1:nrow(modelOutputsSheet)){
       
       binThreshold <- as.numeric(thresholds[outputOptionsSheet$ThresholdOptimization])
       
-      readStart(probRaster)
-      probVals <- readValues(probRaster, row = 1, nrows = nrow(templateRaster))
-      readStop(probRaster)
-      probVals[probVals == -9999] <- NA
-      probVals <- probVals/100
+      probVals <- preds/100
       probVals <- ifelse(probVals >= binThreshold, 1, 0)
-      probVals <-  matrix(probVals, ncol = ncol(templateRaster), byrow = T)
-      probVals[is.na(probVals)] <- -9999
+      # probVals[is.na(probVals)] <- -9999
       binRaster <- rast(templateRaster, vals = probVals)
-      
-      # rclMat <- matrix(nrow = 2, ncol = 3)
-      # rclMat[1,] <- c(0,binThreshold, 0)
-      # rclMat[2,] <- c(binThreshold, 1,1)
-      # 
-      # probs <- rast(templateRaster, vals = predsOG) 
-      # binRaster <- classify(probs, rclMat)
       
       if(!is.null(maskValues)){binRaster <- extend(binRaster, maskExt)}
       writeRaster(x = binRaster, 
