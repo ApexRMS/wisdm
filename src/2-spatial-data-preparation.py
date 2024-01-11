@@ -57,12 +57,15 @@ import geopandas as gpd
 import shapely
 import dask
 import pyproj
+from datetime import datetime
 # import spatialUtils
 
 from dask.distributed import Client, Lock
 from shapely.geometry import Point #, shape
 from rasterio.enums import Resampling #, MergeAlg
 from rasterio.vrt import WarpedVRT
+
+ps.environment.progress_bar("message", message = "Preparing inputs for spatial data prep...")
 
 ## Modify the os PROJ path (when running with Conda) ----
 myLibrary = ps.Library()
@@ -120,7 +123,7 @@ else:
 # Note: Follow link in output to view progress
 dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space')})
 client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
-# client
+#client
 
 
 #%% Check inputs and set defaults ---------------------------------------------
@@ -174,8 +177,7 @@ chunkDims = 4096 #1024
 nodata_value = -9999
 
 templatePath = ssimInputDir + "\\wisdm_TemplateRaster\\" + templateRasterSheet.RasterFilePath.item()
-templateRaster = rioxarray.open_rasterio(templatePath, chunks={'x': chunkDims, 'y': chunkDims}, masked=True, lock = False)
-templateMask = templateRaster.isnull().load() # Load into memory once to save time later. Note this is inverted from a regular mask since it is faster
+templateRaster = rioxarray.open_rasterio(templatePath, chunks={'x': chunkDims, 'y': chunkDims}, lock = False)
 
 # Get information about template
 templateCRS = templateRaster.rio.crs
@@ -205,8 +207,23 @@ if len(invalidCRS)>0:
     raise ValueError(print("The following covariate rasters have an invalid or unknown CRS:", *invalidCRS, "Ensure that the covariate rasters have a valid CRS before continuing.", sep="\n") )      
 
 #%% Prep covariate rasters
+
+# Define masking function
+def mask(block, cov_nodata, template_nodata):
+    # Convert to numpy for faster masking
+    npblock = block.to_numpy()
+
+    # Mask and convert all nodata to common value
+    temp = np.where(npblock[[0]] == cov_nodata, nodata_value, npblock[[0]])
+    masked = np.where(npblock[[1]] == template_nodata, nodata_value, temp)
+
+    # Copy data back into appropriate xarray
+    return block[[0]].copy(data = masked)
+
 # Load and process covariate rasters
 for i in range(len(covariateDataSheet.CovariatesID)):
+    ps.environment.progress_bar("message", message = "Processing Covariate: " + covariateDataSheet.CovariatesID[i] + " (" + str(i+1) + " of " + str(len(covariateDataSheet.CovariatesID)) + ") at " +  datetime.now().strftime("%H:%M:%S"))
+    ps.environment.update_run_log("Processing Covariate: " + covariateDataSheet.CovariatesID[i] + " (" + str(i+1) + " of " + str(len(covariateDataSheet.CovariatesID)) + ") at " +  datetime.now().strftime("%H:%M:%S"))
 
     # Determine input and output file paths
     covariatePath = ssimInputDir + "\\wisdm_CovariateData\\" + covariateDataSheet.RasterFilePath[i]
@@ -228,7 +245,7 @@ for i in range(len(covariateDataSheet.CovariatesID)):
     with rasterio.open(covariatePath) as src:
 
        # Calculate reprojection using a warped virtual layer
-       with WarpedVRT(src, resampling = rioResampleMethod, crs = templateCRS, transform = templateTransform, height = templateRaster.rio.height, width = templateRaster.rio.width, warp_mem_limit= warpMemoryLimit, warp_extras={'NUM_THREADS':num_threads}) as vrt:
+       with WarpedVRT(src, resampling = rioResampleMethod, crs = templateCRS, transform = templateTransform, height = templateRaster.rio.height, width = templateRaster.rio.width, warp_mem_limit= warpMemoryLimit, warp_extras={'NUM_THREADS':1}) as vrt:
 
           # Convert to rioxarray
           with rioxarray.open_rasterio(vrt, chunks = {'x': chunkDims, 'y': chunkDims}, lock = False) as covariateRaster:
@@ -241,13 +258,16 @@ for i in range(len(covariateDataSheet.CovariatesID)):
                 raise ValueError(print("The extent of the", covariateDataSheet.CovariatesID[i], "raster does not overlap the full extent of the template raster. Ensure all covariate rasters overlap the template extent before continuing."))
 
             # Mask and set no data value
-            # - Note that the mask is inverted from a regular mask, which is why the arguments to `where` look reversed
-            covariateRaster.data = xr.where(templateMask, nodata_value, covariateRaster)
-            covariateRaster.rio.write_nodata(nodata_value, inplace=True)
+            maskedCovariateRaster = xr.concat([covariateRaster, templateRaster], "band").chunk({'band':-1, 'x':chunkDims, 'y':chunkDims}).map_blocks(mask, kwargs=dict(cov_nodata=covariateRaster.rio.nodata, template_nodata=templateRaster.rio.nodata), template = covariateRaster)
+            maskedCovariateRaster.rio.write_nodata(nodata_value, inplace=True)
 
             # Write to disk
-            covariateRaster.rio.to_raster(outputCovariatePath, tiled = True, lock = Lock("rio", client=client), windowed=True, overwrite = True, compress = 'lzw')
-    
+            # Tornado's ioloop.py occassionally throws an attribute error looking for an f_code attribute, but the output is still produced correctly
+            try:
+                maskedCovariateRaster.rio.to_raster(outputCovariatePath, tiled = True, lock = True, windowed=True, overwrite = True, compress = 'lzw')
+            except AttributeError:
+                pass
+
     # Add covariate data to output dataframe
     outputRow = covariateDataSheet.iloc[i, 0:4]
     outputRow.RasterFilePath = outputCovariatePath
@@ -259,12 +279,17 @@ for i in range(len(covariateDataSheet.CovariatesID)):
     ps.environment.progress_bar()
 
 #%% Save updated covariate data to scenario 
+
+ps.environment.progress_bar("message", message = "Saving covariate datasheet at " + datetime.now().strftime("%H:%M:%S"))
+ps.environment.update_run_log("Saving covariate datasheet at " + datetime.now().strftime("%H:%M:%S"))
 myScenario.save_datasheet(name="CovariateData", data=outputCovariateSheet) 
 
 #%% Prepare restriction raster --------------------------------------------------
 
 # check if restriction raster was provided
 if len(restrictionRasterSheet.RasterFilePath) > 0:
+    ps.environment.progress_bar("message", message = "Processing restriction raster at " + datetime.now().strftime("%H:%M:%S"))
+    ps.environment.update_run_log("Processing restriction raster at " + datetime.now().strftime("%H:%M:%S"))
 
     restrictionRaster = rioxarray.open_rasterio(restrictionRasterSheet.RasterFilePath.item(), chunks=True)
     outputPath = os.path.join(ssimTempDir, os.path.basename(restrictionRasterSheet.RasterFilePath.item()))
@@ -345,4 +370,5 @@ if len(restrictionRasterSheet.RasterFilePath) > 0:
 
 # update progress bar
 ps.environment.progress_bar(report_type="end")
-# %%
+ps.environment.progress_bar("message", message = "Done at " + datetime.now().strftime("%H:%M:%S"))
+ps.environment.update_run_log("Done at " + datetime.now().strftime("%H:%M:%S"))
