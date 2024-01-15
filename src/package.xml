@@ -600,6 +600,7 @@
 						<column name="ProbabilityMethod" displayName="Probability Ensemble Method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
 						<column name="MakeBinaryEnsemble" displayName="Make Binary Ensemble Map" dataType="Boolean"/>
 						<column name="BinaryMethod" displayName="Binary Ensemble Method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
+						<column name="IgnoreNA" displayName="Ignore NA values when calculating mean and sum" dataType="Boolean"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>

@@ -13,7 +13,7 @@
   </action>
   <action code="Exec" condition="TableNotExists" criteria="wisdm_BRT|wisdm_EnsembleOptions|wisdm_EnsembleOutputs">
     <item>CREATE TABLE wisdm_BRT(BRTID INTEGER, ScenarioID INTEGER, LearningRate DOUBLE, BagFraction DOUBLE, MaximumTrees INTEGER, NumberOfTrees INTEGER, PRIMARY KEY (BRTID))</item>
-    <item>CREATE TABLE wisdm_EnsembleOptions(EnsembleOptionsID INTEGER, ScenarioID INTEGER, MakeProbabilityEnsemble INTEGER, ProbabilityMethod INTEGER, MakeBinaryEnsemble INTEGER, BinaryMethod INTEGER, PRIMARY KEY (EnsembleOptionsID))</item>
+    <item>CREATE TABLE wisdm_EnsembleOptions(EnsembleOptionsID INTEGER, ScenarioID INTEGER, MakeProbabilityEnsemble INTEGER, ProbabilityMethod INTEGER, MakeBinaryEnsemble INTEGER, BinaryMethod INTEGER, IgnoreNA INTEGER, PRIMARY KEY (EnsembleOptionsID))</item>
     <item>CREATE TABLE wisdm_EnsembleOutputs(EnsembleOutputsID INTEGER, ScenarioID INTEGER, ProbabilityRasterMean TEXT, BinaryRasterMean TEXT, ProbabilityRasterSum TEXT, BinaryRasterSum TEXT, Band INTEGER, PRIMARY KEY (EnsembleOutputsID))</item>
   </action>
   <action code="ConvertOutputTable" outputTableName="wisdm_SpatialOutputs">
