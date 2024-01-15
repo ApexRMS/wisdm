@@ -46,7 +46,9 @@ templateSheet <- datasheet(myScenario, "TemplateRaster")
 restrictionSheet <- datasheet(myScenario, "RestrictionRaster")
 modelOutputsSheet <- datasheet(myScenario, "ModelOutputs", optional = T, lookupsAsFactors = F)
 outputOptionsSheet <- datasheet(myScenario, "OutputOptions", optional = T)
-spatialOutputsSheet <- datasheet(myScenario, "SpatialOutputs", optional = T, lookupsAsFactors = F)
+
+spatialOutputsSheet <- datasheet(myScenario, "SpatialOutputs", optional = T, lookupsAsFactors = T)
+spatialOutputsSheet$ModelsID <- as.numeric(spatialOutputsSheet$ModelsID)
 
 # Set progress bar -------------------------------------------------------------
 
@@ -75,16 +77,18 @@ if(any(is.na(covariatesSheet$ID))){
  
 ## Output options sheet
 if(nrow(outputOptionsSheet)<1){
-  outputOptionsSheet <- addRow(outputOptionsSheet, list(T,F,F,F))
+  outputOptionsSheet <- addRow(outputOptionsSheet, list(T))
 }
-if(any(is.na(outputOptionsSheet))){
-  outputOptionsSheet[is.na(outputOptionsSheet)] <- F
-}
+if(is.na(outputOptionsSheet$MakeBinaryMap)){ outputOptionsSheet$MakeBinaryMap <- F }
 if(outputOptionsSheet$MakeBinaryMap){
   if(is.na(outputOptionsSheet$ThresholdOptimization)){
     outputOptionsSheet$ThresholdOptimization <- "Sensitivity equals specificity"
   }
 }
+if(is.na(outputOptionsSheet$MakeResidualsMap)){ outputOptionsSheet$MakeResidualsMap <- F }
+if(is.na(outputOptionsSheet$MakeMessMap)){ outputOptionsSheet$MakeMessMap <- F }
+if(is.na(outputOptionsSheet$MakeModMap)){ outputOptionsSheet$MakeModMap <- F }
+
 saveDatasheet(myScenario, outputOptionsSheet,  "wisdm_OutputOptions") 
 
 updateRunLog("Finished loading inputs in ", updateBreakpoint())
@@ -427,7 +431,7 @@ for (i in 1:nrow(modelOutputsSheet)){
     # add model Outputs to datasheet
     spatialOutputsSheet <- addRow(spatialOutputsSheet, 
                                   list( # Iteration = 1, Timestep = 0,
-                                    ModelsID = modelsSheet$ModelsID[modelsSheet$ModelType == modType])) 
+                                    ModelsID = modelsSheet$ModelsID[modelsSheet$ModelType == modType]))
   
     outputRow <- which(spatialOutputsSheet$ModelsID == modelsSheet$ModelsID[modelsSheet$ModelType == modType])
                               

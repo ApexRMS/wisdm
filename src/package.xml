@@ -19,7 +19,7 @@
 			<transformer name="RandomForest"/>
 			<transformer name="Maxent"/>
 			<transformer name="BRT"/>
-			<transformer name="GAM"/>
+			<!--transformer name="GAM"/-->
 			<transformer name="ApplyModel"/>
 			<transformer name="EnsembleModel"/>
 		</include>
@@ -484,7 +484,7 @@
 			</datafeeds>
 		</transformer>
 		<!--GAM Transformer-->
-		<transformer
+		<!--transformer
 		  name="GAM"
 		  displayName ="7 - Generalized Additive Model"
 		  isRunnable="True"
@@ -514,7 +514,7 @@
 				  </datasheets>
 				</datafeed>
 			</datafeeds>
-		</transformer>
+		</transformer-->
 		<!--Apply Model Transformer-->
 		<transformer
 		  name="ApplyModel"
@@ -552,10 +552,11 @@
 					</datasheet>
 				  </datasheets>
 				</datafeed>	
-				<datafeed name="SpatialOutputs" dataScope="Scenario" isOutput="True">
+				<datafeed name="SpatialOutputs" dataScope="Scenario">
 				  <datasheets>
 					<datasheet name="SpatialOutputs" spatialMultiProcessing="True">
 					  <columns>
+					  	<column name="SpatialOutputsID" dataType="Integer" isPrimary="True"/>
 					  	<column name="ScenarioID" dataType="Integer"/>
 						<column name="ModelsID" dataType= "Integer" validationType="Datasheet" formula1="Models"/>
 						<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True"/>
@@ -706,7 +707,7 @@
 		  </group>
 		  <group name="Models">
 		  	<item name="BRT" showIf="inPipeline"/>
-			<item name="GAM" showIf="inPipeline"/>
+			<!--item name="GAM" showIf="inPipeline"/-->
 			<item name="GLM" showIf="inPipeline"/>
 			<item name="Maxent" showIf="inPipeline"/>
 			<item name="RandomForest" displayName="Random Forest" showIf="inPipeline"/>
