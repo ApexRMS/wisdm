@@ -105,13 +105,15 @@ client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False
 
 # Set enemble defaults if not provided
 if len(ensembleOptionsSheet) == 0:
-    ensembleOptionsSheet = ensembleOptionsSheet.append({'MakeProbabilityEnsemble': "Yes", 'ProbabilityMethod': "Mean", 'MakeBinaryEnsemble': "No"}, ignore_index=True)
+    ensembleOptionsSheet = ensembleOptionsSheet.append({'MakeProbabilityEnsemble': "Yes", 'ProbabilityMethod': "Mean", 'MakeBinaryEnsemble': "No", 'IgnoreNA': "Yes"}, ignore_index=True)
 if ensembleOptionsSheet.MakeProbabilityEnsemble.item() == "Yes":
     if pd.isnull(ensembleOptionsSheet.ProbabilityMethod.item()):
         ensembleOptionsSheet['ProbabilityMethod'] = "Mean"
 if ensembleOptionsSheet.MakeBinaryEnsemble.item() == "Yes":
     if pd.isnull(ensembleOptionsSheet.BinaryMethod.item()):
         ensembleOptionsSheet['BinaryMethod'] = "Mean"
+if pd.isnull(ensembleOptionsSheet.IgnoreNA.item()):
+    ensembleOptionsSheet['IgnoreNA'] = "Yes"
 
 myScenario.save_datasheet(name="EnsembleOptions", data=ensembleOptionsSheet)
 
@@ -123,27 +125,53 @@ ps.environment.progress_bar()
 # set defualt chunk dimensions
 chunkDims = 4096 #1024
 
-# mean function
-def mean(dx, axis=0):
-    dn = dx.to_numpy()
-    dn = np.where(dn == -9999, np.nan, dn)
-    dnOut = np.nanmean(dn, axis=axis)
-    dnOut = np.where(np.isnan(dnOut), -9999, dnOut)
-    dnOut = np.expand_dims(dnOut, axis=0)
-    dxOut = xr.DataArray(dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
-    return dxOut
+if ensembleOptionsSheet.IgnoreNA.item() == "Yes":
+    # mean function
+    def mean(dx, axis=0):
+        dn = dx.to_numpy()
+        dn = np.where(dn == -9999, np.nan, dn)
+        dnOut = np.nanmean(dn, axis=axis)
+        dnOut = np.where(np.isnan(dnOut), -9999, dnOut)
+        dnOut = np.expand_dims(dnOut, axis=0)
+        dxOut = xr.DataArray(dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
+        return dxOut
 
-# sum function
-def sum(dx, axis=0):
-    dn = dx.to_numpy()
-    dn = np.where(dn == -9999, np.nan, dn)
-    dnOut = np.sum(dn, axis=axis)
-    dnOut = np.where(np.isnan(dnOut), -9999, dnOut)
-    # dnOut = np.nansum(dn, axis=axis) # nansum will treat nan values as zero - output will have zeros where all inputs are nan
-    # dnOut = np.where(dnOut == 0, -9999, dnOut) 
-    dnOut = np.expand_dims(dnOut, axis=0)
-    dxOut = xr.DataArray(dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
-    return dxOut
+    # sum function
+    def sum(dx, axis=0):
+        dn = dx.to_numpy()
+        dnNan = np.sum(dn, axis=axis)
+        dnNan = dnNan == len(dn)*-9999
+        dnNan = dnNan.astype(int)
+        dnNan = np.where(dnNan == 1, np.nan, dnNan)
+        
+        dn = np.where(dn == -9999, np.nan, dn)
+        dnOut = np.nansum(dn, axis=axis) # nansum will treat nan values as zero - output will have zeros where all inputs are nan
+        
+        dnOut= np.sum([dnNan,dnOut], axis=0)
+        dnOut = np.where(np.isnan(dnOut), -9999, dnOut)
+        dnOut = np.expand_dims(dnOut, axis=0)
+        dxOut = xr.DataArray(dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
+        return dxOut
+else:
+    # mean function
+    def mean(dx, axis=0):
+        dn = dx.to_numpy()
+        dn = np.where(dn == -9999, np.nan, dn)
+        dnOut = np.mean(dn, axis=axis)
+        dnOut = np.where(np.isnan(dnOut), -9999, dnOut)
+        dnOut = np.expand_dims(dnOut, axis=0)
+        dxOut = xr.DataArray(dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
+        return dxOut
+
+    # sum function
+    def sum(dx, axis=0):
+        dn = dx.to_numpy()
+        dn = np.where(dn == -9999, np.nan, dn)
+        dnOut = np.sum(dn, axis=axis)
+        dnOut = np.where(np.isnan(dnOut), -9999, dnOut)
+        dnOut = np.expand_dims(dnOut, axis=0)
+        dxOut = xr.DataArray(dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
+        return dxOut
 
 #%% if ensemble probability is yes, load probability raster
 if ensembleOptionsSheet.MakeProbabilityEnsemble.item() == "Yes":
