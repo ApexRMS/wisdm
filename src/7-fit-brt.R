@@ -55,15 +55,18 @@ progressBar(type = "begin", totalSteps = steps)
   
   ## BRT Sheet
   if(nrow(BRTSheet)<1){
+    fitFromDefaults <- TRUE
     BRTSheet <- addRow(BRTSheet, list(LearningRate = 0.001,                     # learning.rate
                                       BagFraction = 0.75,                       # bag.fraction
                                       MaximumTrees = 10000,                     # max.trees
                                       NumberOfTrees = 50))                      # n.trees
+  } else {
+    fitFromDefaults <- FALSE
   }
   
   if(is.na(BRTSheet$LearningRate)){BRTSheet$LearningRate <- 0.001}
   if(is.na(BRTSheet$BagFraction)){BRTSheet$BagFraction <- 0.75}
-  if(is.na(BRTSheet$MaximumTrees)){BRTSheet$NodeSize <- 10000}
+  if(is.na(BRTSheet$MaximumTrees)){BRTSheet$MaximumTrees <- 10000}
   if(is.na(BRTSheet$NumberOfTrees)){BRTSheet$NumberOfTrees <- 50}
   
   saveDatasheet(myScenario, BRTSheet, "wisdm_BRT")
@@ -176,25 +179,50 @@ progressBar(type = "begin", totalSteps = steps)
   
 # Fit model --------------------------------------------------------------------
   
+  if(fitFromDefaults){
+    
+    # estimate learning rate
+    if(validationDataSheet$CrossValidate){
+      lr.list <- list()
+      for(i in 1:validationDataSheet$NumberOfFolds){
+        dat <- trainingData[trainingData$ModelSelectionSplit != i,]
+        lr.list[[i]] <- est.lr(dat = dat, out = out)
+      }
+      BRTSheet$LearningRate <- out$modOptions$LearningRate <- mean(unlist(lapply(lr.list,function(lst){lst$lrs})))
+      BRTSheet$NumberOfTrees <- out$modOptions$NumberOfTrees <- mean(unlist(lapply(lr.list,function(lst){lst$n.trees})))
+    } else {
+      lr.out <- est.lr(dat = trainingData, out = out)
+      BRTSheet$LearningRate <- out$modOptions$LearningRate <- lr.out$lrs
+      BRTSheet$NumberOfTrees <- out$modOptions$NumberOfTrees <- lr.out$n.trees
+    }
+  saveDatasheet(myScenario, BRTSheet, "wisdm_BRT")
+  }
+  
   finalMod <- fitModel(dat = trainingData, 
                        out = out)
+  
   if(is.null(finalMod)){
-    repeat{
-      # out$modOptions$stepSize <- out$modOptions$stepSize-10
-      # out$modOptions$NumberOfTrees <- out$modOptions$NumberOfTrees-10
-      out$modOptions$LearningRate <- out$modOptions$LearningRate/2
-      
-      finalMod <- fitModel(dat = trainingData,
-                           out = out)
-     if(!is.null(finalMod)) break
-    }
-    # updateRunLog(paste0("Smaller step size required for model fitting. 'Number of Trees' reduced from ", BRTSheet$NumberOfTrees, " to ", out$modOptions$NumberOfTrees, "."))
-    # BRTSheet$NumberOfTrees <- out$modOptions$NumberOfTrees
-    updateRunLog(paste0("Smaller learning rate required for model fitting. Learning rate reduced from ", BRTSheet$LearningRate, " to ", out$modOptions$LearningRate, "."))
-    BRTSheet$LearningRate <- noquote(format(out$modOptions$LearningRate, scientific = F))
-    
-    saveDatasheet(myScenario, BRTSheet, "wisdm_BRT")
+    # updateRunLog("Unable to fit model with defined paramaters. Try setting a smaller learning rate or smaller step size (i.e., Number of trees add per stage).")
+    stop("Unable to fit model with defined paramaters. Try setting a smaller learning rate or smaller step size (i.e., Number of trees added per stage).")
   }
+  
+  # if(is.null(finalMod)){
+  #   repeat{
+  #     # out$modOptions$stepSize <- out$modOptions$stepSize-10
+  #     # out$modOptions$NumberOfTrees <- out$modOptions$NumberOfTrees-10
+  #     out$modOptions$LearningRate <- out$modOptions$LearningRate/2
+  #     
+  #     finalMod <- fitModel(dat = trainingData,
+  #                          out = out)
+  #    if(!is.null(finalMod)) break
+  #   }
+  #   # updateRunLog(paste0("Smaller step size required for model fitting. 'Number of Trees' reduced from ", BRTSheet$NumberOfTrees, " to ", out$modOptions$NumberOfTrees, "."))
+  #   # BRTSheet$NumberOfTrees <- out$modOptions$NumberOfTrees
+  #   updateRunLog(paste0("Smaller learning rate required for model fitting. Learning rate reduced from ", BRTSheet$LearningRate, " to ", out$modOptions$LearningRate, "."))
+  #   BRTSheet$LearningRate <- noquote(format(out$modOptions$LearningRate, scientific = F))
+  #   
+  #   saveDatasheet(myScenario, BRTSheet, "wisdm_BRT")
+  # }
   
   finalMod$trainingData <- trainingData
   

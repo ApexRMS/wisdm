@@ -233,6 +233,11 @@ fitModel <- function(dat,           # df of training data
   #=================================================================
   if(out$modType == "brt"){
     
+    # set n-folds
+    if(out$validationOptions$CrossValidate){
+      nFolds <- out$validationOptions$NumberOfFolds
+    } else { nFolds <- 10 }
+      
     # calculating the case weights
     prNum <- as.numeric(table(dat$Response)["1"])                                # number of presences
     bgNum <- as.numeric(table(dat$Response)["0"])                                # number of backgrounds
@@ -250,10 +255,10 @@ fitModel <- function(dat,           # df of training data
                            max.trees = out$modOptions$MaximumTrees,
                            n.trees = out$modOptions$NumberOfTrees,
                            # step.size = out$modOptions$stepSize,
-                           n.folds = out$validationOptions$NumberOfFolds,        # number of cross-validation folds
+                           n.folds = nFolds,                                     # number of cross-validation folds
                            site.weights = wt,
                            plot.main = FALSE)                                    # avoid plotting hold-out deviance curve
-                           # silent = TRUE)                                      # avoid printing the cv results
+                           # silent = TRUE)                                       # avoid printing the cv results
       
     } else {
       modelBRT <- gbm.step(data = dat,
@@ -266,7 +271,7 @@ fitModel <- function(dat,           # df of training data
                            max.trees = out$modOptions$MaximumTrees,
                            n.trees = out$modOptions$NumberOfTrees,
                            # step.size = out$modOptions$stepSize,
-                           n.folds = 10,                                          # number of cross-validation folds
+                           n.folds = nFolds,                                     # number of cross-validation folds
                            site.weights = wt,
                            plot.main = FALSE)                                    # avoid plotting hold-out deviance curve
       
@@ -514,7 +519,70 @@ read.maxent<-function(lambdas){
   return(retn.lst)
 }
 
+### Estimate Learning Rate [for BRT] -------------------------------------------
+  # this function estimates optimal number of trees at a variety of learning rates 
+  # the learning rate that produces closest to 1000 trees is selected 
 
+est.lr <- function(dat, out){
+  
+  # set n-folds
+  if(out$validationOptions$CrossValidate){
+    nFolds <- out$validationOptions$NumberOfFolds
+  } else { nFolds <- 10 }
+  
+  # calculating the case weights
+  prNum <- as.numeric(table(dat$Response)["1"])                                 # number of presences
+  bgNum <- as.numeric(table(dat$Response)["0"])                                 # number of backgrounds
+  wt <- ifelse(dat$Response == 1, 1, prNum / bgNum)
+
+  n.trees <- c(50,100,200,400,800,900,1000,1100,1200,1500,1800,2400)
+  lrs <- c(.05,.02,.01,.005,.0025,.001,.0005,.0001) # .1
+  lr.out <- NULL
+  trees.fit <- 0
+  i <- 1
+  
+  while(trees.fit < 1000 & i <= length(lrs)){
+    n <- 1
+    repeat {
+      try(
+        gbm.fit <- gbm.step(data = dat,
+                          gbm.x = 8:ncol(dat),                                  # column indices for covariates
+                          gbm.y = 4,                                            # column index for response
+                          family = out$modelFamily,
+                          tree.complexity = ifelse(prNum < 50, 1, 5),
+                          learning.rate = lrs[i],
+                          bag.fraction = out$modOptions$BagFraction,
+                          max.trees = out$modOptions$MaximumTrees,
+                          n.trees = n.trees[n],
+                          n.folds = nFolds,                                     # number of cross-validation folds
+                          site.weights = wt,
+                          plot.main = FALSE)
+      )
+      if(!is.null(gbm.fit)){
+        trees.fit <- gbm.fit$n.trees
+        row_i <- cbind(lrs = lrs[i], 
+                       n.trees = n.trees[n], 
+                       trees.fit = trees.fit,
+                       cv.dev = gbm.fit$cv.statistics$deviance.mean)
+        lr.out <- rbind(lr.out, row_i)
+        if(trees.fit >= 1000) break
+      } 
+      n <- n+1
+      if(n > length(n.trees)) break
+    }
+    i <- i+1
+  }
+  
+  # pick lr and n.trees that gives closest to 1000 trees in final model 
+  lr.out <- as.data.frame(lr.out)
+  ab <- coef(lm(trees.fit~log(lrs), data=lr.out))
+  lr <- round(as.numeric(exp((1000-ab[1])/ab[2])),6)
+  lr.out$abs <- abs(lr.out$trees.fit-1000)
+  lr.out$d.lr <- abs(lr.out$lrs-lr)
+  lr.out <- lr.out[order(lr.out$abs,lr.out$d.lr),]
+  lr.out <- lr.out[1,]
+  return(lr.out)
+}
 
 # MODEL SELECTION AND VALIDATION FUNCTIONS -------------------------------------
 
