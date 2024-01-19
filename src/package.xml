@@ -619,12 +619,12 @@
 		<!--Library Datafeeds Layout-->
 		<layout name="coreforms_LibraryDatafeeds"> 
 		  <item name="core_Backup"/>
-		  <item name="corestime_Options" displayName="Spatial"/>
 		  <item name="core_Rconfig"/>
 		  <item name="core_Pyconfig"/>
 		  <!--item name="core_Condaconfig"/-->
 		  <group name="Options">
 		  	<item name="core_Options"/>
+			<item name="corestime_Options"/>
 			<item name="Network"/>
 		  </group>
 		</layout>  
