@@ -190,6 +190,7 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
   bgSiteData <- gather(data = bgSiteData, key = CovariatesID, value = Value, -SiteID)
   
   siteDataSheet <- rbind(siteDataSheet, bgSiteData)
+  siteDataSheet$SiteID <- format(siteDataSheet$SiteID, scientific = F)
   
   # save site data to scenario
   saveDatasheet(myScenario, siteDataSheet, "wisdm_SiteData")
@@ -199,6 +200,7 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
   if(any(!is.na(fieldDataSheet$Weight))){ bgData$Weight <- 1 }
 
   fieldDataSheet <- rbind(fieldDataSheet, bgData)
+  fieldDataSheet$SiteID <- format(fieldDataSheet$SiteID, scientific = F)
   
   # save updated field data to scenario
   saveDatasheet(myScenario, fieldDataSheet, "wisdm_FieldData", append = F)

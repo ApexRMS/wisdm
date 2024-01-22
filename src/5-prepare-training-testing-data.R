@@ -134,6 +134,7 @@ updateFieldData <- dplyr::select(inputData, names(fieldDataSheet))
 if(length(bgSiteIds) > 0){
   updateFieldData$Response[which(updateFieldData$SiteID %in% bgSiteIds)] <- -9998
 }
+updateFieldData$SiteID <- format(updateFieldData$SiteID, scientific = F)
 
 # save updated field data to scenario
 saveDatasheet(myScenario, updateFieldData, "wisdm_FieldData", append = F)
