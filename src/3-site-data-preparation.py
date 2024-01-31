@@ -141,7 +141,16 @@ if pd.isnull(templateRasterSheet.RasterFilePath.item()):
 if len(fieldDataSheet) == 0:
     # raise warning if field data was not provided
     raise ValueError("Field data was not provided. Please provide field data before continuing.")
+
+# check if site ids were provided
+if any(pd.isna(fieldDataSheet.SiteID)):
+    fieldDataSheet.SiteID= range(1,len(fieldDataSheet)+1)
     
+# check of field data options were provided
+if len(fieldDataOptions) == 0:
+    fieldDataOptions = fieldDataOptions.append({'AggregateAndWeight': 'None'}, ignore_index=True)
+
+
  
 #%% Load template raster ----------------------------------------------------------------
 
@@ -245,7 +254,8 @@ sites["RasterCellID"] = rasterCellIDs
 ps.environment.progress_bar()
 
 # If there are multiple points per cell - Aggregate or Weight sites
-if pd.notnull(fieldDataOptions.AggregateAndWeight[0]):
+# if pd.notnull(fieldDataOptions.AggregateAndWeight[0]):
+if fieldDataOptions.AggregateAndWeight[0] != "None":
     if len(np.unique(sites.RasterCellID)) != len(sites.RasterCellID):
         # find duplicates
         seen = set()

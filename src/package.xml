@@ -677,6 +677,7 @@
 		  <!--item name="core_Condaconfig"/-->
 		  <group name="Options">
 		  	<item name="core_Options"/>
+			<item name="corestime_Options"/>
 			<item name="Network"/>
 		  </group>
 		</layout>  
