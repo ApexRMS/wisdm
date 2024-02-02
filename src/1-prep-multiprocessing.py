@@ -101,18 +101,20 @@ templateRaster = rioxarray.open_rasterio(templatePath)
 
 # Set desired number of cells per tile
 if templateRasterSheet.TileCount.isnull().item():
-    if templateRaster.size <= 1000:
+    if templateRaster.size <= 10000:
         raise ValueError("Template raster has only " + str(templateRaster.size) + " pixels. Multiprocessing is not required.")
     elif templateRaster.size <= 10000:
-        numTiles = templateRaster.size/1000
-    elif templateRaster.size <= 100000:
         numTiles = templateRaster.size/10000
-    elif templateRaster.size <= 1e6:
+    elif templateRaster.size <= 100000:
         numTiles = templateRaster.size/100000
-    elif templateRaster.size > 1e6:
+    elif templateRaster.size <= 1e6:
         numTiles = templateRaster.size/1e6
+    elif templateRaster.size <= 1e7:
+        numTiles = templateRaster.size/1e7
+    elif templateRaster.size > 1e7:
+        numTiles = templateRaster.size/1e7
         if numTiles > 20:
-            numTiles = templateRaster.size/5e6
+            numTiles = templateRaster.size/5e7
 else:
     numTiles = templateRasterSheet.TileCount.item()   
     
@@ -140,7 +142,7 @@ y_coords = np.linspace(y_left, y_right, num = tile_dimension)
 
 coords = {'band': [1], 'x': x_coords, 'y': y_coords}
 
-#%% Create smp grid ----
+#%% Create smp grid ----------------------------------------------------------
 small_grid = xarray.DataArray(
     data = np.linspace(1, pow(tile_dimension, 2), num = pow(tile_dimension, 2)).reshape(1, tile_dimension, tile_dimension),
     dims = templateRaster.dims,
@@ -179,7 +181,7 @@ resample_grid(grid_filepath, templatePath, "smp-grid.tif", ssimTempDir)
 # update progress bar
 ps.environment.progress_bar()
 
-#%% Mask to analysis area ----
+#%% Mask to analysis area ----------------------------------------------------
 
 mask = templateRaster.to_numpy()
 nodata_value = templateRaster.rio.nodata
@@ -197,10 +199,14 @@ oldVals = np.unique(smp_grid)
 num_tiles = len(oldVals)-1
 output_filename = "smpGrid-" + str(num_tiles) + "-" + str(int(tile_size/1e3)) + "k.tif"
 
+# update template raster datasheet
+templateRasterSheet.TileCount = [num_tiles]
+myScenario.save_datasheet(name="TemplateRaster", data=templateRasterSheet)
+
 # update progress bar
 ps.environment.progress_bar()
 
-#%%  Reclassify tiles ----
+#%%  Reclassify tiles --------------------------------------------------------
 
 newVals = list(range(0,num_tiles+1))
 
