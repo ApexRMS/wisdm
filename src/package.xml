@@ -101,8 +101,8 @@
 					  <columns>
 						<column name="FieldDataOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="EPSG" displayName="Authority Code (e.g., EPSG:4326)" dataType="String" isOptional="True"/>
-						<column name="AggregateAndWeight" displayName="Aggregate or Weight Data" dataType="Integer" validationType="List" formula1="0:Aggregate|1:Weight" isOptional="True"/>
+						<column name="EPSG" displayName="Authority code (e.g., EPSG:4326)" dataType="String" isOptional="True"/>
+						<column name="AggregateAndWeight" displayName="Aggregate or weight data" dataType="Integer" validationType="List" formula1="0:Aggregate|1:Weight" isOptional="True"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -166,11 +166,11 @@
 					  <columns>
 						<column name="CovariateSelectionOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="SelectionMethod" displayName="Covariate Selection Method" dataType="Integer" validationType="List" formula1="0:Interactive (Correlation Viewer)|1:Automatic (Variance Inflation Factor)" defaultValue="0"/>
-						<column name="DisplayHighestCorrelations" displayName="Display Highest Correlations" dataType="Boolean"/>
-						<column name="CorrelationThreshold" displayName="Correlation Threshold" dataType="Double" defaultValue="0.7" validationType="Decimal" validationCondition="Between" formula1="0"  formula2="1"/>
-						<column name="NumberOfPlots" displayName="Number of Plots" dataType="Integer"/>
-						<column name="VIFThreshold" displayName="Variance Inflation Factor Threshold" dataType="Integer"/>
+						<column name="SelectionMethod" displayName="Covariate selection method" dataType="Integer" validationType="List" formula1="0:Interactive (Correlation Viewer)|1:Automatic (Variance Inflation Factor)" defaultValue="0"/>
+						<column name="DisplayHighestCorrelations" displayName="Display highest correlations" dataType="Boolean"/>
+						<column name="CorrelationThreshold" displayName="Correlation threshold" dataType="Double" defaultValue="0.7" validationType="Decimal" validationCondition="Between" formula1="0"  formula2="1"/>
+						<column name="NumberOfPlots" displayName="Number of plots" dataType="Integer"/>
+						<column name="VIFThreshold" displayName="Variance inflation factor threshold" dataType="Integer"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -196,8 +196,8 @@
 					  <columns>
 						<column name="TemplateRasterID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="RasterFilePath" displayName="Raster File" dataType="String" isExternalFile="True" isRaster="True"/>
-						<column name="TileCount" displayName="Number of Mulitprocessing Tiles (optional)" dataType="Integer"/>
+						<column name="RasterFilePath" displayName="Raster file" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="TileCount" displayName="Number of mulitprocessing tiles (optional)" dataType="Integer"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -208,7 +208,7 @@
 					  <columns>
 						<column name="RestrictionRasterID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="RasterFilePath" displayName="Raster File" dataType="String" isExternalFile="True" isRaster="True"/>
+						<column name="RasterFilePath" displayName="Raster file" dataType="String" isExternalFile="True" isRaster="True"/>
 						<column name="Description" dataType="String"/>
 					  </columns>
 					</datasheet>
@@ -219,7 +219,7 @@
 					<datasheet name="ModelOutputs" displayName="Model Outputs">
 					  <columns>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="ModelsID" dataType= "Integer" validationType="Datasheet" formula1="Models" isVisible="False"/>						
+						<column name="ModelsID" dataType="Integer" validationType="Datasheet" formula1="Models" isVisible="False"/>						
 						<column name="ModelRDS" displayName="Model RDS" dataType="String" isExternalFile="True" isReadOnly="True"/>
 						<column name="ResponseCurves" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
 						<column name="ResidualsPlot" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
@@ -366,10 +366,10 @@
 					  <columns>
 						<column name="GLMID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="SelectBestPredictors" displayName="Select Best Predictors" dataType="Boolean"/>
-						<column name="SimplificationMethod" displayName="Simplification Method" dataType="Integer" validationType="List" formula1="0:AIC|1:BIC"/>
-						<column name="ConsiderSquaredTerms" displayName="Consider Squared Terms" dataType="Boolean"/>
-						<column name="ConsiderInteractions" displayName="Consider Interactions" dataType="Boolean"/>
+						<column name="SelectBestPredictors" displayName="Select best predictors" dataType="Boolean"/>
+						<column name="SimplificationMethod" displayName="Simplification method" dataType="Integer" validationType="List" formula1="0:AIC|1:BIC"/>
+						<column name="ConsiderSquaredTerms" displayName="Consider squared terms" dataType="Boolean"/>
+						<column name="ConsiderInteractions" displayName="Consider interactions" dataType="Boolean"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -473,10 +473,11 @@
 					  <columns>
 						<column name="BRTID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
+						<column name="FittingMethod" displayName="Fitting method" dataType="Integer" validationType="List" formula1="0:Use defaults and tuning|1:Use values provided below"/>
 						<column name="LearningRate" displayName="Learning rate" dataType="Double"/>
+						<column name="NumberOfTrees" displayName="Number of trees added per stage" dataType="Integer"/>
 						<column name="BagFraction" displayName="Bag fraction" dataType="Double"/>
 						<column name="MaximumTrees" displayName="Maximum number of trees" dataType="Integer"/>
-						<column name="NumberOfTrees" displayName="Number of trees added per stage" dataType="Integer"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -542,12 +543,12 @@
 					  <columns>
 						<column name="OutputOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="MakeProbabilityMap" displayName="Make Probability Map" dataType="Boolean"/>
-						<column name="MakeBinaryMap" displayName="Make Binary Map" dataType="Boolean"/>
-						<column name="ThresholdOptimization" displayName="Binary Threshold Optimization Method" dataType="Integer" validationType="List" formula1="0:Max kappa|1:Max sensitivity and specificity|2:No omission|3:Prevalence|4:Sensitivity equals specificity"/>
-						<column name="MakeResidualsMap" displayName="Make Residuals Map" dataType="Boolean"/>
-						<column name="MakeMessMap" displayName="Make Multivariate Environmental Similarity Surface (MESS) Map" dataType="Boolean"/>
-						<column name="MakeModMap" displayName="Make Most Dissimilar Variable (MoD) Map" dataType="Boolean"/>
+						<column name="MakeProbabilityMap" displayName="Make probability map" dataType="Boolean"/>
+						<column name="MakeBinaryMap" displayName="Make binary map" dataType="Boolean"/>
+						<column name="ThresholdOptimization" displayName="Binary threshold optimization method" dataType="Integer" validationType="List" formula1="0:Max kappa|1:Max sensitivity and specificity|2:No omission|3:Prevalence|4:Sensitivity equals specificity"/>
+						<column name="MakeResidualsMap" displayName="Make residuals map" dataType="Boolean"/>
+						<column name="MakeMessMap" displayName="Make multivariate environmental similarity surface (MESS) map" dataType="Boolean"/>
+						<column name="MakeModMap" displayName="Make most dissimilar variable (MoD) map" dataType="Boolean"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -596,11 +597,12 @@
 					  <columns>
 						<column name="EnsembleOptionsID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="MakeProbabilityEnsemble" displayName="Make Probability Ensemble Map" dataType="Boolean"/>
-						<column name="ProbabilityMethod" displayName="Probability Ensemble Method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
-						<column name="MakeBinaryEnsemble" displayName="Make Binary Ensemble Map" dataType="Boolean"/>
-						<column name="BinaryMethod" displayName="Binary Ensemble Method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
-						<column name="IgnoreNA" displayName="Ignore NA values when calculating mean and sum" dataType="Boolean"/>
+						<column name="MakeProbabilityEnsemble" displayName="Make probability ensemble map" dataType="Boolean"/>
+						<column name="ProbabilityMethod" displayName="Probability ensemble method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
+						<column name="NormalizeProbability" displayName="Normalize probability before ensemble" dataType="Boolean"/>
+						<column name="MakeBinaryEnsemble" displayName="Make binary ensemble map" dataType="Boolean"/>
+						<column name="BinaryMethod" displayName="Binary ensemble method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
+						<column name="IgnoreNA" displayName="Ignore NA values during ensemble" dataType="Boolean"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
