@@ -103,12 +103,14 @@ client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False
 
 #%% Check inputs and set defaults ---------------------------------------------
 
-# Set enemble defaults if not provided
+# Set ensemble defaults if not provided
 if len(ensembleOptionsSheet) == 0:
-    ensembleOptionsSheet = ensembleOptionsSheet.append({'MakeProbabilityEnsemble': "Yes", 'ProbabilityMethod': "Mean", 'MakeBinaryEnsemble': "No", 'IgnoreNA': "Yes"}, ignore_index=True)
+    ensembleOptionsSheet = ensembleOptionsSheet.append({'MakeProbabilityEnsemble': "Yes", 'ProbabilityMethod': "Mean", "NormalizeProbability": "No", 'MakeBinaryEnsemble': "No", 'IgnoreNA': "Yes"}, ignore_index=True)
 if ensembleOptionsSheet.MakeProbabilityEnsemble.item() == "Yes":
     if pd.isnull(ensembleOptionsSheet.ProbabilityMethod.item()):
         ensembleOptionsSheet['ProbabilityMethod'] = "Mean"
+    if pd.isnull(ensembleOptionsSheet.NormalizeProbability.item()):
+        ensembleOptionsSheet['NormalizeProbability'] = "No"
 if ensembleOptionsSheet.MakeBinaryEnsemble.item() == "Yes":
     if pd.isnull(ensembleOptionsSheet.BinaryMethod.item()):
         ensembleOptionsSheet['BinaryMethod'] = "Mean"
@@ -121,10 +123,40 @@ myScenario.save_datasheet(name="EnsembleOptions", data=ensembleOptionsSheet)
 ps.environment.progress_bar()
 
 #%% Load maps ---------------------------------------------------------------------------
-
 # set defualt chunk dimensions
 chunkDims = 4096 #1024
 
+# if normalze probability is yes, normalize probability rasters
+if ensembleOptionsSheet.NormalizeProbability.item() == "Yes":
+    # normalize function
+    def norm(dx, min, max):
+        dn = dx.to_numpy()
+        dn = np.where(dn == -9999, np.nan, dn)
+        dn = dn/100
+        dnOut = (dn - min) / (max - min)
+        dnOut = dnOut * 100
+        dnOut = np.where(np.isnan(dnOut), -9999, dnOut)
+        dxOut = xr.DataArray(dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
+        return dxOut
+
+    inputFiles = spatialOutputSheet.ProbabilityRaster.tolist()
+    for i in range(len(inputFiles)):
+        # get min and max value of raster
+        with rioxarray.open_rasterio(inputFiles[i]) as src:
+            dn = src.to_numpy()
+            dn = np.where(dn == -9999, np.nan, dn)
+            minVal = np.nanmin(dn)/100
+            maxVal = np.nanmax(dn)/100
+            
+        # normalize raster
+        r = rioxarray.open_rasterio(inputFiles[i], chunks = {'y': chunkDims, 'x': chunkDims}, lock=False)
+        rOut = r.map_blocks(norm, args=[minVal, maxVal], template=r)
+        
+        # save normalized raster to temp folder
+        fname = "norm_map_" + str(i) + ".tif"
+        rOut.rio.to_raster(os.path.join(ssimTempDir, fname), tiled=True, lock=Lock("rio", client=client), windowed = True, overwrite= True, compress = 'lzw')
+
+#%% Set ensemble functions 
 if ensembleOptionsSheet.IgnoreNA.item() == "Yes":
     # mean function
     def mean(dx, axis=0):
@@ -173,10 +205,14 @@ else:
         dxOut = xr.DataArray(dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
         return dxOut
 
-#%% if ensemble probability is yes, load probability raster
+#%% if ensemble probability is yes, load probability rasters
 if ensembleOptionsSheet.MakeProbabilityEnsemble.item() == "Yes":
     
-    inputFiles = spatialOutputSheet.ProbabilityRaster.tolist()
+    if ensembleOptionsSheet.NormalizeProbability.item() == "Yes":
+        inputFiles = [os.path.join(ssimTempDir, f) for f in os.listdir(ssimTempDir) if f.startswith("norm_map_")]
+    else:
+        inputFiles = spatialOutputSheet.ProbabilityRaster.tolist()
+    
     inputStack = xr.concat([rioxarray.open_rasterio(f, chunks = {'y': chunkDims, 'x': chunkDims}, lock=False) for f in inputFiles], dim = "band").chunk({'band': -1, 'y': chunkDims, 'x': chunkDims})
         
     if ensembleOptionsSheet.ProbabilityMethod.item() == "Mean":
@@ -212,7 +248,7 @@ if ensembleOptionsSheet.MakeProbabilityEnsemble.item() == "Yes":
 # update progress bar
 ps.environment.progress_bar()
 
-#%% if ensemble binary is yes, load binary raster
+#%% if ensemble binary is yes, load binary rasters
 if ensembleOptionsSheet.MakeBinaryEnsemble.item() == "Yes":
         
         inputFiles = spatialOutputSheet.BinaryRaster.tolist()
