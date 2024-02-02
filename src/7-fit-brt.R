@@ -56,12 +56,18 @@ progressBar(type = "begin", totalSteps = steps)
   ## BRT Sheet
   if(nrow(BRTSheet)<1){
     fitFromDefaults <- TRUE
-    BRTSheet <- addRow(BRTSheet, list(LearningRate = 0.001,                     # learning.rate
+    BRTSheet <- addRow(BRTSheet, list(FittingMethod = "Use defaults and tuning",
+                                      LearningRate = 0.001,                     # learning.rate
                                       BagFraction = 0.75,                       # bag.fraction
                                       MaximumTrees = 10000,                     # max.trees
                                       NumberOfTrees = 50))                      # n.trees
   } else {
-    fitFromDefaults <- FALSE
+    if(BRTSheet$FittingMethod == "Use default and tuning"){ 
+      fitFromDefaults <- TRUE
+    } else {
+      fitFromDefaults <- FALSE
+      BRTSheet$FittingMethod <- "Use values provided below"
+    }
   }
   
   if(is.na(BRTSheet$LearningRate)){BRTSheet$LearningRate <- 0.001}
@@ -202,8 +208,8 @@ progressBar(type = "begin", totalSteps = steps)
                        out = out)
   
   if(is.null(finalMod)){
-    # updateRunLog("Unable to fit model with defined paramaters. Try setting a smaller learning rate or smaller step size (i.e., Number of trees add per stage).")
-    stop("Unable to fit model with defined paramaters. Try setting a smaller learning rate or smaller step size (i.e., Number of trees added per stage).")
+    # updateRunLog("Unable to fit model with defined parameters. Try setting a smaller learning rate or smaller step size (i.e., Number of trees add per stage).")
+    stop("Unable to fit model with defined parameters. Try setting a smaller learning rate or smaller step size (i.e., Number of trees added per stage).")
   }
   
   # if(is.null(finalMod)){
