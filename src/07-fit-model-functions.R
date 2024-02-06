@@ -535,7 +535,7 @@ est.lr <- function(dat, out){
   bgNum <- as.numeric(table(dat$Response)["0"])                                 # number of backgrounds
   wt <- ifelse(dat$Response == 1, 1, prNum / bgNum)
 
-  n.trees <- c(50,100,200,400,800,900,1000,1100,1200,1500,1800,2400)
+  n.trees <- c(50,100,200,400,800,900,1000,1100,1200,1500,1800,2400,3200)
   lrs <- c(.05,.02,.01,.005,.0025,.001,.0005,.0001) # .1
   lr.out <- NULL
   trees.fit <- 0
@@ -574,14 +574,18 @@ est.lr <- function(dat, out){
   }
   
   # pick lr and n.trees that gives closest to 1000 trees in final model 
-  lr.out <- as.data.frame(lr.out)
-  ab <- coef(lm(trees.fit~log(lrs), data=lr.out))
-  lr <- round(as.numeric(exp((1000-ab[1])/ab[2])),6)
-  lr.out$abs <- abs(lr.out$trees.fit-1000)
-  lr.out$d.lr <- abs(lr.out$lrs-lr)
-  lr.out <- lr.out[order(lr.out$abs,lr.out$d.lr),]
-  lr.out <- lr.out[1,]
-  return(lr.out)
+  if (is.null(lr.out)){
+    return(lr.out)
+  } else{
+    lr.out <- as.data.frame(lr.out)
+    ab <- coef(lm(trees.fit~log(lrs), data=lr.out))
+    lr <- round(as.numeric(exp((1000-ab[1])/ab[2])),6)
+    lr.out$abs <- abs(lr.out$trees.fit-1000)
+    lr.out$d.lr <- abs(lr.out$lrs-lr)
+    lr.out <- lr.out[order(lr.out$abs,lr.out$d.lr),]
+    lr.out <- lr.out[1,]
+    return(lr.out)
+  } 
 }
 
 # MODEL SELECTION AND VALIDATION FUNCTIONS -------------------------------------

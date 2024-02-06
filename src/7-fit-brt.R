@@ -62,7 +62,7 @@ progressBar(type = "begin", totalSteps = steps)
                                       MaximumTrees = 10000,                     # max.trees
                                       NumberOfTrees = 50))                      # n.trees
   } else {
-    if(BRTSheet$FittingMethod == "Use default and tuning"){ 
+    if(BRTSheet$FittingMethod == "Use defaults and tuning"){ 
       fitFromDefaults <- TRUE
     } else {
       fitFromDefaults <- FALSE
@@ -192,7 +192,10 @@ progressBar(type = "begin", totalSteps = steps)
       lr.list <- list()
       for(i in 1:validationDataSheet$NumberOfFolds){
         dat <- trainingData[trainingData$ModelSelectionSplit != i,]
-        lr.list[[i]] <- est.lr(dat = dat, out = out)
+        lr.i <- est.lr(dat = dat, out = out)
+        if (is.null(lr.i)){
+          stop("Unable to fit model using defaults, parameter tuning, and current data split. Try preparing data with fewer cross validation folds.")
+        } else { lr.list[[i]] <-  lr.i}
       }
       BRTSheet$LearningRate <- out$modOptions$LearningRate <- mean(unlist(lapply(lr.list,function(lst){lst$lrs})))
       BRTSheet$NumberOfTrees <- out$modOptions$NumberOfTrees <- mean(unlist(lapply(lr.list,function(lst){lst$n.trees})))
