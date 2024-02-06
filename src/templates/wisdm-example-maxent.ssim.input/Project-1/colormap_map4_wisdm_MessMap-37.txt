@@ -1,0 +1,5 @@
+# Syncrosim Generated Generalized Linear Model Color Map (QGIS-compatible),,,,,
+INTERPOLATION:DISCRETE
+0.0000,192,192,192,255,Zero
+-0.0001,64,0,128,255,Negative
+1000.0000,255,128,0,255,Positive

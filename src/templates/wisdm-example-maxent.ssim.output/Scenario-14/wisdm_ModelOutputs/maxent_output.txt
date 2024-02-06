@@ -1,0 +1,72 @@
+Maxent Results
+
+           Variabels Contribution
+1     conifer_forest      10.3525
+2           max_temp      14.2675
+3           min_temp       5.3625
+4        mixed_shrub      18.9349
+5               ndvi      13.3829
+6 precip_wet_quarter       2.3945
+7       road_density       7.0788
+8          sagebrush      21.8522
+9                tri       6.3741
+
+
+============================================================ 
+
+Evaluation Statistics applied to Cross validation split:
+
+ 
+	 Correlation Coefficient      : 0.1094221  (sd 0.085816) 
+	 NULL Deviance                : 0.75392 (sd 0.027387)
+	 Fit Deviance                 : 1.097 (sd 0.056463)
+	 Explained Deviance           : -0.3431 (sd 0.06455)
+	 Percent Deviance Explained   : -45.688 (sd 9.7428)
+
+  Threshold Methods based on 
+	 Mean Threshold               : 0.406 (sd 0.037148) 
+
+	 Confusion Matrix: 
+
+         observed
+predicted   1   0
+        1  37 181
+        0  37 319
+
+	 AUC                          :  0.59622  (sd 0.076592) 
+	 AUC-pr                       :  0.192159  (sd 0.061693) 
+	 Percent Correctly Classified :  62.03204  (sd 4.2706) 
+	 Sensitivity                  :  0.5019048  (sd 0.09182) 
+	 Specificity                  :  0.638  (sd 0.036332) 
+	 Kappa                        :  0.07747913  (sd 0.070305) 
+	 True Skill Statistic         :  0.1399048  (sd 0.12516) 
+
+
+============================================================ 
+
+Evaluation Statistics applied to Final evaluation split:
+
+ 
+	 Correlation Coefficient      : 0.07269977 
+	 NULL Deviance                : 0.73977
+	 Fit Deviance                 : 1.082
+	 Explained Deviance           : -0.34219
+	 Percent Deviance Explained   : -46.257
+
+  Threshold Methods based on 
+	 Threshold                    :  0.37 
+
+	 Confusion Matrix: 
+
+         observed
+predicted   1   0
+        1  40 230
+        0  34 270
+
+	 AUC                          :  0.5514 
+	 AUC-pr                       :  0.173301 
+	 Percent Correctly Classified :  54.00697 
+	 Sensitivity                  :  0.5405405 
+	 Specificity                  :  0.54 
+	 Kappa                        :  0.03784223 
+	 True Skill Statistic         :  0.08054054 
