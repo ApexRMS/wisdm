@@ -438,7 +438,7 @@
 					  <columns>
 						<column name="MaxentID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
-						<column name="MemoryLimit" displayName="Memory allocation (GB)" dataType="Integer"/>
+						<column name="MemoryLimit" displayName="Memory allocation (MB)" dataType="Integer"/>
 						<column name="MaximumBackgroundPoints" displayName="Maximum number of background points" dataType="Integer"/>
 						<column name="MultiprocessingThreads" displayName="Number of processing threads" dataType="Integer"/>
 						<column name="VisibleInterface" displayName="View maxent user interface during run" dataType="Boolean"/>
