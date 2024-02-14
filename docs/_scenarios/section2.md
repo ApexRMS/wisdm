@@ -93,10 +93,28 @@ The **Pipeline** *Datasheet* is a SyncroSim Core *Datasheet* that controls which
 Defines the transformers that will be run in the *Scenario*. The general stages in **WISDM** include:
 1. Prepare Multiprocessing
 2. Spatial Data Preparation
-3. Data Preparation (Non-Spatial)
-4. Variable Reduction
-5. Models (Maxent, Random Forest, GLM)
-6. Apply Model
+3. Site Data Preparation
+4. Background Data Generation
+5. Prepare Training/Testing Data
+6. Variable Reduction
+7. Models 
+    * Generalized Linear Model (GLM)
+    * Boosted Regression Trees (BRTs): New transformer for building BRT models using methods and defaults described in [Valavi et al., 2021](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecm.1486). See Appendix 2 for code and model development details. 
+    * Random Forest
+    * Maxent
+8. Apply Model
+9. Ensemble Model
+
+Here are some short descriptions of each stage:
+1. <u>Prepare Multiprocessing</u>: Generates a tiling raster that will be used by subsequent transformers to divide spatial data into smaller chunks for parallel processing. Required inputs: Template Raster File. Outputs: Spatial Multiprocessing Tiling Raster.
+2. <u>Spatial Data Preparation</u>: Prepares Covariate and Restriction rasters to align with the extent, resolution, and reference system of the Template raster. Required inputs: Template Raster File, Covariate data. Outputs: Updated covariate data
+3. <u>Site Data Preparation</u>: Field Data are projected and clipped to the resolution and extent of the Template Raster. If Aggregate or Weight is selected under **Field Data Options**, the field data records are aggregated or weighted based on their spatial distribution. Covariate values are then extracted for the remaining field data records. Required inputs: Template Raster File, Field Data, Covariate Data. Outputs: Updated Field Data and Site Data.
+4. <u>Background Data Generation</u>: Generates background sites (pseudoabsences), extracts covariate data for the pseudoabsence sites and updates the Field Data and Site Data to include pseudoabsence data. Required inputs: Template Raster File, Field Data, Covariate Data, Site Data. Outputs: Updated Field Data and updated Site Data. 
+5. <u>Prepare Training/Testing Data</u>: Divides Field Data into training and testing sets and/or cross validation folds based on the provided Validation Options arguments. Required inputs: Field Data, Site Data. Outputs: Updated Field Data. 
+6. <u>Variable Reduction</u>: Reduces correlated covariates through either an automated approach (using Variance Inflation Factors) or an interactive approach which involves user selection of covariates through a correlation viewer application. Required inputs: Field Data, Site Data. Outputs: Updated Retained Covariate List and a Covariate Selection Matrix if the interactive approach was used.
+7. <u>Fit Models</u> (Boosted Regression Trees, Generalized Linear Model, Maxent, Random Forest): Fits the selected model and generates validation and diagnostic summaries and figures. Required inputs: Field Data, Validation Options, Site Data, Retained Covariate List. Outputs: Updated Model Outputs.
+8. <u>Apply Model</u>: Generates map outputs for the selected model(s). Maps are generated based on the model, selected Output Options, and the provided Covariate Data. Required inputs: Template Raster File, Model Outputs, Covariate Data. Outputs: Map Outputs
+9. <u>Ensemble Model</u>: Generates ensembled outputs of the models run in the **Scenario**. Ensembles are generated based on the fitted models, apply models, and selected Ensemble Options. Required inputs: Model Outputs, Map Outputs. Outputs: Ensemble Outputs.
 
 ### **Run Order**
 Sets the order in which the stages will be run.
@@ -120,23 +138,34 @@ Defines to which *Package* a given *Datasheet* belongs. For **WISDM** models, th
 Displays the *Datasheet* and *Datafeed* names. In the SyncroSim UI, the name will be displayed as a hyperlink that leads to the respective *Datasheet*. 
 
 ### **Datafeed**
-Defines the names of each *Datafeed* in the *Scenario*. In **WISDM**, the *Datafeeds* and their respective *Datasheets* include:
-* Data Preparation
+Defines the names of each *Datafeed* in the *Scenario*. In **WISDM**, the *Datasheets* and their respective *Datafeeds* include:
+* General - Pipeline
+    * Pipeline
+* Data Preparation - Spatial Data
     * Template Raster
     * Covariate Data
-    * Field Data
-    * Field Data - Options
+    * Restriction Raster
+* Data Preparation - Field Data
+    * Field Data 
+    * Field Data Options
+    * Background Data Options
+* Data Preparation - Validation Options
     * Validation Options
+* Data Preparation - Spatial Multiprocessing
+    * Spatial Multiprocessing
 * Variable Reduction
     * Site Data
+    * Retained Covariate List
     * Covariate Selection Options
-    * Reduced Covariate List
 * Models
     * GLM
     * Random Forest
     * Maxent
+    * Boosted Regression Tree
     * Model Outputs
 * Output Options
+    * Output Options
+    * Ensemble Options
 
 ### **Source Scenario**
 Defines the *Scenario* from which each *Datasheet* is being drawn. 
