@@ -232,6 +232,6 @@ Sets the number of cross-validation folds to include in the *Scenario*.
 The **Spatial Multiprocessing** *Datasheet* contains a tiling raster used for spatial multiprocessing.
 
 ### **Tiling raster**
-Defines the raster representing the tiles the data can be split into for parallel processing. 
+Defines the raster (.tif) file representing the tiles the data can be split into for parallel processing. 
 
 <br>

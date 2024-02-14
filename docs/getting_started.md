@@ -40,7 +40,7 @@ If you do not have **Miniconda** installed on your computer, a dialog box will o
 
 Having installed the **WISDM** *Package*, you are now ready to create your SyncroSim *Library*. A *Library* is a file (with extension *.ssim*) that contains all your model inputs and outputs. Note that the format of each *Library* is specific to the *Package* for which it was initially created. You can opt to create an empty *Library* or use a template *Library* called **_WISDM Example_**. In this tutorial, we will be working with the **_WISDM Example_** template *Library*. To create a new *Library* from this template, choose **New...** from the **File** menu.
 
-<img align="middle" style="padding: 3px" width="600" src="assets/images/template.png">
+<img align="middle" style="padding: 3px" width="499" src="assets/images/template.png">
 
 In this window:
 
@@ -57,7 +57,7 @@ The contents of your newly created Library are now displayed in the **Library Ex
 
 Most model inputs in SyncroSim are organized into *Scenarios*, where each *Scenario* consists of a suite of *Properties*, one for each of the model’s required inputs. Because you chose the **_WISDM Example_** when you created your *Library*, your Library already contains a demonstration *Scenario* with pre-configured model inputs and outputs. 
 
-<img align="middle" style="padding: 3px" width="300" src="assets/images/scenario.png">
+<img align="middle" style="padding: 3px" width="311" src="assets/images/scenario.png">
 
 To view the details of the *Scenario*:
 
@@ -66,26 +66,30 @@ To view the details of the *Scenario*:
 
 This opens the *Scenario Properties* window.
 
-<img align="middle" style="padding: 3px" width="525" src="assets/images/scenario-properties.png">
+<img align="middle" style="padding: 3px" width="550" src="assets/images/scenario-properties.png">
 
 <br>
 
 ### Pipeline
 
-Located underneath the **General** tab, the model **Pipeline** allows you to select which stages of the model to include in the model run and their run order. A full run of **WISDM** consists of five or six stages: (1) Create multiprocessing tiles; (2) Prepare spatial data; (3) Prepare non-spatial data; (4) Reduce variables; (5) Fit statistical model(s); and (6) Apply the model(s). The following list represents all possible *Pipeline* elements. In this example, however, we will only run two statistical models in Stage 5:
+Located underneath the **General** tab, the model **Pipeline** allows you to select which stages of the model to include in the model run and their run order. A full run of **WISDM** consists of seven or eight stages: (1) Create multiprocessing tiles; (2) Prepare spatial data; (3) Prepare site data; (4) Generate background sites; (5) Prepare training and testing data; (6) Variable reduction; (7) Fit statistical model(s); (8) Apply the model(s); (9) Ensemble the models. The following list represents all possible *Pipeline* elements. In this example, however, we will only run two statistical models in Stage 7:
 
 * Stage 1: Prepare Multiprocessing 
 * Stage 2: Spatial Data Preparation
-* Stage 3: Data Preparation (Non-Spatial)
-* Stage 4: Variable Reduction
-* Stage 5: Generalized Linear Model
-* Stage 5: Random Forest
-* Stage 5: Maxent
-* Stage 6: Apply Model
+* Stage 3: Site Data Preparation
+* Stage 4: Background Data Generation
+* Stage 5: Prepare Training/Testing data
+* Stage 6: Variable Reduction
+* Stage 7: Generalized Linear Model
+* Stage 7: Boosted Regression Tree
+* Stage 7: Random Forest
+* Stage 7: Maxent
+* Stage 8: Apply Model
+* Stage 9: Ensemble Model
 
-Note that all stages in this *Pipeline* are dependent on the results of the previous stage. You cannot run a stage without having first run the previous stage. However, you can choose to fit your data to any number of the statistical models available for Stage 5 (i.e., GLM, Random Forest, or Maxent). In this example, GLM and Random Forest have been selected and added to the *Pipeline*.  
+Note that all stages in this *Pipeline* are dependent on the results of the previous stage. You cannot run a stage without having first run the previous stage. However, you can choose to fit your data to any number of the statistical models available for Stage 7 (i.e., GLM, Random Forest, or Maxent). In this example, GLM and Random Forest have been selected and added to the *Pipeline*.  
 
-<img align="middle" style="padding: 3px" width="525" src="assets/images/pipeline-models.png">
+<img align="middle" style="padding: 3px" width="470" src="assets/images/pipeline-models.png">
 
 <br>
 
@@ -93,7 +97,7 @@ Note that all stages in this *Pipeline* are dependent on the results of the prev
 
 Under the **Data Preparation** tab, you'll find the **Template Raster** datasheet. Here, you'll choose a *Raster File* that provides a template of the desired extent, resolution, and crs for the analysis and outputs. You can also choose to specify a *Number of Multiprocessing Tiles*. If you don't specify a value, the package will select an appropriate value. 
 
-<img align="middle" style="padding: 3px" width="600" src="assets/images/template-raster.png">
+<img align="middle" style="padding: 3px" width="579" src="assets/images/template-raster.png">
 
 Note that Stage 1 (Prepare Multiprocessing) only needs to be added to the *Pipeline* and run if spatial multiprocessing is required (i.e., for large landscapes and/or high resolution data). In this example, we will use spatial multiprocessing for demonstration purposes. 
 
@@ -103,21 +107,29 @@ Note that Stage 1 (Prepare Multiprocessing) only needs to be added to the *Pipel
 
 Under the **Project Properties**, which you can view by double-clicking in the **Library Explorer** window, in the *Project* called *Definitions*, you'll find the **Covariates** datasheet. Here, you must list the names of all covariates you want to consider for model development.
 
-<img align="middle" style="padding: 3px" width="650" src="assets/images/covariates.png">
+<img align="middle" style="padding: 3px" width="657" src="assets/images/covariates.png">
 
 If you return to the **Scenario Properties**, under the **Data Preparation** tab, you'll also find a datasheet called **Covariate Data**. Here, you will provide rasters (.tif files) for each covariate of interest identified in the **Covariates** datasheet above. The extent of each raster must be greater than or equal to the template raster extent.
 
-<img align="middle" style="padding: 3px" width="650" src="assets/images/covariate-data.png">
+<img align="middle" style="padding: 3px" width="582" src="assets/images/covariate-data.png">
+
+Below the **Covariate Data** datasheet, you will see a **Restriction Raster** datasheet. This is an optional input, where you can point to a raster file that will get multiplied across the probability raster during the apply model stage. This raster is often binary, where values of 0 indicate restricted areas where the probability raster will not predict to. In addition to providing a file, you can provide a brief description of the **Restriction Raster** used.
+
+
 
 In the same **Data Preparation** tab, you'll also find a **Field Data** datasheet. Here, you will identify site locations by their X and Y coordinates and include response values for the target species. Response values can be provided as presence-only (1), presence/absence (1 or 0), or counts (integers >= 0).  
 
-<img align="middle" style="padding: 3px" width="650" src="assets/images/field-data.png">
+<img align="middle" style="padding: 3px" width="494" src="assets/images/field-data.png">
 
-By default, WISDM assumes that the field data coordinates are provided in the template raster's reference system. If the coordinates are provided in an alternate reference system, the corresponding authority code should be entered under the field data **Options** datasheet. 
+By default, **WISDM** assumes that the field data coordinates are provided in the template raster's reference system. If the coordinates are provided in an alternate reference system, the corresponding authority code should be entered under the field data **Field Data Options** datasheet. 
 
-<img align="middle" style="padding: 3px" width="650" src="assets/images/field-data-options.png">
+<img align="middle" style="padding: 3px" width="498" src="assets/images/field-data-options.png">
 
 The *Aggregate or Weight Data* input gives you the option to handle redundancy and avoid pseudo-replication by either aggregating field data locations so only one field data observation is represented per pixel or down-weighting multiple points proportionately. If the input is left blank, all field data points will be retained. That is, no aggregation or weighting occurs.
+
+Below the **Field Data Options** datasheet is the **Background Data Options** datasheet. Here, you will identify preferences for background site or pseudo-absence generation, such as whether background sites should be generated, the number of sites that should be generated, the method used for generation, KDE (kernel density estimation) background surface method, and the isopleth threshold used for binary mask creation. This datasheet can be left blank for the purposes of this tutorial.
+
+
 
 <br>
 
@@ -125,7 +137,7 @@ The *Aggregate or Weight Data* input gives you the option to handle redundancy a
 
 Still under the **Data Preparation** tab, you'll find the **Validation Options** datasheet. Here, you'll indicate if data should be split into training and testing datasets and the proportion of data that should be used for training. If left blank all data is used for training and no data is reserved for testing. In this datasheet, you will also indicate if cross validation should be used, the number of folds the data should be split into (the default is 10), and if the data in the folds should be stratified by the response (i.e., relatively equal representation of the response variables in each fold). If left blank cross validation will not run.  
 
-<img align="middle" style="padding: 3px" width="650" src="assets/images/validation-options.png">
+<img align="middle" style="padding: 3px" width="496" src="assets/images/validation-options.png">
 
 <br>
 
@@ -133,15 +145,15 @@ Still under the **Data Preparation** tab, you'll find the **Validation Options**
 
 In the **Models** tab, you'll find the **GLM**, **Random Forest**, and **Maxent** datasheets. Depending on which statistical models you included in your *Pipeline*, you can access the corresponding model configuration datasheet here and customize your desired statistical analysis. If fields are left blank, default values will be used. 
 
-<img align="middle" style="padding: 3px" width="650" src="assets/images/GLM.png">
+<img align="middle" style="padding: 3px" width="410" src="assets/images/GLM.png">
 
 <br> 
 
 ### Output Options
 
-In the **Output Options** datasheet, you can choose which output maps to generate. Four output options are available for selection: (1) Probability Map, (2) Residuals Map, (3) Multivariate Environmental Similarity Surface (MESS) Map, (4) Most Dissimilar Variable (MoD) Map. Choosing at least one option is required to produce output maps. If fields are left blank, the corresponding maps will not be generated. 
+In the **Output Options** datasheet, you can choose which output maps to generate. Five output options are available for selection: (1) Probability Map, (2) Residuals Map, (3) Multivariate Environmental Similarity Surface (MESS) Map, (4) Most Dissimilar Variable (MoD) Map, (5) Binary Map. Choosing at least one option is required to produce output maps. If fields are left blank, the corresponding maps will not be generated. 
 
-<img align="middle" style="padding: 3px" width="500" src="assets/images/output-options.png">
+<img align="middle" style="padding: 3px" width="659" src="assets/images/output-options.png">
 
 <br>
 
@@ -151,11 +163,11 @@ Right-click on the **_Brewer's Sparrow Scenario_** in the **Scenario Manager** w
 
 During the model run, a **Covariate Correlation Viewer** window will appear showing correlations between *Covariates*. You can opt to remove covariates from consideration if the correlation values are deemed unacceptable. To remove a *Covariate*, simply uncheck the variable from the *Covariates to include* list. A default threshold correlation value of 0.7 is used to color code the correlation values. This value, and the number of plots shown, can be changed. To view  changes, simply select the *Update* button. Once you are satisfied with your list of covariates, select the *Save & Close* button. The window will close and the analysis will continue.
 
-<img align="middle" style="padding: 3px" width="700" src="assets/images/correlation-viewer.png">
+<img align="middle" style="padding: 3px" width="733" src="assets/images/correlation-viewer.png">
 
 The run should complete within a couple of minutes. If the run is successful you will see a Status of **Done** in the **Run Monitor** window. If your run failed, you can click on the **Run Log** link to see a report of any problems that occurred.
 
-<img align="middle" style="padding: 3px" width="550" src="assets/images/run-monitor.png">
+<img align="middle" style="padding: 3px" width="700" src="assets/images/run-monitor.png">
 
 <br>
 
@@ -165,17 +177,17 @@ Once the run is completed, you can view the details of the *Result Scenario*:
 
 * Select **_Brewer's Sparrow Result Scenario_** from the *Results* folder nested under the **_Brewer's Sparrow Scenario_** in the **Library Explorer**.
 
-<img align="middle" style="padding: 3px" width="300" src="assets/images/result-scenario.png">
+<img align="middle" style="padding: 3px" width="306" src="assets/images/result-scenario.png">
 
 * Right-click and choose **Properties** from the context menu to view the details of the *Result Scenario*.
 
-<img align="middle" style="padding: 3px" width="650" src="assets/images/result-scenario-properties.png">
+<img align="middle" style="padding: 3px" width="631" src="assets/images/result-scenario-properties.png">
 
 This opens the *Result Scenario Properties* window. The format of the *Result Scenario Properties* is similar to the *Scenario Properties* but contains read-only datasheets with updated information produced during the model run.
 
 Look through the *Result Scenario* to see the updated or newly populated datasheets. You should find that the **Field Data**, **Covariate Data**, **GLM**, and **Random Forest** datasheets have updated entries. Note that the model configuration options for **Random Forest** were left empty in the *Parent Scenario*. In this case, **WISDM** uses default settings during model fitting and reports the selections in the *Result Scenario*.
 
-<img align="middle" style="padding: 3px" width="550" src="assets/images/random-forest-output.png">
+<img align="middle" style="padding: 3px" width="442" src="assets/images/random-forest-output.png">
 
 <br>
 
@@ -183,7 +195,7 @@ Look through the *Result Scenario* to see the updated or newly populated datashe
 
 The **Field Data** datasheet has also been updated to only include sites inside the extent of the *template raster*. In the **Options** datasheet, if weight was selected, the *Weights* column will be populated. If aggregate was selected, records with -9999 may occur in the *Response* column, this indicates redundancy, and these records are removed from model fitting. The *Use In Model Evaluation* and *Model Selection Split* columns will also be populated based on selections defined in the **Validation Options** datasheet. The *Use in Model Evaluation* column indicates which sites will be used for model training and testing. A **Yes** in this column means that the site has been reserved for model evaluation (i.e., testing) and will not be used during model fitting (i.e., training). The *Model Selection Split* column indicates how the training data has been spilt for cross validation. This column is only populated if *Use cross validation for model selection* was chosen under **Validation Options**, and will display the cross-validation fold that each site was assigned to. 
 
-<img align="middle" style="padding: 3px" width="700" src="assets/images/field-data-output.png">
+<img align="middle" style="padding: 3px" width="713" src="assets/images/field-data-output.png">
 
 <br>
 
@@ -191,9 +203,9 @@ The **Field Data** datasheet has also been updated to only include sites inside 
 
 Back in the **Covariate Data** datasheet, you'll find that all your input rasters have been replaced by clipped, reprojected, and resampled rasters that match the properties of your *template raster*. The *Resample Method* and *Aggregation Method* columns have been populated with default values to indicate which approach was used to prepare the data.
 
-<img align="middle" style="padding: 3px" width="700" src="assets/images/covariate-data-output.png">
+<img align="middle" style="padding: 3px" width="716" src="assets/images/covariate-data-output.png">
 
-In the *Results Scenario* you should also find that the **Spatial Multiprocessing**, **Site Data**, and **Reduced Covaritate List** datasheets are now populated.  
+In the *Results Scenario* you should also find that the **Spatial Multiprocessing** datasheet under the **Data Preparation** tab has been populated, along with the **Site Data** and **Retained Covaritate List** datasheets under the **Variable Reduction** tab.  
 
 Since we opted for multiprocessing, we can see that a tiling raster has been created and added to the **Spatial Multiprocessing** datasheet. This tiling raster is used to clip other spatial layers into smaller rectangular blocks effectively creating more manageable processing sizes. 
 
@@ -205,15 +217,15 @@ Since we opted for multiprocessing, we can see that a tiling raster has been cre
 
 To view spatial outputs, move to the results panel at the bottom left of the **Library Explorer** window. Under the **Maps** tab, double-click on **Map Outputs** to visualize the map.
 
-<img align="middle" style="padding: 3px" width="300" src="assets/images/library-explorer-maps.png">
+<img align="middle" style="padding: 3px" width="306" src="assets/images/library-explorer-maps.png">
 
 The first two maps are *Probability* maps demonstrating species occurrence probabilities spatially. Values in the legend on the left-hand side of the screen represent probabilities as percentages. The two maps represent outputs using *GLM* and *Random Forest* statistical analyses. If you only opted for one of the two statistical methods in the model *Pipeline*, only one map will be visible.
 
-<img align="middle" style="padding: 3px" width="700" src="assets/images/map-outputs.png">
+<img align="middle" style="padding: 3px" width="696" src="assets/images/map-outputs.png">
 
-Under the **Maps** tab, you will also find the **Model Outputs**. Outputs include *Response Curves*, *Standard Residuals*, *Residuals Smooth*, *Calibration*, *ROC/AUC*, *AUCPR*, *Confusion Matrix*, and *Variable Importance*. These outputs provide information on model performance and offer quick comparison of different statistical models. 
+Under the **Map Outputs** tab, you will also find the **Model Outputs** tab. Outputs include *Response Curves*, *Standard Residuals*, *Residuals Smooth*, *Calibration*, *ROC/AUC*, *AUCPR*, *Confusion Matrix*, and *Variable Importance*. These outputs provide information on model performance and offer quick comparison of different statistical models. 
 
-<img align="middle" style="padding: 3px" width="700" src="assets/images/model-outputs.png">
+<img align="middle" style="padding: 3px" width="799" src="assets/images/model-outputs.png">
 
 <br>
 
@@ -221,4 +233,5 @@ Under the **Maps** tab, you will also find the **Model Outputs**. Outputs includ
 
 To export a map or model output created by the **WISDM** package, add the *Result Scenario* with the desired outputs to the results, then open the **Export** tab at the bottom of the screen. All available files for export will be listed. To export, simply double-click on the desired output and choose the directory in which to save the file in the pop-up window. Note that if multiple *Result Scenarios* are included in the active *Result Scenarios*, files for each of the selected scenarios will exported. 
 
-<img align="middle" style="padding: 3px" width="300" src="assets/images/export.png">
+<img align="middle" style="padding: 3px" width="295" src="assets/images/export.png">
+

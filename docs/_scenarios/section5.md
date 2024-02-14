@@ -40,15 +40,54 @@ permalink: reference/models
 # **Models**
 
 The **Models** tab groups the following *Scenario Datasheets*:
-* GLM (Generalized Linear Model)
-* Random Forest
-* Maxent
 * Boosted Regression Tree
-* GAM (Generalized Additive Model)
+* GLM (Generalized Linear Model)
+* Maxent
+* Random Forest
 * Model Outputs
 
 In the SyncroSim UI, the **Models** tab can be accessed by right-clicking on a **WISDM** *Scenario* and selecting *Properties* from the context menu.
 
+<br>
+
+<p id="heading04"> <h2><b>Boosted Regression Tree</b></h2> </p>
+
+The **Boosted Regression Tree** *Datasheet* contains information about the Boosted Regression Tree (BRT) algorithm, which is a machine-learning model and is described in and uses code from [Elith et al., 2008](https://doi.org/10.1111/j.1365-2656.2008.01390.x) and [Valavi et al., 2021](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecm.1486). Arguments for this model correspond with model fitting inputs for the gbm.step function in the [dismo R package](https://cran.r-project.org/web/packages/dismo/dismo.pdf), and defaults were set based on Valavi et al., 2021.
+
+### **Fitting Method**
+The BRT fitting process can either be more user-specified or default-based. This argument allows the user to specify whether default values or user-specified values should be used in the fitting process for BRT. If this argument is set to "Use defaults and tuning", the code will tune the learning rate and number of trees to find values that fit a model to the full dataset and all CV splits.  If the argument is set to "Use values provided below", tuning does not occur and only the values provided in the below arguments will be used for model fitting.
+
+<div class=indentation> 
+    <i>Default:</i> Use defaults and tuning
+</div>
+
+### **Learning Rate**
+A number between 0 and 1 that sets the weight applied to individual trees. A small learning rate means that each tree will have a smaller contribution to the overall model.
+
+<div class=indentation> 
+    <i>Default:</i> If not specified, learning rate will be determined based on the number of trees and tree complexity.
+</div>
+
+### **Number of trees added per stage**
+Sets the number of initial trees, or trees added to the previously grown trees per round of model tuning.
+
+<div class=indentation> 
+    <i>Default:</i> 50.
+</div>
+
+### **Bag Fraction**
+Sets the proportion of observations used in selecting variables.
+
+<div class=indentation> 
+    <i>Default:</i> 0.75.
+</div>
+
+### **Maximum number of trees**
+Sets the maximum number of trees to fit before stopping.
+
+<div class=indentation> 
+    <i>Default:</i> 10,000.
+</div>
 <br>
 
 <p id="heading01"> <h2><b>GLM</b></h2> </p>
@@ -78,6 +117,49 @@ Determines whether the GLM should consider relationships between the predictors 
 
 ### **Consider Interactions**
 Determines whether the GLM should take into account interactions among covariates during the modeling process ("Yes"). 
+
+<div class=indentation> 
+    <i>Default:</i> No.
+</div>
+
+<br>
+
+<p id="heading03"> <h2><b>Maxent</b></h2> </p>
+
+The **Maxent** *Datasheet* contains information about the Maxent algorithm, a machine learning technique that minimizes relative entropy between the probability density of the species and of the environment.
+
+### **Memory allocation (GB)**
+Sets the memory that should be allocated to the Maxent algorithm, in gigabytes.
+
+<div class=indentation> 
+    <i>Default:</i> 512 GB.
+</div>
+
+### **Maximum number of background points**
+Sets the maximum number of background points that will be generated during the modeling process for the Maxent algorithm. More background points will lead to a higher entropy of the model, and only one background point can be generated per raster cell. 
+
+<div class=indentation> 
+    <i>Default:</i> 10,000.
+</div>
+
+
+### **Number of processing threads**
+Sets the number of processing threads used for the Maxent algorithm. If this argument is not specified, the number of processing threads for Maxent will rely on the .
+
+<div class=indentation> 
+    <i>Default:</i> SyncroSim multiprocessing settings.
+</div>
+
+### **View maxent user interface during run**
+Determine whether to show the Maxent user interface ("Yes"). 
+
+<div class=indentation> 
+    <i>Default:</i> No.
+</div>
+
+
+### **Save maxent formated input/output files**
+Determines whether to save Maxent's input and output files to the library folders ("Yes").
 
 <div class=indentation> 
     <i>Default:</i> No.
@@ -142,84 +224,8 @@ Determines whether each decision tree should be trained on a bootstrap sample of
 
 <br>
 
-<p id="heading03"> <h2><b>Maxent</b></h2> </p>
 
-The **Maxent** *Datasheet* contains information about the Maxent algorithm, a machine learning technique that minimizes relative entropy between the probability density of the species and of the environment.
-
-### **Memory allocation (GB)**
-Sets the memory that should be allocated to the Maxent algorithm, in gigabytes.
-
-<div class=indentation> 
-    <i>Default:</i> 512 GB.
-</div>
-
-### **Maximum number of background points**
-Sets the maximum number of background points that will be generated during the modeling process for the Maxent algorithm. More background points will lead to a higher entropy of the model, and only one background point can be generated per raster cell. 
-
-<div class=indentation> 
-    <i>Default:</i> 10,000.
-</div>
-
-
-### **Number of processing threads**
-Sets the number of processing threads used for the Maxent algorithm. If this argument is not specified, the number of processing threads for Maxent will rely on the .
-
-<div class=indentation> 
-    <i>Default:</i> SyncroSim multiprocessing settings.
-</div>
-
-### **View maxent user interface during run**
-Determine whether to show the Maxent user interface ("Yes"). 
-
-<div class=indentation> 
-    <i>Default:</i> No.
-</div>
-
-
-### **Save maxent formated input/output files**
-Determines whether to save Maxent's input and output files to the library folders ("Yes").
-
-<div class=indentation> 
-    <i>Default:</i> No.
-</div>
-
-<br>
-
-<p id="heading04"> <h2><b>Boosted Regression Tree</b></h2> </p>
-
-The **Boosted Regression Tree** *Datasheet* contains information about the Boosted Regression Tree (BRT) algorithm, which is a machine-learning model and is described in and uses code from [Elith et al., 2008](https://doi.org/10.1111/j.1365-2656.2008.01390.x) and [Valavi et al., 2021](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecm.1486). Arguments for this model correspond with model fitting inputs for the gbm.step function in the [dismo R package](https://cran.r-project.org/web/packages/dismo/dismo.pdf).
-
-### **Learning Rate**
-A number between 0 and 1 that sets the weight applied to individual trees. A small learning rate means that each tree will have a smaller contribution to the overall model.
-
-<div class=indentation> 
-    <i>Default:</i> If not specified, learning rate will be determined based on the number of trees and tree complexity.
-</div>
-
-### **Bag Fraction**
-Sets the proportion of observations used in selecting variables.
-
-<div class=indentation> 
-    <i>Default:</i> 0.75.
-</div>
-
-### **Maximum number of trees**
-Sets the maximum number of trees to fit before stopping.
-
-<div class=indentation> 
-    <i>Default:</i> 10,000.
-</div>
-
-### **Number of trees added per stage**
-Sets the number of initial trees, or trees added to the previously grown trees per round of model tuning.
-
-<div class=indentation> 
-    <i>Default:</i> 50.
-</div>
-
-<br>
-
-<p id="heading05"> <h2><b>Generalized Additive Model</b></h2> </p>
+<!-- <p id="heading05"> <h2><b>Generalized Additive Model</b></h2> </p>
 
 The **Generalized Additive Model** is an algorithm similar to the GLM model but allows for nonlinearity in the fitted functions and is described in [Valavi et al., 2021](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecm.1486). 
 
@@ -237,11 +243,11 @@ If set to "Yes", linear terms for each variable are added to the model in additi
     <i>Default:</i> No.
 </div>
 
-<br>
+<br> -->
 
 <p id="heading06"> <h2><b>Model Outputs</b></h2> </p>
 
-The **Model Outputs** *Datasheet* contains information about the outputs of the models. These outputs will be visible in the **Model Outputs** tab when the **Scenario's** results have been added and can be exported from the **Export** tab. The outputs may include: 
+The **Model Outputs** *Datasheet* contains information about the outputs of the models. These outputs will be visible in the **Maps** tab in the lower left panel when the **Scenario's** results have been added and can be exported from the **Export** tab. The outputs may include: 
 * Response Curves
 * Standard Residuals Plots
 * Residual Smooth Plot

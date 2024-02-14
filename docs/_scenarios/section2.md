@@ -97,12 +97,13 @@ Defines the transformers that will be run in the *Scenario*. The general stages 
 4. Background Data Generation
 5. Prepare Training/Testing Data
 6. Variable Reduction
-7. Models - Generalized Linear Model
-7. Models - Generalized Additive Model (GAM): New transformer for building GAMs using methods and defaults described in [Valavi et al., 2021](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecm.1486). See Appendix 2 for code and model development details.
-7. Models - Boosted Regression Trees (BRTs): New transformer for building BRT models using methods and defaults described in [Valavi et al., 2021](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecm.1486). See Appendix 2 for code and model development details. 
-7. Models - Random Forest
-7. Models - Maxent
+7. Models 
+    * Generalized Linear Model (GLM)
+    * Boosted Regression Trees (BRTs): New transformer for building BRT models using methods and defaults described in [Valavi et al., 2021](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecm.1486). See Appendix 2 for code and model development details. 
+    * Random Forest
+    * Maxent
 8. Apply Model
+9. Ensemble Model
 
 Here are some short descriptions of each stage:
 1. <u>Prepare Multiprocessing</u>: Generates a tiling raster that will be used by subsequent transformers to divide spatial data into smaller chunks for parallel processing. Required inputs: Template Raster File. Outputs: Spatial Multiprocessing Tiling Raster.
@@ -111,8 +112,9 @@ Here are some short descriptions of each stage:
 4. <u>Background Data Generation</u>: Generates background sites (pseudoabsences), extracts covariate data for the pseudoabsence sites and updates the Field Data and Site Data to include pseudoabsence data. Required inputs: Template Raster File, Field Data, Covariate Data, Site Data. Outputs: Updated Field Data and updated Site Data. 
 5. <u>Prepare Training/Testing Data</u>: Divides Field Data into training and testing sets and/or cross validation folds based on the provided Validation Options arguments. Required inputs: Field Data, Site Data. Outputs: Updated Field Data. 
 6. <u>Variable Reduction</u>: Reduces correlated covariates through either an automated approach (using Variance Inflation Factors) or an interactive approach which involves user selection of covariates through a correlation viewer application. Required inputs: Field Data, Site Data. Outputs: Updated Retained Covariate List and a Covariate Selection Matrix if the interactive approach was used.
-7. <u>Fit Models</u> (Boosted Regression Trees, Generalized Additive Model, Generalized Linear Model, Maxent, Random Forest): Fits the selected model and generates validation and diagnostic summaries and figures. Required inputs: Field Data, Validation Options, Site Data, Retained Covariate List. Outputs: Updated Model Outputs.
+7. <u>Fit Models</u> (Boosted Regression Trees, Generalized Linear Model, Maxent, Random Forest): Fits the selected model and generates validation and diagnostic summaries and figures. Required inputs: Field Data, Validation Options, Site Data, Retained Covariate List. Outputs: Updated Model Outputs.
 8. <u>Apply Model</u>: Generates map outputs for the selected model(s). Maps are generated based on the model, selected Output Options, and the provided Covariate Data. Required inputs: Template Raster File, Model Outputs, Covariate Data. Outputs: Map Outputs
+9. <u>Ensemble Model</u>: Generates ensembled outputs of the models run in the **Scenario**. Ensembles are generated based on the fitted models, apply models, and selected Ensemble Options. Required inputs: Model Outputs, Map Outputs. Outputs: Ensemble Outputs.
 
 ### **Run Order**
 Sets the order in which the stages will be run.
@@ -158,12 +160,12 @@ Defines the names of each *Datafeed* in the *Scenario*. In **WISDM**, the *Datas
 * Models
     * GLM
     * Random Forest
-    * GAM
     * Maxent
     * Boosted Regression Tree
     * Model Outputs
 * Output Options
     * Output Options
+    * Ensemble Options
 
 ### **Source Scenario**
 Defines the *Scenario* from which each *Datasheet* is being drawn. 
