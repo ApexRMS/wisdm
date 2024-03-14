@@ -90,7 +90,7 @@ The **Binary Threshold Optimization Method** argument indicates which method do 
 
 <br>
 
-<p id="heading02"> <h2><b>Map Outputs</b></h2> </p>
+## **Map Outputs**
 
 The **Map Outputs** datasheet contains information about the spatial outputs of the **Scenario**. The spatial outputs can be found in the **Maps** tab in the lower left panel when the **Scenario's** results have been added and can be exported from the **Export** tab. The outputs may include:
 * Probability Map
@@ -161,8 +161,7 @@ If the **Ignore predicted NA values** argument is set to "Yes", NA values will b
 
 <br>
 
-
-<p id = "heading03"><h2><b> Ensemble Outputs </b></h2> <p>
+## **Ensemble Outputs**
 
 The **Ensemble Outputs** datasheet contains information about the ensembled outputs from the **Scenario**. The ensemble outputs can be found in the **Maps** tab in the lower left panel when the **Scenario's** results have been added and can be exported from the **Export** tab. The outputs may include:
 * Probability Ensemble (Mean)
