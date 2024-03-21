@@ -770,9 +770,10 @@
 		<!--Maps Layout-->
 		<layout name="corestimeforms_Maps" displayName="Visuals">
 			<item name="CovariateMaps" displayName="Covariate Maps" dataSheet="CovariateData" column="RasterFilePath" filter="CovariatesID" />
+			<item name="RestrictionMap" displayName="Restriction Maps" dataSheet="RestrictionRaster" column="RasterFilePath"/>
 			<group name="CovariateCorrelationMatrix" displayName="Covariate Correlations">
-				<item  name="InitialMatrix" displayName="Initial Matrix" dataSheet="CovariateCorrelationMatrix" column="InitialMatrix"/>
-				<item  name="SelectedMatrix" displayName="Selected Matrix" dataSheet="CovariateCorrelationMatrix" column="SelectedMatrix"/>
+				<item name="InitialMatrix" displayName="Initial Matrix" dataSheet="CovariateCorrelationMatrix" column="InitialMatrix"/>
+				<item name="SelectedMatrix" displayName="Selected Matrix" dataSheet="CovariateCorrelationMatrix" column="SelectedMatrix"/>
 			</group>
 			<group name="MapOutputs" displayName="Map Outputs">
 				<item name="ProbabilityMap" displayName="Probability" dataSheet="SpatialOutputs" column="ProbabilityRaster" filter="ModelsID" extendedIdentifier="(Probability)"/>
