@@ -3,11 +3,9 @@
 .RData
 .Ruserdata
 /demo
-/demoStSimLinkage
 /devFiles
-/packageVersions
-/maxent
-/onlineExampleLibraries
+/syncrosim-2/packageVersions
+/syncrosim-2/onlineExampleLibraries
 .bak
 .gitattributes
 .ssimpkg

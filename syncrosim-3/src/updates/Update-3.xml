@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<update>
+  <action code="UpdateTransformerTable" transformerName="wisdm_BRT" transformerDisplayName="7 - Boosted Regression Trees" packageName="wisdm" packageDisplayName="Workbench for Integrated Species Distribution Modeling">
+  </action>
+  <action code="UpdateTransformerTable" transformerName="wisdm_EnsembleModel" transformerDisplayName="9 - Ensemble Model" packageName="wisdm" packageDisplayName="Workbench for Integrated Species Distribution Modeling">
+  </action>
+  <action code="Exec" condition="TableExists" criteria="wisdm_Models|wisdm_OutputOptions|wisdm_SpatialOutputs|wisdm_CovariateSelectionOptions">
+    <item>INSERT INTO wisdm_Models(ModelsID, ProjectID, ModelName, ModelType) VALUES(40, 1, "Boosted Regression Trees", "brt")</item>
+    <item>ALTER TABLE wisdm_OutputOptions ADD COLUMN MakeBinaryMap INTEGER</item>
+    <item>ALTER TABLE wisdm_OutputOptions ADD COLUMN ThresholdOptimization INTEGER</item>
+    <item>ALTER TABLE wisdm_SpatialOutputs ADD COLUMN BinaryRaster TEXT</item>
+    <item>ALTER TABLE wisdm_CovariateSelectionOptions ADD COLUMN VIFThreshold INTEGER</item>
+  </action>
+  <action code="Exec" condition="TableNotExists" criteria="wisdm_BRT|wisdm_EnsembleOptions|wisdm_EnsembleOutputs">
+    <item>CREATE TABLE wisdm_BRT(BRTID INTEGER, ScenarioID INTEGER, FittingMethod INTEGER, LearningRate DOUBLE, BagFraction DOUBLE, MaximumTrees INTEGER, NumberOfTrees INTEGER, PRIMARY KEY (BRTID))</item>
+    <item>CREATE TABLE wisdm_EnsembleOptions(EnsembleOptionsID INTEGER, ScenarioID INTEGER, MakeProbabilityEnsemble INTEGER, ProbabilityMethod INTEGER, NormalizeProbability INTEGER, MakeBinaryEnsemble INTEGER, BinaryMethod INTEGER, IgnoreNA INTEGER, PRIMARY KEY (EnsembleOptionsID))</item>
+    <item>CREATE TABLE wisdm_EnsembleOutputs(EnsembleOutputsID INTEGER, ScenarioID INTEGER, ProbabilityRasterMean TEXT, BinaryRasterMean TEXT, ProbabilityRasterSum TEXT, BinaryRasterSum TEXT, Band INTEGER, PRIMARY KEY (EnsembleOutputsID))</item>
+  </action>
+  <action code="ConvertOutputTable" outputTableName="wisdm_SpatialOutputs">
+  </action>
+</update>

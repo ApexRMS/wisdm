@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<update>
+  <action code="Exec" condition="TableExists" criteria="wisdm_Network">
+    <item>CREATE TABLE wisdm_Network(NetworkID INTEGER, NetworkEnabled INTEGER)</item>
+  </action>
+  <action code="Exec" condition="TableNotExists" criteria="wisdm_BackgroundDataOptions">
+    <item>CREATE TABLE wisdm_BackgroundDataOptions(BackgroundDataOptionsID INTEGER, ScenarioID INTEGER, GenerateBackgroundSites INTEGER, BackgroundSiteCount INTEGER, BackgroundGenerationMethod INTEGER, KDESurface INTEGER, Isopleth INTEGER)</item>
+  </action>
+</update>

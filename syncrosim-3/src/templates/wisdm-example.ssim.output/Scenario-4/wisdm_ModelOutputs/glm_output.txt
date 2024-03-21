@@ -1,0 +1,117 @@
+Generalized Linear Model Results
+
+Settings:
+
+	 model family:  binomial
+	 simplification method:  AIC
+
+
+Results:
+	 number covariates in final model:  5
+
+Call:
+glm(formula = Response ~ sagebrush + precip_wet_quarter + min_temp + 
+    I(road_density^2) + sagebrush:min_temp, family = out$modelFamily, 
+    data = dat, weights = dat$Weight, na.action = "na.exclude")
+
+Deviance Residuals: 
+     Min        1Q    Median        3Q       Max  
+-2.72550   0.00867   0.14470   0.53571   1.64956  
+
+Coefficients:
+                   Estimate Std. Error z value Pr(>|z|)   
+(Intercept)         0.25290    1.62444   0.156  0.87628   
+sagebrush          -6.34865    7.08788  -0.896  0.37041   
+precip_wet_quarter -0.04983    0.01698  -2.935  0.00334 **
+min_temp           -0.25943    0.13036  -1.990  0.04658 * 
+I(road_density^2)  -0.37012    0.24732  -1.497  0.13452   
+sagebrush:min_temp -0.96041    0.61636  -1.558  0.11919   
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 111.835  on 102  degrees of freedom
+Residual deviance:  64.012  on  97  degrees of freedom
+AIC: 76.012
+
+Number of Fisher Scoring iterations: 7
+
+
+
+============================================================ 
+
+Evaluation Statistics applied to Cross validation split:
+
+ 
+	 Correlation Coefficient      : 0.5490611  (sd 0.17595) 
+	 NULL Deviance                : 1.0837 (sd 0.047808)
+	 Fit Deviance                 : 1.4525 (sd 1.3278)
+	 Explained Deviance           : -0.36873 (sd 1.3217)
+	 Percent Deviance Explained   : -33.53 (sd 120.36)
+
+  Threshold Methods based on 
+	 Mean Threshold               : 0.726 (sd 0.093501) 
+
+	 Confusion Matrix: 
+
+         observed
+predicted  1  0
+        1 64  5
+        0 15 19
+
+	 AUC                          :  0.82934  (sd 0.10432) 
+	 AUC-pr                       :  0.9232794  (sd 0.067965) 
+	 Percent Correctly Classified :  80.66667  (sd 8.7908) 
+	 Sensitivity                  :  0.8091667  (sd 0.091591) 
+	 Specificity                  :  0.8  (sd 0.2) 
+	 Kappa                        :  0.5321421  (sd 0.18945) 
+	 True Skill Statistic         :  0.6091667  (sd 0.23016) 
+
+
+   Calibration Statistics 
+	 Intercept (general calibration)                            :  -0.1402443  (sd 1.2842) 
+	 Slope   (direction and variation in fit)                   :  0.918158  (sd 1.0104) 
+	 Testa0b1 (overall reliability of predictors)               :  0.2381487  (sd 0.24315) 
+	 Testa0|b1(incorrect calibration given correct refinement)  :  0.4894123  (sd 0.16078) 
+	 Testb1|a (refinement given correct calibration)            :  0.1984602  (sd 0.2875) 
+
+
+
+============================================================ 
+
+Evaluation Statistics applied to Final evaluation split:
+
+ 
+	 Correlation Coefficient      : 0.5464999 
+	 NULL Deviance                : 1.103
+	 Fit Deviance                 : 0.8182
+	 Explained Deviance           : 0.28485
+	 Percent Deviance Explained   : 25.824
+
+  Threshold Methods based on 
+	 Threshold                    :  0.655 
+
+	 Confusion Matrix: 
+
+         observed
+predicted  1  0
+        1 63  5
+        0 16 20
+
+	 AUC                          :  0.8557 
+	 AUC-pr                       :  0.9502266 
+	 Percent Correctly Classified :  79.80769 
+	 Sensitivity                  :  0.7974684 
+	 Specificity                  :  0.8 
+	 Kappa                        :  0.5193662 
+	 True Skill Statistic         :  0.5974684 
+
+
+   Calibration Statistics 
+	 Intercept (general calibration)                            :  0.371153 
+	 Slope   (direction and variation in fit)                   :  0.6730291 
+	 Testa0b1 (overall reliability of predictors)               :  0.1223412 
+	 Testa0|b1(incorrect calibration given correct refinement)  :  0.3059867 
+	 Testb1|a (refinement given correct calibration)            :  0.07574282 
+
