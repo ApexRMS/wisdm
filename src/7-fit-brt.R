@@ -171,7 +171,7 @@ progressBar(type = "begin", totalSteps = steps)
   
 # Create output text file ------------------------------------------------------
 
-  capture.output(cat("Boosted Regression Trees Results"), file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt")) 
+  capture.output(cat("Boosted Regression Tree Results"), file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt")) 
   on.exit(capture.output(cat("Model Failed\n\n"),file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),append=TRUE))  
 
 
