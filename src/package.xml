@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.15" url="https://apexrms.github.io/wisdm/">
+<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="1.0.16" url="https://apexrms.github.io/wisdm/">
 	<transformers>
 		<!--Primary Transformer-->
 		<transformer 
@@ -72,8 +72,8 @@
                 		<record columns="ModelName|ModelType"	values="Generalized Linear Model|glm"/>
 						<record columns="ModelName|ModelType"	values="Random Forest|rf"/>
 						<record columns="ModelName|ModelType" values="Maxent|maxent"/>
-						<record columns="ModelName|ModelType" values="Boosted Regression Trees|brt"/>
-						<record columns="ModelName|ModelType"	values="Generalized Additive Model|gam"/>
+						<record columns="ModelName|ModelType" values="Boosted Regression Tree|brt"/>
+						<!--record columns="ModelName|ModelType"	values="Generalized Additive Model|gam"/-->
               		  </defaultRecords>
 					</datasheet>
 				  </datasheets>
@@ -360,9 +360,9 @@
 				<datafeed name="ModelOutputs" type="Output"/>
 			</pipeline>	
 			<datafeeds>
-				<datafeed name="GLM" dataScope="Scenario">
+				<datafeed name="GLM" displayName="Generalized Linear Model" dataScope="Scenario">
 				  <datasheets>
-					<datasheet  name="GLM" isSingleRow="True">
+					<datasheet  name="GLM" displayName="Generalized Linear Model" isSingleRow="True">
 					  <columns>
 						<column name="GLMID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
@@ -442,7 +442,7 @@
 						<column name="MaximumBackgroundPoints" displayName="Maximum number of background points" dataType="Integer"/>
 						<column name="MultiprocessingThreads" displayName="Number of processing threads" dataType="Integer"/>
 						<column name="VisibleInterface" displayName="View maxent user interface during run" dataType="Boolean"/>
-						<column name="SaveMaxentFiles" displayName="Save maxent formated input/output files" dataType="Boolean"/>
+						<column name="SaveMaxentFiles" displayName="Save maxent formatted input/output files" dataType="Boolean"/>
 					  </columns>
 					</datasheet>
 				  </datasheets>
@@ -452,7 +452,7 @@
 		<!--BRT Transformer-->
 		<transformer
 		  name="BRT"
-		  displayName ="7 - Boosted Regression Trees"
+		  displayName ="7 - Boosted Regression Tree"
 		  isRunnable="True"
 		  programName="Rscript"
 		  programArguments="7-fit-brt.R"
@@ -467,9 +467,9 @@
 				<datafeed name="ModelOutputs" type="Output"/>
 			</pipeline>
 			<datafeeds>
-				<datafeed name="BRT" dataScope="Scenario">
+				<datafeed name="BRT" displayName="Boosted Regression Tree" dataScope="Scenario">
 				  <datasheets>
-					<datasheet  name="BRT" isSingleRow="True">
+					<datasheet  name="BRT" displayName="Boosted Regression Tree" isSingleRow="True">
 					  <columns>
 						<column name="BRTID" dataType="Integer" isPrimary="True"/>
 						<column name="ScenarioID" dataType="Integer"/>
@@ -669,6 +669,22 @@
 		  name="MaxentFilesExport" dataSheet="ModelOutputs" column="MaxentFiles" isFolderExport="True" 
 		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
 		</transformer>
+		<transformer 
+		  name="MeanProbEnsembleExport" dataSheet="EnsembleOutputs" column="ProbabilityRasterMean" isFolderExport="True" 
+		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		</transformer>
+		<transformer 
+		  name="SumProbEnsembleExport" dataSheet="EnsembleOutputs" column="ProbabilityRasterSum" isFolderExport="True" 
+		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		</transformer>
+		<transformer 
+		  name="MeanBinEnsembleExport" dataSheet="EnsembleOutputs" column="BinaryRasterMean" isFolderExport="True" 
+		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		</transformer>
+		<transformer 
+		  name="SumBinEnsembleExport" dataSheet="EnsembleOutputs" column="BinaryRasterSum" isFolderExport="True" 
+		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
+		</transformer>
 	</transformers>
 	<layouts>
 		<!--Library Datafeeds Layout-->
@@ -742,6 +758,12 @@
 					<item name="MessMapExport" displayName="MESS"/>
 					<item name="ModMapExport" displayName="MoD"/>
 					<item name="ResidMapExport" displayName="Residuals"/>
+				</group>
+				<group name="EnsembleOutputs" displayName="Ensemble Outputs">
+					<item name="MeanProbEnsembleExport" displayName="Probability Ensemble (Mean)"/>
+					<item name="SumProbEnsembleExport" displayName="Probability Ensemble (Sum)"/>
+					<item name="MeanBinEnsembleExport" displayName="Binary Ensemble (Mean)"/>
+					<item name="SumBinEnsembleExport" displayName="Binary Ensemble (Sum)"/>
 				</group>
 			</group>
         </layout>
