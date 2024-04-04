@@ -173,8 +173,8 @@ def prep_spatial_data():
     #%% Load template raster ----------------------------------------------------------------
 
     # set defualt chunk dimensions and no data value
-    warpMemoryLimit = 8192 #MB
-    chunkDims = 8192 #1024
+    warpMemoryLimit = 8192 # 1024 #  #MB
+    chunkDims = 8192 # 1024 # 
     nodata_value = -9999
 
     templatePath = ssimInputDir + "\\wisdm_TemplateRaster\\" + templateRasterSheet.RasterFilePath.item()
@@ -189,6 +189,17 @@ def prep_spatial_data():
     templateBounds = templateRaster.rio.bounds()
     templateHeight = templateRaster.rio.height
     templateWidth = templateRaster.rio.width
+
+    # update default chunk size based on template size
+    # if templateHeight < 1000 or templateWidth < 1000:
+    #     warpMemoryLimit = 512 #MB
+    #     chunkDims = 512
+    #     templateRaster = rioxarray.open_rasterio(templatePath, chunks={'x': chunkDims, 'y': chunkDims}, lock = False)
+    
+    # if templateHeight > 10000 or templateWidth > 10000:
+    #     warpMemoryLimit = 8192 #MB
+    #     chunkDims = 8192
+    #     templateRaster = rioxarray.open_rasterio(templatePath, chunks={'x': chunkDims, 'y': chunkDims}, lock = False)
 
     # update progress bar
     ps.environment.progress_bar()
@@ -268,6 +279,7 @@ def prep_spatial_data():
 
                             # Write reprojected and clipped layer to uncompresed temp file
                             # - Note! Some resampling algs fail when you try to write compressed, make sure you leave this temp file uncompresed
+                            covariateRaster.rio.write_nodata(nodata_value, inplace=True)
                             covariateRaster.rio.to_raster(unmaskedTempPath, tiled = True, lock = Lock(client = client), windowed=True, overwrite = True)
 
             # Restart client to avoid lock conflicts
@@ -278,7 +290,8 @@ def prep_spatial_data():
 
                     with rioxarray.open_rasterio(unmaskedTempPath, chunks={'x': chunkDims, 'y': chunkDims}, lock = False) as covariateRaster:
                         # Mask and set no data value
-                        maskedCovariateRaster = xr.concat([covariateRaster, templateRaster], "band").chunk({'band':-1, 'x':chunkDims, 'y':chunkDims}).map_blocks(mask, kwargs=dict(input_nodata=covariateRaster.rio.nodata, template_nodata=templateRaster.rio.nodata), template = covariateRaster)
+                        maskStack = xr.concat([covariateRaster, templateRaster], dim = "band", join="override").chunk({'band':-1, 'x':chunkDims, 'y':chunkDims})
+                        maskedCovariateRaster = maskStack.map_blocks(mask, kwargs=dict(input_nodata=covariateRaster.rio.nodata, template_nodata=templateRaster.rio.nodata), template = covariateRaster)
                         maskedCovariateRaster.rio.write_nodata(nodata_value, inplace=True)
 
                         # Write to disk
@@ -386,6 +399,6 @@ def prep_spatial_data():
     ps.environment.progress_bar(report_type="end")
     ps.environment.progress_bar("message", message = "Done at " + datetime.now().strftime("%H:%M:%S"))
     ps.environment.update_run_log("Done at " + datetime.now().strftime("%H:%M:%S"))
-
+#%%
 if __name__ == "__main__":
     prep_spatial_data()
