@@ -1,14 +1,14 @@
 ## -------------------------
 ## wisdm - prepare training/testing data
-## ApexRMS, October 2023
+## ApexRMS, March 2024
 ## -------------------------
 
-# built under R version 4.1.3 & SyncroSim version 2.4.40
+# built under R version 4.1.3 & SyncroSim version 3.0.0
 # Script pulls in field data and splits sites into test/train or CV groupings
 
 # source dependencies ----------------------------------------------------------
 
-library(rsyncrosim)
+library(rsyncrosim) # install.packages("C:/GitHub/rsyncrosim", type="source", repos=NULL) 
 library(terra)
 library(tidyr)
 library(dplyr)
@@ -33,9 +33,9 @@ ssimTempDir <- ssimEnvironment()$TransferDirectory
 
 # Read in datasheets
 covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
-fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
+fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T) %>% select(-ScenarioId)
 validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
-siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", optional = T, lookupsAsFactors = F)
+siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", optional = T, lookupsAsFactors = F) %>% select(-ScenarioId)
 
 # Prep inputs ------------------------------------------------------------------
 

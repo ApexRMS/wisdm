@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="Workbench for Integrated Species Distribution Modeling" version="2.0.0" url="https://apexrms.github.io/wisdm/">
+<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.0.0" url="https://apexrms.github.io/wisdm/">
+
+<!--Library Datasheets-->
 
 <dataSheet name="Network" dataScope="Library" isSingleRow="True">
 	<column name="NetworkEnabled" displayName="Access online transformation library" dataType="Boolean"/>
 	<record columns="NetworkEnabled" values="-1"/>
 </dataSheet>
+
+<!--Project Datasheets-->
 
 <dataSheet name="Covariates" dataScope="Project" displayMember="CovariateName">
 	<column name="CovariateName" displayName="Covariate Name" dataType="String"/>
@@ -25,6 +29,8 @@
 	<record columns="ModelName|ModelType" values="Boosted Regression Tree|brt"/>
 </dataSheet>
 
+<!--Scenario Datasheets-->
+
 <dataSheet name="FieldData" displayName="Field Data">
 	<column name="SiteID" displayName="Site" dataType="Integer" isOptional="True"/>
 	<column name="X" dataType="Double"/>
@@ -36,8 +42,8 @@
 </dataSheet>
 
 <dataSheet name="FieldDataOptions" displayName="Field Data Options" isSingleRow="True">
-	<column name="EPSG" displayName="Authority code (e.g., EPSG:4326)" dataType="String" isOptional="True"/>
-	<column name="AggregateAndWeight" displayName="Aggregate or weight data" dataType="Integer" validationType="List" formula1="0:Aggregate|1:Weight" isOptional="True"/>
+	<column name="CRS" displayName="Coordinate reference system (e.g., EPSG:4326)" dataType="String" isOptional="True"/>
+	<column name="AggregateOrWeight" displayName="Aggregate or weight data" dataType="Integer" validationType="List" formula1="0:Aggregate|1:Weight" isOptional="True"/>
 </dataSheet>
 
 <dataSheet name="BackgroundDataOptions" displayName="Background Data Options" isSingleRow="True">
@@ -55,7 +61,7 @@
 	<column name="AggregationMethod" displayName="Aggregation Method" dataType="Integer" validationType="List" formula1="0:Mean|1:Max|2:Min|3:Majority" isOptional="True" />
 </dataSheet>
 
-<dataSheet name="ReducedCovariates" displayName="Retained Covariate List">
+<dataSheet name="RetainedCovariates" displayName="Retained Covariate List">
 	<column name="CovariatesID" displayName="Covariate" dataType="Integer" validationType="Datasheet" formula1="Covariates"/>
 </dataSheet>
 
@@ -65,7 +71,7 @@
 	<column name="Value" dataType="Double"/>
 </dataSheet>
 
-<dataSheet name="CovariateCorrelationMatrix" displayName="Covariate Correlation Matrix" isSingleRow="True">
+<dataSheet name="CovariateSelectionOptions" displayName="Covariate Selection Options" isSingleRow="True">
 	<column name="SelectionMethod" displayName="Covariate selection method" dataType="Integer" validationType="List" formula1="0:Interactive (Correlation Viewer)|1:Automatic (Variance Inflation Factor)" defaultValue="0"/>
 	<column name="DisplayHighestCorrelations" displayName="Display highest correlations" dataType="Boolean"/>
 	<column name="CorrelationThreshold" displayName="Correlation threshold" dataType="Double" defaultValue="0.7" validationType="Decimal" validationCondition="Between" formula1="0"  formula2="1"/>
@@ -84,19 +90,78 @@
 <dataSheet name="TemplateRaster" displayName="Template Raster" isSingleRow="True">
 	<column name="RasterFilePath" displayName="Raster file" dataType="String" isExternalFile="True" isRaster="True"/>
 	<column name="TileCount" displayName="Number of mulitprocessing tiles (optional)" dataType="Integer"/>
-<dataSheet>
+</dataSheet>
 
 <dataSheet name="RestrictionRaster" displayName="Restriction Raster" isSingleRow="True">
 	<column name="RasterFilePath" displayName="Raster file" dataType="String" isExternalFile="True" isRaster="True"/>
 	<column name="Description" dataType="String"/>
 </dataSheet>
 
-<<datafeed name="CovariateCorrelationMatrix">
+<!--Model Options-->
+
+<dataSheet name="GLM" displayName="Generalized Linear Model" isSingleRow="True">
+	<column name="SelectBestPredictors" displayName="Select best predictors" dataType="Boolean"/>
+	<column name="SimplificationMethod" displayName="Simplification method" dataType="Integer" validationType="List" formula1="0:AIC|1:BIC"/>
+	<column name="ConsiderSquaredTerms" displayName="Consider squared terms" dataType="Boolean"/>
+	<column name="ConsiderInteractions" displayName="Consider interactions" dataType="Boolean"/>
+</dataSheet>
+
+<dataSheet name="RF" displayName="Random Forest" isSingleRow="True">
+	<column name="EvaluateCovariateImportance" displayName="Evaluate covariate importance" dataType="Boolean"/>
+	<column name="CalculateCasewiseImportance" displayName="Calculate casewise importance" dataType="Boolean"/>
+	<column name="NumberOfVariablesSampled" displayName="Number of variables sampled at split" dataType="Double"/>
+	<column name="MaximumNodes" displayName="Maximum number of nodes" dataType="Integer"/>
+	<column name="NumberOfTrees" displayName="Number of trees" dataType="Integer"/>
+	<column name="NodeSize" displayName="Node size" dataType="Integer"/>
+	<column name="NormalizeVotes" displayName="Normalize votes" dataType="Boolean"/>
+	<column name="CalculateProximity" displayName="Calculate proximity" dataType="Boolean"/>
+	<column name="SampleWithReplacement" displayName="Sample with replacement" dataType="Boolean"/>
+</dataSheet>
+
+<dataSheet name="Maxent" isSingleRow="True">
+	<column name="MemoryLimit" displayName="Memory allocation (MB)" dataType="Integer"/>
+	<column name="MaximumBackgroundPoints" displayName="Maximum number of background points" dataType="Integer"/>
+	<column name="MultiprocessingThreads" displayName="Number of processing threads" dataType="Integer"/>
+	<column name="VisibleInterface" displayName="View maxent user interface during run" dataType="Boolean"/>
+	<column name="SaveMaxentFiles" displayName="Save maxent formatted input/output files" dataType="Boolean"/>
+</dataSheet>
+
+<dataSheet  name="BRT" displayName="Boosted Regression Tree" isSingleRow="True">
+	<column name="FittingMethod" displayName="Fitting method" dataType="Integer" validationType="List" formula1="0:Use defaults and tuning|1:Use values provided below"/>
+	<column name="LearningRate" displayName="Learning rate" dataType="Double"/>
+	<column name="NumberOfTrees" displayName="Number of trees added per stage" dataType="Integer"/>
+	<column name="BagFraction" displayName="Bag fraction" dataType="Double"/>
+	<column name="MaximumTrees" displayName="Maximum number of trees" dataType="Integer"/>
+</dataSheet>
+
+<!-- Spatial Output Options-->
+
+<dataSheet name="OutputOptions" displayName="Output Options" isSingleRow="True">
+	<column name="MakeProbabilityMap" displayName="Make probability map" dataType="Boolean"/>
+	<column name="MakeBinaryMap" displayName="Make binary map" dataType="Boolean"/>
+	<column name="ThresholdOptimization" displayName="Binary threshold optimization method" dataType="Integer" validationType="List" formula1="0:Max kappa|1:Max sensitivity and specificity|2:No omission|3:Prevalence|4:Sensitivity equals specificity"/>
+	<column name="MakeResidualsMap" displayName="Make residuals map" dataType="Boolean"/>
+	<column name="MakeMessMap" displayName="Make multivariate environmental similarity surface (MESS) map" dataType="Boolean"/>
+	<column name="MakeModMap" displayName="Make most dissimilar variable (MoD) map" dataType="Boolean"/>
+</dataSheet>
+
+<dataSheet  name="EnsembleOptions" displayName="Ensemble Options" isSingleRow="True">
+	<column name="MakeProbabilityEnsemble" displayName="Make probability ensemble map" dataType="Boolean"/>
+	<column name="ProbabilityMethod" displayName="Probability ensemble method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
+	<column name="NormalizeProbability" displayName="Normalize probability before ensemble" dataType="Boolean"/>
+	<column name="MakeBinaryEnsemble" displayName="Make binary ensemble map" dataType="Boolean"/>
+	<column name="BinaryMethod" displayName="Binary ensemble method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
+	<column name="IgnoreNA" displayName="Ignore 'No Data' values during ensemble" dataType="Boolean"/>
+</dataSheet>
+
+<!--Output Datasheets-->
+
+<dataSheet name="OutputCovariateCorrelationMatrix">
 	<column name="InitialMatrix" dataType="String" isExternalFile="True" isPngImage="True"/>
 	<column name="SelectedMatrix" dataType="String" isExternalFile="True" isPngImage="True"/>
 </dataSheet>
 
-<dataSheet name="ModelOutputs" displayName="Model Outputs">
+<dataSheet name="OutputModel" displayName="Model Outputs">
 	<column name="ModelsID" dataType="Integer" validationType="Datasheet" formula1="Models" isVisible="False"/>						
 	<column name="ModelRDS" displayName="Model RDS" dataType="String" isExternalFile="True" isReadOnly="True"/>
 	<column name="ResponseCurves" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
@@ -113,6 +178,23 @@
 	<column name="MaxentFiles" dataType="String" isExternalFile="True" isVisible="False"/>
 </dataSheet>
 
+<dataSheet name="OutputSpatial" spatialMultiProcessing="True">
+	<column name="ModelsID" dataType="Integer" validationType="Datasheet" formula1="Models"/>
+	<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True"/>
+	<column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True"/>
+	<column name="ModRaster" dataType="String" isExternalFile="True" isRaster="True"/>
+	<column name="ResidualsRaster" dataType="String" isExternalFile="True" isRaster="True"/>
+	<column name="BinaryRaster" dataType="String" isExternalFile="True" isRaster="True"/>
+	<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
+</dataSheet>
+
+<dataSheet name="OutputEnsemble">
+	<column name="ProbabilityRasterMean" dataType="String" isExternalFile="True" isRaster="True"/>
+	<column name="ProbabilityRasterSum" dataType="String" isExternalFile="True" isRaster="True"/>
+	<column name="BinaryRasterMean" dataType="String" isExternalFile="True" isRaster="True"/>
+	<column name="BinaryRasterSum" dataType="String" isExternalFile="True" isRaster="True"/>
+	<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
+</dataSheet>
 
 <!--Prepare Multiprocessing Transformer-->
 <transformer
@@ -121,7 +203,8 @@
   isRunnable="True"
   programName="Python"
   programArguments="1-prep-multiprocessing.py"
-  condaEnv="wisdm-py-conda.yml">
+  condaEnv="wisdm-py-conda-s3.yml"
+  condaEnvVersion="1">
 	<dataSheet name="TemplateRaster" type="Input"/>
 	<dataSheet name="core_SpatialMultiprocessing" type="Output"/>		
 </transformer>	
@@ -133,7 +216,8 @@
   isRunnable="True"
   programName="Python"
   programArguments="2-spatial-data-preparation.py"
-  condaEnv="wisdm-py-conda.yml"
+  condaEnv="wisdm-py-conda-s3.yml"
+  condaEnvVersion="1"
   runContext="LocalOnly">
 	<dataSheet name="TemplateRaster" type="Input"/>
 	<dataSheet name="RestrictionRaster" type="Output"/>
@@ -147,7 +231,8 @@
 	isRunnable="True"
 	programName="Python"
 	programArguments="3-site-data-preparation.py"
-	condaEnv="wisdm-py-conda.yml"
+	condaEnv="wisdm-py-conda-s3.yml"
+  	condaEnvVersion="1"
 	runContext="LocalOnly">
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="FieldDataOptions" type="Input"/>
@@ -163,7 +248,8 @@
 	isRunnable="True"
 	programName="Rscript"
 	programArguments="4-background-data-generation.R"
-	condaEnv="wisdm-r-conda.yml">
+	condaEnv="wisdm-r-conda-s3.yml"
+  	condaEnvVersion="1">
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="FieldData" type="Both"/>
 		<dataSheet name="BackgroundDataOptions" type="Input"/>
@@ -178,7 +264,8 @@
 	isRunnable="True"
 	programName="Rscript"
 	programArguments="5-prepare-training-testing-data.R"
-	condaEnv="wisdm-r-conda.yml">
+	condaEnv="wisdm-r-conda-s3.yml"
+  	condaEnvVersion="1">
 		<dataSheet name="FieldData" type="Both"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
@@ -191,473 +278,285 @@
 	isRunnable="True"
 	programName="Rscript"
 	programArguments="6-variable-reduction.R"
-	condaEnv="wisdm-r-conda.yml">
+	condaEnv="wisdm-r-conda-s3.yml"	
+  	condaEnvVersion="1">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="CovariateSelectionOptions" type ="Input"/>
-		<dataSheet name="ReducedCovariates" type="Both"/>
-		<dataSheet name="CovariateCorrelationMatrix" type="Output"/>
+		<dataSheet name="RetainedCovariates" type="Both"/>
+		<dataSheet name="OutputCovariateCorrelationMatrix" type="Output"/>
 </transformer>
 			
-<!--GLM Transformer--> STOPPED HERE
+<!--GLM Transformer-->
 <transformer
 	name="GLM"
 	displayName ="7 - Generalized Linear Model"
 	isRunnable="True"
 	programName="Rscript"
 	programArguments="7-fit-glm.R"
-	condaEnv="wisdm-r-conda.yml">
-			<pipeline>
-				<datafeed name="FieldData" type="Input"/>
-				<datafeed name="ValidationOptions" type="Input"/>
-				<datafeed name="ReducedCovariates" type="Input"/>
-				<datafeed name="SiteData" type="Input"/>
-				<datafeed name="GLM"/>
-				<datafeed name="ModelOutputs" type="Output"/>
-			</pipeline>	
-			<datafeeds>
-				<datafeed name="GLM" displayName="Generalized Linear Model" dataScope="Scenario">
-				  <datasheets>
-					<datasheet  name="GLM" displayName="Generalized Linear Model" isSingleRow="True">
-					  <columns>
-						<column name="GLMID" dataType="Integer" isPrimary="True"/>
-						<column name="ScenarioID" dataType="Integer"/>
-						<column name="SelectBestPredictors" displayName="Select best predictors" dataType="Boolean"/>
-						<column name="SimplificationMethod" displayName="Simplification method" dataType="Integer" validationType="List" formula1="0:AIC|1:BIC"/>
-						<column name="ConsiderSquaredTerms" displayName="Consider squared terms" dataType="Boolean"/>
-						<column name="ConsiderInteractions" displayName="Consider interactions" dataType="Boolean"/>
-					  </columns>
-					</datasheet>
-				  </datasheets>
-				</datafeed>		
-			</datafeeds>
-		</transformer>
-		<!--Random Forest Transformer-->
-		<transformer
-		  name="RandomForest"
-		  displayName ="7 - Random Forest"
-		  isRunnable="True"
-		  programName="Rscript"
-		  programArguments="7-fit-random-forest.R"
-		  condaEnv="wisdm-r-conda.yml">
-			<pipeline>
-				<datafeed name="FieldData" type="Input"/>
-				<datafeed name="ValidationOptions" type="Input"/>
-				<datafeed name="ReducedCovariates" type="Input"/>
-				<datafeed name="SiteData" type="Input"/>
-				<datafeed name="RandomForest"/>
-				<datafeed name="ModelOutputs" type="Output"/>
-			</pipeline>
-			<datafeeds>
-				<datafeed name="RandomForest" displayName="Random Forest" dataScope="Scenario">
-				  <datasheets>
-					<datasheet  name="RandomForest" displayName="Random Forest" isSingleRow="True">
-					  <columns>
-						<column name="RandomForestID" dataType="Integer" isPrimary="True"/>
-						<column name="ScenarioID" dataType="Integer"/>
-						<column name="EvaluateCovariateImportance" displayName="Evaluate covariate importance" dataType="Boolean"/>
-						<column name="CalculateCasewiseImportance" displayName="Calculate casewise importance" dataType="Boolean"/>
-						<column name="NumberOfVariablesSampled" displayName="Number of variables sampled at split" dataType="Double"/>
-						<column name="MaximumNodes" displayName="Maximum number of nodes" dataType="Integer"/>
-						<column name="NumberOfTrees" displayName="Number of trees" dataType="Integer"/>
-						<column name="NodeSize" displayName="Node size" dataType="Integer"/>
-						<column name="NormalizeVotes" displayName="Normalize votes" dataType="Boolean"/>
-						<column name="CalculateProximity" displayName="Calculate proximity" dataType="Boolean"/>
-						<column name="SampleWithReplacement" displayName="Sample with replacement" dataType="Boolean"/>
-					  </columns>
-					</datasheet>
-				  </datasheets>
-				</datafeed>
-			</datafeeds>
-		</transformer>
-		<!--Maxent Transformer-->
-		<transformer
-		  name="Maxent"
-		  displayName ="7 - Maxent"
-		  isRunnable="True"
-		  programName="Rscript"
-		  programArguments="7-fit-maxent.R"
-		  condaEnv="wisdm-r-conda.yml">
-			<pipeline>
-				<datafeed name="FieldData" type="Input"/>
-				<datafeed name="CovariateData" type="Input"/>
-				<datafeed name="ValidationOptions" type="Input"/>
-				<datafeed name="ReducedCovariates" type="Input"/>
-				<datafeed name="SiteData" type="Input"/>
-				<datafeed name="Maxent"/>
-				<datafeed name="ModelOutputs" type="Output"/>
-			</pipeline>
-			<datafeeds>
-				<datafeed name="Maxent" dataScope="Scenario">
-				  <datasheets>
-					<datasheet  name="Maxent" isSingleRow="True">
-					  <columns>
-						<column name="MaxentID" dataType="Integer" isPrimary="True"/>
-						<column name="ScenarioID" dataType="Integer"/>
-						<column name="MemoryLimit" displayName="Memory allocation (MB)" dataType="Integer"/>
-						<column name="MaximumBackgroundPoints" displayName="Maximum number of background points" dataType="Integer"/>
-						<column name="MultiprocessingThreads" displayName="Number of processing threads" dataType="Integer"/>
-						<column name="VisibleInterface" displayName="View maxent user interface during run" dataType="Boolean"/>
-						<column name="SaveMaxentFiles" displayName="Save maxent formatted input/output files" dataType="Boolean"/>
-					  </columns>
-					</datasheet>
-				  </datasheets>
-				</datafeed>
-			</datafeeds>
-		</transformer>
-		<!--BRT Transformer-->
-		<transformer
-		  name="BRT"
-		  displayName ="7 - Boosted Regression Tree"
-		  isRunnable="True"
-		  programName="Rscript"
-		  programArguments="7-fit-brt.R"
-		  condaEnv="wisdm-r-conda.yml">
-			<pipeline>
-				<datafeed name="FieldData" type="Input"/>
-				<datafeed name="CovariateData" type="Input"/>
-				<datafeed name="ValidationOptions" type="Input"/>
-				<datafeed name="ReducedCovariates" type="Input"/>
-				<datafeed name="SiteData" type="Input"/>
-				<datafeed name="BRT"/>
-				<datafeed name="ModelOutputs" type="Output"/>
-			</pipeline>
-			<datafeeds>
-				<datafeed name="BRT" displayName="Boosted Regression Tree" dataScope="Scenario">
-				  <datasheets>
-					<datasheet  name="BRT" displayName="Boosted Regression Tree" isSingleRow="True">
-					  <columns>
-						<column name="BRTID" dataType="Integer" isPrimary="True"/>
-						<column name="ScenarioID" dataType="Integer"/>
-						<column name="FittingMethod" displayName="Fitting method" dataType="Integer" validationType="List" formula1="0:Use defaults and tuning|1:Use values provided below"/>
-						<column name="LearningRate" displayName="Learning rate" dataType="Double"/>
-						<column name="NumberOfTrees" displayName="Number of trees added per stage" dataType="Integer"/>
-						<column name="BagFraction" displayName="Bag fraction" dataType="Double"/>
-						<column name="MaximumTrees" displayName="Maximum number of trees" dataType="Integer"/>
-					  </columns>
-					</datasheet>
-				  </datasheets>
-				</datafeed>
-			</datafeeds>
-		</transformer>
-		<!--GAM Transformer-->
-		<!--transformer
-		  name="GAM"
-		  displayName ="7 - Generalized Additive Model"
-		  isRunnable="True"
-		  programName="Rscript"
-		  programArguments="7-fit-gam.R"
-		  condaEnv="wisdm-r-conda.yml">
-			<pipeline>
-				<datafeed name="FieldData" type="Input"/>
-				<datafeed name="CovariateData" type="Input"/>
-				<datafeed name="ValidationOptions" type="Input"/>
-				<datafeed name="ReducedCovariates" type="Input"/>
-				<datafeed name="SiteData" type="Input"/>
-				<datafeed name="GAM"/>
-				<datafeed name="ModelOutputs" type="Output"/>
-			</pipeline>
-			<datafeeds>
-				<datafeed name="GAM" dataScope="Scenario">
-				  <datasheets>
-					<datasheet  name="GAM" isSingleRow="True">
-					  <columns>
-						<column name="GAMID" dataType="Integer" isPrimary="True"/>
-						<column name="ScenarioID" dataType="Integer"/>
-						<column name="AllowShrinkageSmoothers" displayName="Allow smooth terms to shrink to zero" dataType="Boolean"/>
-						<column name="ConsiderLinearTerms" displayName="Consider linear terms" dataType="Boolean"/>
-					  </columns>
-					</datasheet>
-				  </datasheets>
-				</datafeed>
-			</datafeeds>
-		</transformer-->
-		<!--Apply Model Transformer-->
-		<transformer
-		  name="ApplyModel"
-		  displayName ="8 - Apply Model"
-		  isRunnable="True"
-		  programName="Rscript"
-		  programArguments="8-apply-model.R"
-		  className="SyncroSim.StochasticTime.StochasticTimeTransformer" 
-		  classAssembly="SyncroSim.StochasticTime"
-		  runContext="AllowRemote"
-		  condaEnv="wisdm-r-conda.yml">
-			<pipeline>
-				<datafeed name="corestime_Multiprocessing" type="Input"/>
-				<datafeed name="TemplateRaster" type="Input"/>
-				<datafeed name="RestrictionRaster" type="Input"/>
-				<datafeed name="ModelOutputs" type="Input"/>
-				<datafeed name="CovariateData"/>
-				<datafeed name="OutputOptions"/>
-				<datafeed name="SpatialOutputs" type="Output"/>
-			</pipeline>
-			<datafeeds>	
-				<datafeed name="OutputOptions" displayName="Output Options" dataScope="Scenario">
-				  <datasheets>
-					<datasheet  name="OutputOptions" displayName="Output Options" isSingleRow="True">
-					  <columns>
-						<column name="OutputOptionsID" dataType="Integer" isPrimary="True"/>
-						<column name="ScenarioID" dataType="Integer"/>
-						<column name="MakeProbabilityMap" displayName="Make probability map" dataType="Boolean"/>
-						<column name="MakeBinaryMap" displayName="Make binary map" dataType="Boolean"/>
-						<column name="ThresholdOptimization" displayName="Binary threshold optimization method" dataType="Integer" validationType="List" formula1="0:Max kappa|1:Max sensitivity and specificity|2:No omission|3:Prevalence|4:Sensitivity equals specificity"/>
-						<column name="MakeResidualsMap" displayName="Make residuals map" dataType="Boolean"/>
-						<column name="MakeMessMap" displayName="Make multivariate environmental similarity surface (MESS) map" dataType="Boolean"/>
-						<column name="MakeModMap" displayName="Make most dissimilar variable (MoD) map" dataType="Boolean"/>
-					  </columns>
-					</datasheet>
-				  </datasheets>
-				</datafeed>	
-				<datafeed name="SpatialOutputs" dataScope="Scenario">
-				  <datasheets>
-					<datasheet name="SpatialOutputs" spatialMultiProcessing="True">
-					  <columns>
-					  	<column name="SpatialOutputsID" dataType="Integer" isPrimary="True"/>
-					  	<column name="ScenarioID" dataType="Integer"/>
-						<column name="ModelsID" dataType= "Integer" validationType="Datasheet" formula1="Models"/>
-						<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True"/>
-						<column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True"/>
-						<column name="ModRaster" dataType="String" isExternalFile="True" isRaster="True"/>
-						<column name="ResidualsRaster" dataType="String" isExternalFile="True" isRaster="True"/>
-						<column name="BinaryRaster" dataType="String" isExternalFile="True" isRaster="True"/>
-						<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
-					  </columns>
-					</datasheet>
-				  </datasheets>
-				</datafeed>
-			</datafeeds>
-		</transformer>
-		<!--Ensemble Model Transformer-->
-		<transformer
-		  name="EnsembleModel"
-		  displayName ="9 - Ensemble Model"
-		  isRunnable="True"
-		  programName="Python"
-		  programArguments="9-ensemble-model.py"
-		  className="SyncroSim.StochasticTime.StochasticTimeTransformer" 
-		  classAssembly="SyncroSim.StochasticTime"
-		  runContext="LocalOnly"
-		  condaEnv="wisdm-py-conda.yml">
-			<pipeline>
-				<datafeed name="corestime_Multiprocessing" type="Input"/>
-				<datafeed name="TemplateRaster" type="Input"/>
-				<datafeed name="EnsembleOptions" type="Input"/>
-				<datafeed name="SpatialOutputs"/>
-				<datafeed name="EnsembleOutputs" type="Output"/>
-			</pipeline>
-			<datafeeds>	
-				<datafeed name="EnsembleOptions" displayName="Ensemble Options" dataScope="Scenario">
-				  <datasheets>
-					<datasheet  name="EnsembleOptions" displayName="Ensemble Options" isSingleRow="True">
-					  <columns>
-						<column name="EnsembleOptionsID" dataType="Integer" isPrimary="True"/>
-						<column name="ScenarioID" dataType="Integer"/>
-						<column name="MakeProbabilityEnsemble" displayName="Make probability ensemble map" dataType="Boolean"/>
-						<column name="ProbabilityMethod" displayName="Probability ensemble method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
-						<column name="NormalizeProbability" displayName="Normalize probability before ensemble" dataType="Boolean"/>
-						<column name="MakeBinaryEnsemble" displayName="Make binary ensemble map" dataType="Boolean"/>
-						<column name="BinaryMethod" displayName="Binary ensemble method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
-						<column name="IgnoreNA" displayName="Ignore NA values during ensemble" dataType="Boolean"/>
-					  </columns>
-					</datasheet>
-				  </datasheets>
-				</datafeed>	
-				<datafeed name="EnsembleOutputs" dataScope="Scenario">
-				  <datasheets>
-					<datasheet name="EnsembleOutputs">
-					  <columns>
-					  	<column name="EnsembleOutputsID" dataType="Integer" isPrimary="True"/>
-					  	<column name="ScenarioID" dataType="Integer"/>
-						<column name="ProbabilityRasterMean" dataType="String" isExternalFile="True" isRaster="True"/>
-						<column name="ProbabilityRasterSum" dataType="String" isExternalFile="True" isRaster="True"/>
-						<column name="BinaryRasterMean" dataType="String" isExternalFile="True" isRaster="True"/>
-						<column name="BinaryRasterSum" dataType="String" isExternalFile="True" isRaster="True"/>
-						<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
-					  </columns>
-					</datasheet>
-				  </datasheets>
-				</datafeed>
-			</datafeeds>
-		</transformer>
-		 <!--Export Transformers-->
-		<transformer
-		  name="CovariateCorrelationExportInitial" dataSheet="CovariateCorrelationMatrix" column="InitialMatrix" 
-		  isFolderExport="True" className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-		<transformer
-		  name="CovariateCorrelationExportSelected" dataSheet="CovariateCorrelationMatrix" column="SelectedMatrix" 
-		  isFolderExport="True" className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-		<transformer 
-		  name="ModelExportRDS" dataSheet="ModelOutputs" column="ModelRDS" isFolderExport="True" 
-		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-		<transformer 
-		  name="ModelExportText" dataSheet="ModelOutputs" column="TextOutput" isFolderExport="True"
-		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-		<transformer 
-		  name="VariableImportanceExportData" dataSheet="ModelOutputs" column="VariableImportanceData" isFolderExport="True"
-		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-		<transformer 
-		  name="ProbMapExport" dataSheet="SpatialOutputs" column="ProbabilityRaster" isFolderExport="True" 
-		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-		<transformer 
-		  name="MessMapExport" dataSheet="SpatialOutputs" column="MessRaster" isFolderExport="True" 
-		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-		<transformer 
-		  name="ModMapExport" dataSheet="SpatialOutputs" column="ModRaster" isFolderExport="True" 
-		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-		<transformer 
-		  name="ResidMapExport" dataSheet="SpatialOutputs" column="ResidualsRaster" isFolderExport="True" 
-		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-		<transformer
-			name="BinMapExport" dataSheet="SpatialOutputs" column="BinaryRaster" isFolderExport="True"
-			className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-		<transformer 
-		  name="MaxentFilesExport" dataSheet="ModelOutputs" column="MaxentFiles" isFolderExport="True" 
-		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-		<transformer 
-		  name="MeanProbEnsembleExport" dataSheet="EnsembleOutputs" column="ProbabilityRasterMean" isFolderExport="True" 
-		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-		<transformer 
-		  name="SumProbEnsembleExport" dataSheet="EnsembleOutputs" column="ProbabilityRasterSum" isFolderExport="True" 
-		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-		<transformer 
-		  name="MeanBinEnsembleExport" dataSheet="EnsembleOutputs" column="BinaryRasterMean" isFolderExport="True" 
-		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-		<transformer 
-		  name="SumBinEnsembleExport" dataSheet="EnsembleOutputs" column="BinaryRasterSum" isFolderExport="True" 
-		  className="SyncroSim.Core.Forms.FolderExportTransformer" classAssembly="SyncroSim.Core.Forms">
-		</transformer>
-	</transformers>
-	<layouts>
-		<!--Library Datafeeds Layout-->
-		<layout name="coreforms_LibraryDatafeeds"> 
-		  <item name="core_Backup"/>
-		  <item name="core_Rconfig"/>
-		  <item name="core_Pyconfig"/>
-		  <!--item name="core_Condaconfig"/-->
-		  <group name="Options">
-		  	<item name="core_Options"/>
-			<item name="corestime_Options"/>
-			<item name="Network"/>
-		  </group>
-		</layout>  
-		<!--Project Datafeeds Layout-->
-		<layout name="coreforms_ProjectDatafeeds">
-		  <item name="Covariates"/>
-		  <!--item name="Models"/-->
-		</layout> 
-		<!--Scenario Datafeeds Layout-->
-		<layout name="coreforms_ScenarioDatafeeds">
-		  <group name="DataPreparation" displayName="Data Preparation">
-		  	<group name="SpatialData" displayName="Spatial Data">
-				<item name="TemplateRaster" showIf="inPipeline"/>
-				<item name="CovariateData" showIf="inPipeline"/>
-				<item name="RestrictionRaster" showIf="inPipeline"/>
-			</group>
-		  	<group name="FieldData" displayName="Field Data">
-				<item name="FieldData" showIf="inPipeline"/>
-				<item name="FieldDataOptions" showIf="inPipeline"/>
-				<item name="BackgroundDataOptions" showIf="inPipeline"/>
-		  	</group>
-		  	<item name="ValidationOptions" showIf="inPipeline"/>
-		  	<item name="corestime_Multiprocessing" showIf="inPipeline"/>
-		  </group>
-		  <group name="VariableReduction" displayName="Variable Reduction">
-			<item name="SiteData" showIf="inPipeline"/>
-			<item name="CovariateSelectionOptions" showIf="inPipeline"/>
-			<item name="ReducedCovariates" showIf="inPipeline"/>
-		  </group>
-		  <group name="Models">
-		  	<item name="BRT" showIf="inPipeline"/>
-			<!--item name="GAM" showIf="inPipeline"/-->
-			<item name="GLM" showIf="inPipeline"/>
-			<item name="Maxent" showIf="inPipeline"/>
-			<item name="RandomForest" displayName="Random Forest" showIf="inPipeline"/>
-			<item name="ModelOutputs" showIf="inPipeline"/>
-		  </group>
-		  <group name="OutputOptions" displayName="Output Options">
-		  	<item name="OutputOptions" showIf="inPipeline"/>
-			<item name="EnsembleOptions" showIf="inPipeline"/>
-		  </group>
-		</layout> 
-		<!--Result Transformers Layout-->
-		<layout name="coreforms_ResultTransformers">
-			<item name="corestime_MapTransformer"/>
-			<group name="Export">
-				<group name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation Matrix">
-					<item name="CovariateCorrelationExportInitial" displayName="Initial Covariates"/>
-					<item name="CovariateCorrelationExportSelected" displayName="Selected Covariates"/>
-				</group>
-				<group name="ModelOutputs" displayName="Model Outputs">
-					<item name="ModelExportRDS" displayName="Model RDS"/>
-					<item name="ModelExportText" displayName="Summary Text"/>
-					<item name="VariableImportanceExportData" displayName="Variable Importance"/>
-					<item name="MaxentFilesExport" displayName="Maxent Files"/>
-				</group>
-				<group name="MapOutputs" displayName="Map Outputs">
-					<item name="ProbMapExport" displayName="Probability"/>
-					<item name="BinMapExport" displayName="Binary"/>
-					<item name="MessMapExport" displayName="MESS"/>
-					<item name="ModMapExport" displayName="MoD"/>
-					<item name="ResidMapExport" displayName="Residuals"/>
-				</group>
-				<group name="EnsembleOutputs" displayName="Ensemble Outputs">
-					<item name="MeanProbEnsembleExport" displayName="Probability Ensemble (Mean)"/>
-					<item name="SumProbEnsembleExport" displayName="Probability Ensemble (Sum)"/>
-					<item name="MeanBinEnsembleExport" displayName="Binary Ensemble (Mean)"/>
-					<item name="SumBinEnsembleExport" displayName="Binary Ensemble (Sum)"/>
-				</group>
-			</group>
-        </layout>
-		<!--Maps Layout-->
-		<layout name="corestimeforms_Maps" displayName="Visuals">
-			<item name="CovariateMaps" displayName="Covariate Maps" dataSheet="CovariateData" column="RasterFilePath" filter="CovariatesID" />
-			<group name="CovariateCorrelationMatrix" displayName="Covariate Correlations">
-				<item  name="InitialMatrix" displayName="Initial Matrix" dataSheet="CovariateCorrelationMatrix" column="InitialMatrix"/>
-				<item  name="SelectedMatrix" displayName="Selected Matrix" dataSheet="CovariateCorrelationMatrix" column="SelectedMatrix"/>
-			</group>
-			<group name="MapOutputs" displayName="Map Outputs">
-				<item name="ProbabilityMap" displayName="Probability" dataSheet="SpatialOutputs" column="ProbabilityRaster" filter="ModelsID" extendedIdentifier="(Probability)"/>
-				<item name="BinaryMap" displayName="Binary" dataSheet="SpatialOutputs" column="BinaryRaster" filter="ModelsID" extendedIdentifier="(Binary)"/>
-				<item name="MessMap" displayName="MESS" dataSheet="SpatialOutputs" column="MessRaster" filter="ModelsID" extendedIdentifier="(MESS)"/>
-				<item name="ModMap" displayName="MoD" dataSheet="SpatialOutputs" column="ModRaster" filter="ModelsID" extendedIdentifier="(MoD)"/>
-				<item name="ResidualsMap" displayName="Residuals" dataSheet="SpatialOutputs" column="ResidualsRaster" filter="ModelsID" extendedIdentifier="(Residuals)"/>
-			</group>
-			<group name="ModelOutputs" displayName="Model Outputs">
-				<item name="ResponseCurves" displayName="Response Curves" dataSheet="ModelOutputs" column="ResponseCurves" filter="ModelsID" extendedIdentifier="(Response Curves)"/>
-				<item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="ModelOutputs" column="ResidualsPlot" filter="ModelsID" extendedIdentifier="(Standard Residuals)"/>
-				<item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="ModelOutputs" column="ResidualSmoothPlot" filter="ModelsID" extendedIdentifier="(Residuals Smooth)"/>	
-				<item name="CalibrationPlot" displayName="Calibration" dataSheet="ModelOutputs" column="CalibrationPlot" filter="ModelsID" extendedIdentifier="(Calibration)"/>
-				<item name="ROCAUCPlot" displayName="ROC/AUC" dataSheet="ModelOutputs" column="ROCAUCPlot" filter="ModelsID" extendedIdentifier="(ROC/AUC)"/>
-				<item name="AUCPRPlot" displayName="AUCPR" dataSheet="ModelOutputs" column="AUCPRPlot" filter="ModelsID" extendedIdentifier="(AUCPR)"/>
-				<item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="ModelOutputs" column="ConfusionMatrix" filter="ModelsID" extendedIdentifier="(Confusion Matrix)"/>
-				<item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="ModelOutputs" column="VariableImportancePlot" filter="ModelsID" extendedIdentifier="(Variable Importance)"/>		
-			</group>
-			<group name="EnsembleOutputs" displayName="Ensemble Outputs">
-				<item name="ProbabilityMapMean" displayName="Probability Ensemble (Mean)" dataSheet="EnsembleOutputs" column="ProbabilityRasterMean"/>
-				<item name="ProbabilityMapSum" displayName="Probability Ensemble (Sum)" dataSheet="EnsembleOutputs" column="ProbabilityRasterSum"/>
-				<item name="BinaryMapMean" displayName="Binary Ensemble (Mean)" dataSheet="EnsembleOutputs" column="BinaryRasterMean"/>
-				<item name="BinaryMapSum" displayName="Binary Ensemble (Sum)" dataSheet="EnsembleOutputs" column="BinaryRasterSum"/>
-			</group>
-		</layout>
-	</layouts>	
-<updateProvider 
-  schemaVersion="3" 
-  minPackageVersion="1.0.15" 
-  className="SyncroSim.Core.XMLUpdateProvider" 
-  classAssembly="SyncroSim.Core"/>
+	condaEnv="wisdm-r-conda-s3.yml"
+	condaEnvVersion="1">
+		<dataSheet name="FieldData" type="Input"/>
+		<dataSheet name="ValidationOptions" type="Input"/>
+		<dataSheet name="RetainedCovariates" type="Input"/>
+		<dataSheet name="SiteData" type="Input"/>
+		<dataSheet name="GLM" type="Input"/>
+		<dataSheet name="OutputModel" type="Output"/>
+</transformer>
+					
+<!--Random Forest Transformer-->
+<transformer
+	name="RF"
+	displayName ="7 - Random Forest"
+	isRunnable="True"
+	programName="Rscript"
+	programArguments="7-fit-random-forest.R"
+	condaEnv="wisdm-r-conda-s3.yml"
+	condaEnvVersion="1">
+		<dataSheet name="FieldData" type="Input"/>
+		<dataSheet name="ValidationOptions" type="Input"/>
+		<dataSheet name="RetainedCovariates" type="Input"/>
+		<dataSheet name="SiteData" type="Input"/>
+		<dataSheet name="RF" type="Input"/>
+		<dataSheet name="OutputModel" type="Output"/>
+</transformer>
+
+<!--Maxent Transformer-->
+<transformer
+	name="Maxent"
+	displayName ="7 - Maxent"
+	isRunnable="True"
+	programName="Rscript"
+	programArguments="7-fit-maxent.R"
+	condaEnv="wisdm-r-conda-s3.yml"
+	condaEnvVersion="1">
+		<dataSheet name="FieldData" type="Input"/>
+		<dataSheet name="CovariateData" type="Input"/>
+		<dataSheet name="ValidationOptions" type="Input"/>
+		<dataSheet name="RetainedCovariates" type="Input"/>
+		<dataSheet name="SiteData" type="Input"/>
+		<dataSheet name="Maxent" type="Input"/>
+		<dataSheet name="OutputModel" type="Output"/>
+</transformer>
+
+<!--BRT Transformer-->
+<transformer
+	name="BRT"
+	displayName ="7 - Boosted Regression Tree"
+	isRunnable="True"
+	programName="Rscript"
+	programArguments="7-fit-brt.R"
+	condaEnv="wisdm-r-conda-s3.yml"
+	condaEnvVersion="1">
+		<dataSheet name="FieldData" type="Input"/>
+		<dataSheet name="CovariateData" type="Input"/>
+		<dataSheet name="ValidationOptions" type="Input"/>
+		<dataSheet name="RetainedCovariates" type="Input"/>
+		<dataSheet name="SiteData" type="Input"/>
+		<dataSheet name="BRT" type="Input"/>
+		<dataSheet name="OutputModel" type="Output"/>
+</transformer>
+
+<!--Apply Model Transformer-->
+<transformer
+	name="ApplyModel"
+	displayName ="8 - Apply Model"
+	isRunnable="True"
+	programName="Rscript"
+	programArguments="8-apply-model.R"
+	isStochasticTime="True"
+	condaEnv="wisdm-r-conda-s3.yml"
+	condaEnvVersion="1">
+		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
+		<dataSheet name="TemplateRaster" type="Input"/>
+		<dataSheet name="RestrictionRaster" type="Input"/>
+		<dataSheet name="OutputModel" type="Input"/>
+		<dataSheet name="CovariateData" type="Input"/>
+		<dataSheet name="OutputOptions" type="Input"/>
+		<dataSheet name="OutputSpatial" type="Output"/>
+</transformer>
+
+<!--Ensemble Model Transformer-->
+<transformer
+	name="EnsembleModel"
+	displayName="9 - Ensemble Model"
+	isRunnable="True"
+	programName="Python"
+	programArguments="9-ensemble-model.py"
+	runContext="LocalOnly"
+	condaEnv="wisdm-py-conda-s3.yml"
+	condaEnvVersion="1">
+		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
+		<dataSheet name="TemplateRaster" type="Input"/>
+		<dataSheet name="EnsembleOptions" type="Input"/>
+		<dataSheet name="OutputSpatial" type="Input"/>
+		<dataSheet name="OutputEnsemble" type="Output"/>
+</transformer>
+
+ <!--Export Transformers-->
+
+<transformer 
+	name="CovariateCorrelationExportInitial" dataSheet="OutputCovariateCorrelationMatrix" column="InitialMatrix" isFolderExport="True">
+</transformer>
+
+<transformer
+	name="CovariateCorrelationExportSelected" dataSheet="OutputCovariateCorrelationMatrix" column="SelectedMatrix" isFolderExport="True">
+</transformer>
+
+<transformer 
+	name="ModelExportRDS" dataSheet="OutputModel" column="ModelRDS" isFolderExport="True">
+</transformer>
+
+<transformer 
+	name="ModelExportText" dataSheet="OutputModel" column="TextOutput" isFolderExport="True">
+</transformer>
+
+<transformer 
+	name="VariableImportanceExportData"	dataSheet="OutputModel" column="VariableImportanceData" isFolderExport="True">
+</transformer>
+
+<transformer 
+	name="MaxentFilesExport" dataSheet="OutputModel" column="MaxentFiles" isFolderExport="True">
+</transformer>
+
+<transformer 
+	name="ProbMapExport" dataSheet="OutputSpatial" column="ProbabilityRaster" isRasterExport="True">
+</transformer>
+
+<transformer 
+	name="MessMapExport" dataSheet="OutputSpatial" column="MessRaster" isRasterExport="True">
+</transformer>
+		
+<transformer 
+	name="ModMapExport" dataSheet="OutputSpatial" column="ModRaster" isRasterExport="True">
+</transformer>
+
+<transformer 
+	name="ResidMapExport" dataSheet="OutputSpatial" column="ResidualsRaster" isRasterExport="True">
+</transformer>
+
+<transformer
+	name="BinMapExport" dataSheet="OutputSpatial" column="BinaryRaster" isRasterExport="True">
+</transformer>
+
+<transformer 
+	name="MeanProbEnsembleExport" dataSheet="OutputEnsemble" column="ProbabilityRasterMean" isRasterExport="True">
+</transformer>
+
+<transformer 
+	name="SumProbEnsembleExport" dataSheet="OutputEnsemble" column="ProbabilityRasterSum" isRasterExport="True">
+</transformer>
+
+<transformer 
+	name="MeanBinEnsembleExport" dataSheet="OutputEnsemble" column="BinaryRasterMean" isRasterExport="True">
+</transformer>
+
+<transformer 
+	name="SumBinEnsembleExport" dataSheet="OutputEnsemble" column="BinaryRasterSum" isRasterExport="True">
+</transformer>
+
+<!--Library Layout-->
+<layout type="Library"> 
+  	<group name="Options">
+		<item name="Network"/>
+	</group>
+</layout>  
+
+<!--Project Layout-->
+<layout type="Project">
+	<item name="Covariates"/>
+</layout> 
+
+<!--Scenario Layout-->
+<layout type="Scenario">
+	<group name="DataPreparation" displayName="Data Preparation">
+	 	<group name="SpatialData" displayName="Spatial Data">
+			<item name="TemplateRaster" showIf="inPipeline"/>
+			<item name="CovariateData" showIf="inPipeline"/>
+			<item name="RestrictionRaster" showIf="inPipeline"/>
+		</group>
+	  	<group name="FieldData" displayName="Field Data">
+			<item name="FieldData" showIf="inPipeline"/>
+			<item name="FieldDataOptions" showIf="inPipeline"/>
+			<item name="BackgroundDataOptions" showIf="inPipeline"/>
+	  	</group>
+	  	<item name="ValidationOptions" showIf="inPipeline"/>
+	</group>
+	<group name="VariableReduction" displayName="Variable Reduction">
+		<item name="SiteData" showIf="inPipeline"/>
+		<item name="CovariateSelectionOptions" showIf="inPipeline"/>
+		<item name="RetainedCovariates" showIf="inPipeline"/>
+	</group>
+	<group name="Models">
+	  	<item name="BRT" showIf="inPipeline"/>
+		<item name="GLM" showIf="inPipeline"/>
+		<item name="Maxent" showIf="inPipeline"/>
+		<item name="RF" displayName="Random Forest" showIf="inPipeline"/>
+		<item name="OutputModel" showIf="inPipeline"/>
+	</group>
+	<group name="OutputOptions" displayName="Output Options">
+	  	<item name="OutputOptions" showIf="inPipeline"/>
+		<item name="EnsembleOptions" showIf="inPipeline"/>
+	</group>
+</layout> 
+
+<!--Result Transformers Layout-->
+<layout type="Export">
+	<group name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation Matrix">
+		<item name="CovariateCorrelationExportInitial" displayName="Initial Covariates"/>
+		<item name="CovariateCorrelationExportSelected" displayName="Selected Covariates"/>
+	</group>
+	<group name="ModelOutputs" displayName="Model Outputs">
+		<item name="ModelExportRDS" displayName="Model RDS"/>
+		<item name="ModelExportText" displayName="Summary Text"/>
+		<item name="VariableImportanceExportData" displayName="Variable Importance"/>
+		<item name="MaxentFilesExport" displayName="Maxent Files"/>
+	</group>
+	<group name="MapOutputs" displayName="Map Outputs">
+		<item name="ProbMapExport" displayName="Probability"/>
+		<item name="BinMapExport" displayName="Binary"/>
+		<item name="MessMapExport" displayName="MESS"/>
+		<item name="ModMapExport" displayName="MoD"/>
+		<item name="ResidMapExport" displayName="Residuals"/>
+	</group>
+	<group name="EnsembleOutputs" displayName="Ensemble Outputs">
+		<item name="MeanProbEnsembleExport" displayName="Probability Ensemble (Mean)"/>
+		<item name="SumProbEnsembleExport" displayName="Probability Ensemble (Sum)"/>
+		<item name="MeanBinEnsembleExport" displayName="Binary Ensemble (Mean)"/>
+		<item name="SumBinEnsembleExport" displayName="Binary Ensemble (Sum)"/>
+	</group>
+</layout>
+
+<!--Maps Layout-->
+<layout type="Map" displayName="Visuals">
+	<item name="CovariateMaps" displayName="Covariate Maps" dataSheet="CovariateData" column="RasterFilePath" filter="CovariatesID"/>
+	<group name="CovariateCorrelationMatrix" displayName="Covariate Correlations">
+		<item  name="InitialMatrix" displayName="Initial Matrix" dataSheet="OutputCovariateCorrelationMatrix" column="InitialMatrix"/>
+		<item  name="SelectedMatrix" displayName="Selected Matrix" dataSheet="OutputCovariateCorrelationMatrix" column="SelectedMatrix"/>
+	</group>
+	<group name="MapOutputs" displayName="Map Outputs">
+		<item name="ProbabilityMap" displayName="Probability" dataSheet="OutputSpatial" column="ProbabilityRaster" filter="ModelsID" extendedIdentifier="(Probability)"/>
+		<item name="BinaryMap" displayName="Binary" dataSheet="OutputSpatial" column="BinaryRaster" filter="ModelsID" extendedIdentifier="(Binary)"/>
+		<item name="MessMap" displayName="MESS" dataSheet="OutputSpatial" column="MessRaster" filter="ModelsID" extendedIdentifier="(MESS)"/>
+		<item name="ModMap" displayName="MoD" dataSheet="OutputSpatial" column="ModRaster" filter="ModelsID" extendedIdentifier="(MoD)"/>
+		<item name="ResidualsMap" displayName="Residuals" dataSheet="OutputSpatial" column="ResidualsRaster" filter="ModelsID" extendedIdentifier="(Residuals)"/>
+	</group>
+	<group name="ModelOutputs" displayName="Model Outputs">
+		<item name="ResponseCurves" displayName="Response Curves" dataSheet="OutputModel" column="ResponseCurves" filter="ModelsID" extendedIdentifier="(Response Curves)"/>
+		<item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="OutputModel" column="ResidualsPlot" filter="ModelsID" extendedIdentifier="(Standard Residuals)"/>
+		<item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="OutputModel" column="ResidualSmoothPlot" filter="ModelsID" extendedIdentifier="(Residuals Smooth)"/>	
+		<item name="CalibrationPlot" displayName="Calibration" dataSheet="OutputModel" column="CalibrationPlot" filter="ModelsID" extendedIdentifier="(Calibration)"/>
+		<item name="ROCAUCPlot" displayName="ROC/AUC" dataSheet="OutputModel" column="ROCAUCPlot" filter="ModelsID" extendedIdentifier="(ROC/AUC)"/>
+		<item name="AUCPRPlot" displayName="AUCPR" dataSheet="OutputModel" column="AUCPRPlot" filter="ModelsID" extendedIdentifier="(AUCPR)"/>
+		<item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="OutputModel" column="ConfusionMatrix" filter="ModelsID" extendedIdentifier="(Confusion Matrix)"/>
+		<item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="OutputModel" column="VariableImportancePlot" filter="ModelsID" extendedIdentifier="(Variable Importance)"/>		
+	</group>
+	<group name="EnsembleOutputs" displayName="Ensemble Outputs">
+		<item name="ProbabilityMapMean" displayName="Probability Ensemble (Mean)" dataSheet="OutputEnsemble" column="ProbabilityRasterMean"/>
+		<item name="ProbabilityMapSum" displayName="Probability Ensemble (Sum)" dataSheet="OutputEnsemble" column="ProbabilityRasterSum"/>
+		<item name="BinaryMapMean" displayName="Binary Ensemble (Mean)" dataSheet="OutputEnsemble" column="BinaryRasterMean"/>
+		<item name="BinaryMapSum" displayName="Binary Ensemble (Sum)" dataSheet="OutputEnsemble" column="BinaryRasterSum"/>
+	</group>
+</layout>
+
 </package>

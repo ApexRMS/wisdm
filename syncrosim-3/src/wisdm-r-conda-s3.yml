@@ -1,0 +1,28 @@
+name: wisdm-r-conda
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - r-adehabitathr=0.4.20
+  - r-dplyr=1.0.10
+  - r-randomforest=4.7_1.1
+  - r-ggplot2=3.3.6
+  - r-rocr=1.0_11
+  - r-rsyncrosim=1.4.8
+  - r-codetools=0.2_18
+  - r-gbm=2.1.8
+  - r-prroc=1.3.1
+  - r-shiny=1.7.2
+  - r-tidyverse=1.3.2
+  - r-zip=2.2.2
+  - r-sp=1.6_0
+  - r-terra=1.5_21
+  - r-base=4.1.3
+  - r-pander=0.6.5
+  - r-sf=1.0_7
+  - r-presenceabsence=1.1.10
+  - r-data.table=1.14.8
+  - r-spatstat.geom=3.0_6
+  - r-dismo=1.3_5
+  - r-mgcv=1.9_0
+  - mkl

@@ -1,9 +1,9 @@
 ## ---------------------------------
 ## wisdm - ensemble model
-## ApexRMS, December 2023
+## ApexRMS, March 2024
 ## ---------------------------------
 
-# built under Python version 3.11.0 & SyncroSim version 2.4.42
+# built under Python version 3.11.0 & SyncroSim version 3.0.0
 # Script pulls in template, probability, and binary rasters and outputs and
 # summmarizes the data based on user-defined options (e.g., sum or mean) and 
 # outputs the ensemble model results
@@ -60,7 +60,7 @@ mySession = ps.Session()
 
 result = mySession._Session__call_console(["--conda", "--config"])
 conda_fpath = result.stdout.decode('utf-8').strip().split(": ")[1]
-if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
+if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
     os.environ["PROJ_DATA"] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")
     os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
 
@@ -70,20 +70,21 @@ if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
 myScenario = ps.Scenario()  
 
 # Create a temporary folder for storing rasters
-ssimTempDir = ps.runtime_temp_folder("Data")
+ssimTempDir = ps.runtime_temp_folder("DataTransfer\Scenario-" + str(myScenario.sid))
+# ssimTempDir = myLibrary.info["Value"][myLibrary.info.Property == "Temporary files:"].item()
 
 # Get path to scnario inputs 
 ssimInputDir = myScenario.library.location + ".input\Scenario-" + str(myScenario.sid)
 
 # Load datasheets
 # inputs
-networkSheet = myScenario.library.datasheets("Network")
-spatialOutputSheet = myScenario.datasheets("SpatialOutputs", show_full_paths=True)
-ensembleOptionsSheet = myScenario.datasheets("EnsembleOptions")
+networkSheet = myScenario.library.datasheets("wisdm_Network")
+spatialOutputSheet = myScenario.datasheets("wisdm_OutputSpatial", show_full_paths=True)
+ensembleOptionsSheet = myScenario.datasheets("wisdm_EnsembleOptions")
 multiprocessingSheet = myScenario.datasheets("core_Multiprocessing")
 
 # outputs
-ensembleOutputSheet = myScenario.datasheets("EnsembleOutputs", empty = True)
+ensembleOutputSheet = myScenario.datasheets("wisdm_OutputEnsemble", empty = True)
 
 #%% Set progress bar ---------------------------------------------------------
 
@@ -117,7 +118,7 @@ if ensembleOptionsSheet.MakeBinaryEnsemble.item() == "Yes":
 if pd.isnull(ensembleOptionsSheet.IgnoreNA.item()):
     ensembleOptionsSheet['IgnoreNA'] = "Yes"
 
-myScenario.save_datasheet(name="EnsembleOptions", data=ensembleOptionsSheet)
+myScenario.save_datasheet(name="wisdm_EnsembleOptions", data=ensembleOptionsSheet)
 
 # update progress bar
 ps.environment.progress_bar()
@@ -290,7 +291,7 @@ ps.environment.progress_bar()
 #%% Save ensemble maps -------------------------------------------------------------------
     
 # Save data to scenario 
-myScenario.save_datasheet(name="EnsembleOutputs", data=ensembleOutputSheet)   
+myScenario.save_datasheet(name="wisdm_OutputEnsemble", data=ensembleOutputSheet)   
 
 # update progress bar
 ps.environment.progress_bar(report_type="end")

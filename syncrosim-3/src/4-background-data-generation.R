@@ -1,15 +1,15 @@
 ## -------------------------
 ## wisdm - background data generation
-## ApexRMS, October 2023
+## ApexRMS, April 2024
 ## -------------------------
 
-# built under R version 4.1.3 & SyncroSim version 2.4.40
+# built under R version 4.1.3 & SyncroSim version 3.0.0
 # Script generates background data (pseudo-absences) based on the defined
 #  background data options and outputs updated field data and site data sheets
 
 # source dependencies ----------------------------------------------------------
 
-library(rsyncrosim)
+library(rsyncrosim) # install.packages("C:/GitHub/rsyncrosim", type="source", repos=NULL) 
 library(terra)
 library(tidyr)
 library(dplyr)
@@ -28,11 +28,11 @@ myScenario <- scenario()
 ssimTempDir <- ssimEnvironment()$TransferDirectory 
 
 # Read in datasheets
-templateSheet <- datasheet(myScenario, "TemplateRaster")
+templateSheet <- datasheet(myScenario, "wisdm_TemplateRaster")
 covariateDataSheet <- datasheet(myScenario, "wisdm_CovariateData", optional = T, lookupsAsFactors = F)
-fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
+fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T) %>% select(-ScenarioId)
 backgroundDataOptionsSheet <- datasheet(myScenario, "wisdm_BackgroundDataOptions", optional = T)
-siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", optional = T, lookupsAsFactors = F)
+siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", optional = T, lookupsAsFactors = F) %>% select(-ScenarioId)
 
 # Set progress bar -------------------------------------------------------------
 

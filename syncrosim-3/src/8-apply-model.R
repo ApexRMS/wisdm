@@ -1,9 +1,9 @@
 ## ---------------------
 ## wisdm - apply model
-## ApexRMS, October 2023
+## ApexRMS, March 2024
 ## ---------------------
 
-# built under R version 4.1.3 & SyncroSim version 2.4.40
+# built under R version 4.1.3 & SyncroSim version 3.0.0
 # this transformer pulls in selected model objects and applies the models
 # to specified spatial conditions to produce maps of occurrence probability, 
 # multivariate environmental similarity surface, most dissimilar variable, 
@@ -17,6 +17,7 @@ currentBreakPoint <- proc.time()
 
 library(rsyncrosim)
 library(terra)
+library(tidyr)
 library(dplyr)
 
 packageDir <- Sys.getenv("ssim_package_directory")
@@ -32,23 +33,21 @@ myScenario <- scenario()
 
 # path to ssim directories
 ssimTempDir <- ssimEnvironment()$TransferDirectory 
-ssimOutputDir <- ssimEnvironment()$OutputDirectory                                 
 resultScenario <- ssimEnvironment()$ScenarioId
 
 # Read in datasheets
 covariatesSheet <- datasheet(myScenario, "wisdm_Covariates", optional = T, includeKey = T)
 modelsSheet <- datasheet(myScenario, "wisdm_Models", includeKey = T)
-# runControlSheet <- datasheet(myScenario, "RunControl", optional = T)
 multiprocessingSheet <- datasheet(myScenario, "core_Multiprocessing")
-spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing")
-covariateDataSheet <- datasheet(myScenario, "CovariateData", optional = T, lookupsAsFactors = F)
-templateSheet <- datasheet(myScenario, "TemplateRaster")
-restrictionSheet <- datasheet(myScenario, "RestrictionRaster")
-modelOutputsSheet <- datasheet(myScenario, "ModelOutputs", optional = T, lookupsAsFactors = F)
-outputOptionsSheet <- datasheet(myScenario, "OutputOptions", optional = T)
+spatialMulitprocessingSheet <- datasheet(myScenario, "core_SpatialMultiprocessing")
+covariateDataSheet <- datasheet(myScenario, "wisdm_CovariateData", optional = T, lookupsAsFactors = F)
+templateSheet <- datasheet(myScenario, "wisdm_TemplateRaster")
+restrictionSheet <- datasheet(myScenario, "wisdm_RestrictionRaster")
+modelOutputsSheet <- datasheet(myScenario, "wisdm_OutputModel", optional = T, returnInvisible = T, lookupsAsFactors = F)
+outputOptionsSheet <- datasheet(myScenario, "wisdm_OutputOptions", optional = T)
 
-spatialOutputsSheet <- datasheet(myScenario, "SpatialOutputs", optional = T, lookupsAsFactors = T)
-spatialOutputsSheet$ModelsID <- as.numeric(spatialOutputsSheet$ModelsID)
+spatialOutputsSheet <- datasheet(myScenario, "wisdm_OutputSpatial", optional = T, lookupsAsFactors = T) %>% drop_na()
+# spatialOutputsSheet$ModelsID <- as.numeric(spatialOutputsSheet$ModelsID)
 
 # Set progress bar -------------------------------------------------------------
 
@@ -56,12 +55,6 @@ steps <- (nrow(modelOutputsSheet) * sum(outputOptionsSheet == T, na.rm = T))+2
 progressBar(type = "begin", totalSteps = steps)
 
 # Set defaults -----------------------------------------------------------------
-
-## Run control sheet
-# if(nrow(runControlSheet)<1){
-#   runControlSheet <- addRow(runControlSheet, list(1,1,0,0))
-#   saveDatasheet(myScenario, runControlSheet, "RunControl")
-# }
 
 ## Covariates sheet
 if(any(is.na(covariatesSheet$ID))){
@@ -98,7 +91,7 @@ updateRunLog("Finished loading inputs in ", updateBreakpoint())
 if(name(myLibrary) == "Partial"){
   
   # load multiprocessing raster
-  maskFile <- rast(datasheet(myScenario, "corestime_Multiprocessing")$MaskFileName)
+  maskFile <- rast(datasheet(myScenario, "core_SpatialMultiprocessing")$MaskFileName)
   maskExt <- ext(maskFile)
   
   # identify multiprocessing tile
@@ -118,7 +111,8 @@ if(name(myLibrary) == "Partial"){
 
 # prepare restriction layer ---------------------------------------------------- 
   
-if(nrow((restrictionSheet))>0){
+# if(nrow((restrictionSheet))>0){
+if(!is.na(restrictionSheet$RasterFilePath)){
   
    restrictRaster <- rast(restrictionSheet$RasterFilePath)
    
@@ -136,9 +130,9 @@ if(nrow((restrictionSheet))>0){
 for (i in 1:nrow(modelOutputsSheet)){ 
   
   
-  modType <- modelsSheet$ModelType[modelsSheet$ModelsID == modelOutputsSheet$ModelsID[i]]
+  modType <- modelsSheet$ModelType[modelsSheet$ModelName == modelOutputsSheet$ModelsID[i]]
   
-  mod <- readRDS(paste0(ssimOutputDir,"\\Scenario-", resultScenario,"\\wisdm_ModelOutputs\\",modelOutputsSheet$ModelRDS[i]))
+  mod <- readRDS(modelOutputsSheet$ModelRDS[i])
   
   if(modType == "glm"){
     modVars <- attr(terms(formula(mod)),"term.labels")
@@ -183,6 +177,7 @@ for (i in 1:nrow(modelOutputsSheet)){
   # get the paths off the raster files
   paths <- covariateDataSheet$RasterFilePath[which(covariateDataSheet$CovariatesID %in% modVars)]
   covData <- covariateDataSheet[which(covariateDataSheet$CovariatesID %in% modVars),]
+  covData <- covData[!duplicated(covData),]
   
   # check that all tifs are present
   if(any(file.exists(paths)) == F){
@@ -398,7 +393,7 @@ for (i in 1:nrow(modelOutputsSheet)){
         updateRunLog("\nWarning: Residuals map cannot be generated without generating the Probability map.\n")
       } else {
         
-        residSmooth <- readRDS(file.path(ssimEnvironment()$OutputDirectory, paste0("Scenario-",ssimEnvironment()$ScenarioId), "wisdm_ModelOutputs", modelOutputsSheet$ResidualSmoothRDS[i]))
+        residSmooth <- readRDS(modelOutputsSheet$ResidualSmoothRDS[i])
   
         predrast <- rast(probRaster)
         if(!is.null(maskValues)){ predrast <- crop(predrast, maskFile)}
@@ -430,10 +425,10 @@ for (i in 1:nrow(modelOutputsSheet)){
     
     # add model Outputs to datasheet
     spatialOutputsSheet <- addRow(spatialOutputsSheet, 
-                                  list( # Iteration = 1, Timestep = 0,
-                                    ModelsID = modelsSheet$ModelsID[modelsSheet$ModelType == modType]))
+                                  list( # Iteration = 1, Timestep = 0, ModelsID = modelsSheet$ModelsID[modelsSheet$ModelType == modType]))
+                                    ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType]))
   
-    outputRow <- which(spatialOutputsSheet$ModelsID == modelsSheet$ModelsID[modelsSheet$ModelType == modType])
+    outputRow <- which(spatialOutputsSheet$ModelsID == modelsSheet$ModelName[modelsSheet$ModelType == modType])
                               
     if(outputOptionsSheet$MakeProbabilityMap){
       spatialOutputsSheet$ProbabilityRaster[outputRow] <- file.path(ssimTempDir,paste0(modType,"_prob_map.tif"))
@@ -454,6 +449,6 @@ for (i in 1:nrow(modelOutputsSheet)){
 } # end modType loop
 
 # save outputs
-saveDatasheet(myScenario, spatialOutputsSheet, "SpatialOutputs")
+saveDatasheet(myScenario, spatialOutputsSheet, "wisdm_OutputSpatial")
 progressBar(type = "end")    
 

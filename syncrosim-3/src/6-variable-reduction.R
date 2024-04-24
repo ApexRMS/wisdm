@@ -1,16 +1,16 @@
 ## ---------------------------
 ## wisdm - variable reduction
-## ApexRMS, October 2023
+## ApexRMS, March 2024
 ## ---------------------------
 
-# built under R version 4.1.3 & SyncroSim version 2.4.40
+# built under R version 4.1.3 & SyncroSim version 3.0.0
 # Script pulls in site-specific covariate data; runs automated variable reduction
 # using USDM-VIF (vif-cor) or calls shiny widget to display interactive correlation
 # tool; saves reduced dataset of auto/user selected covariates
 
 # source dependencies ----------------------------------------------------------
 
-library(rsyncrosim)
+library(rsyncrosim) # install.packages("C:/GitHub/rsyncrosim", type="source", repos=NULL) 
 library(tidyr)
 library(dplyr)
 library(shiny)
@@ -34,11 +34,11 @@ ssimTempDir <- ssimEnvironment()$TransferDirectory
 
 # Read in datasheets
 covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T, includeKey = T)
-fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
-siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
+fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T) %>% select(-ScenarioId)
+siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F) %>% select(-ScenarioId)
 covariateSelectionSheet <- datasheet(myScenario, "wisdm_CovariateSelectionOptions", optional = T)
-covariateCorrelationSheet <- datasheet(myScenario, "wisdm_CovariateCorrelationMatrix", optional = T)
-reducedCovariatesSheet <- datasheet(myScenario, "wisdm_ReducedCovariates")
+retainedCovariatesSheet <- datasheet(myScenario, "wisdm_RetainedCovariates")
+covariateCorrelationSheet <- datasheet(myScenario, "wisdm_OutputCovariateCorrelationMatrix", optional = T)
 
 progressBar()
 
@@ -51,10 +51,10 @@ if(nrow(covariateSelectionSheet)<1){
 
 if(is.na(covariateSelectionSheet$SelectionMethod)){covariateSelectionSheet$SelectionMethod <- "Interactive (Correlation Viewer)"}
 
-## Reduced covariates
+## Retained covariates
 
-if(any(is.na(reducedCovariatesSheet$CovariatesID))){
-  reducedCovariatesSheet <- na.omit(reducedCovariatesSheet)
+if(any(is.na(retainedCovariatesSheet$CovariatesID))){
+  retainedCovariatesSheet <- na.omit(retainedCovariatesSheet)
 }
 
 # Prep inputs ------------------------------------------------------------------
@@ -224,15 +224,15 @@ if(covariateSelectionSheet$SelectionMethod == "Interactive (Correlation Viewer)"
   # save image files
   covariateCorrelationSheet <- addRow(covariateCorrelationSheet, data.frame(InitialMatrix = file.path(ssimTempDir, "InitialCovariateCorrelationMatrix.png"), 
                                                                           SelectedMatrix = file.path(ssimTempDir, "SelectedCovariateCorrelationMatrix.png")))
-  saveDatasheet(myScenario, covariateCorrelationSheet, "wisdm_CovariateCorrelationMatrix")
+  saveDatasheet(myScenario, covariateCorrelationSheet, "wisdm_OutputCovariateCorrelationMatrix")
   progressBar()
 } # end if "Interactive" 
 
 # save reduced covariate list --------------------------------------------------
 
-selectedCovariates <- unique(c(as.character(reducedCovariatesSheet$CovariatesID), selectedCovariates))
+selectedCovariates <- unique(c(as.character(retainedCovariatesSheet$CovariatesID), selectedCovariates))
 
-reducedCovariatesSheet <- data.frame(CovariatesID = selectedCovariates)
-saveDatasheet(myScenario, reducedCovariatesSheet, "wisdm_ReducedCovariates")
+retainedCovariatesSheet <- data.frame(CovariatesID = selectedCovariates)
+saveDatasheet(myScenario, retainedCovariatesSheet, "wisdm_RetainedCovariates")
 progressBar(type = "end")
 

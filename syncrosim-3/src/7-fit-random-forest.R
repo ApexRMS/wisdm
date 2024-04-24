@@ -1,9 +1,9 @@
 ## --------------------
 ## wisdm - fit rf
-## ApexRMS, October 2023
+## ApexRMS, March 2024
 ## --------------------
 
-# built under R version 4.1.3 & SyncroSim version 2.4.40
+# built under R version 4.1.3 & SyncroSim version 3.0.0
 # script pulls in pre-processed field, site and covariate data; fits random 
 # forest (rf) model; builds model diagnostic and validation plots 
 
@@ -31,17 +31,17 @@ progressBar(type = "begin", totalSteps = steps)
   # datasheet(myScenario)
   
   # Path to ssim temporary directory
-  ssimTempDir <- Sys.getenv("ssim_temp_directory")
+  ssimTempDir <- ssimEnvironment()$TransferDirectory 
   
   # Read in datasheets
   covariatesSheet <- datasheet(myScenario, "wisdm_Covariates", optional = T)
   modelsSheet <- datasheet(myScenario, "wisdm_Models")
-  fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
+  fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T) %>% select(-ScenarioId)
   validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
-  reducedCovariatesSheet <- datasheet(myScenario, "wisdm_ReducedCovariates", lookupsAsFactors = F)
-  siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
-  RFSheet <- datasheet(myScenario, "wisdm_RandomForest")
-  modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T, empty = T, lookupsAsFactors = F)
+  retainedCovariatesSheet <- datasheet(myScenario, "wisdm_RetainedCovariates", lookupsAsFactors = F)
+  siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F) %>% select(-ScenarioId)
+  RFSheet <- datasheet(myScenario, "wisdm_RF")
+  modelOutputsSheet <- datasheet(myScenario, "wisdm_OutputModel", optional = T, returnInvisible = T, empty = T, lookupsAsFactors = F) %>% drop_na()
 
   progressBar()
 
@@ -83,12 +83,12 @@ progressBar(type = "begin", totalSteps = steps)
   if(is.na(RFSheet$CalculateProximity)){RFSheet$CalculateProximity <- FALSE}
   if(is.na(RFSheet$SampleWithReplacement)){RFSheet$SampleWithReplacement <- FALSE}
   
-  saveDatasheet(myScenario, RFSheet, "wisdm_RandomForest")
+  saveDatasheet(myScenario, RFSheet, "wisdm_RF")
   
   if(!is.na(RFSheet$NumberOfVariablesSampled)){
-    if(RFSheet$NumberOfVariablesSampled > nrow(reducedCovariatesSheet)){
+    if(RFSheet$NumberOfVariablesSampled > nrow(retainedCovariatesSheet)){
       stop(paste0("The number of variables sampled must be between 1 and the total number of variables used in model fitting (in this case ", 
-      nrow(reducedCovariatesSheet),"). If left blank, this input will be optimized by the tuneRF funciton."))
+      nrow(retainedCovariatesSheet),"). If left blank, this input will be optimized by the tuneRF funciton."))
     }
   }
   
@@ -106,7 +106,7 @@ progressBar(type = "begin", totalSteps = steps)
   siteDataWide <- spread(siteDataSheet, key = CovariatesID, value = "Value")
   
   # remove variables dropped due to correlation
-  siteDataWide <- siteDataWide[,c('SiteID', reducedCovariatesSheet$CovariatesID)]
+  siteDataWide <- siteDataWide[,c('SiteID', retainedCovariatesSheet$CovariatesID)]
   
   # merge field and site data
   siteDataWide <- merge(fieldDataSheet, siteDataWide, by = "SiteID")
@@ -162,7 +162,7 @@ progressBar(type = "begin", totalSteps = steps)
   } else { out$modelFamily <- "binomial" }
   
   ## Candidate variables 
-  out$inputVars <- reducedCovariatesSheet$CovariatesID
+  out$inputVars <- retainedCovariatesSheet$CovariatesID
   out$factorInputVars <- factorInputVars
   
   ## training data
@@ -181,12 +181,12 @@ progressBar(type = "begin", totalSteps = steps)
   out$validationOptions <- validationDataSheet 
   
   ## path to temp ssim storage 
-  out$tempDir <- file.path(ssimTempDir, "Data")
+  out$tempDir <- ssimTempDir
   
 # Create output text file ------------------------------------------------------
 
-  capture.output(cat("Random Forest Results"), file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt")) 
-  on.exit(capture.output(cat("Model Failed\n\n"),file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),append=TRUE))  
+  capture.output(cat("Random Forest Results"), file=file.path(ssimTempDir, paste0(modType, "_output.txt"))) 
+  on.exit(capture.output(cat("Model Failed\n\n"),file=file.path(ssimTempDir, paste0(modType, "_output.txt")),append=TRUE))  
 
 
 # Review model data ------------------------------------------------------------
@@ -205,11 +205,11 @@ progressBar(type = "begin", totalSteps = steps)
   finalMod$trainingData <- trainingData
   
   # save model to temp storage
-  # saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
+  # saveRDS(finalMod, file = file.path(ssimTempDir, paste0(modType, "_model.rds"))
   
   # save output model options
   RFSheet$NumberOfVariablesSampled <- finalMod$mtry
-  saveDatasheet(myScenario, RFSheet, "wisdm_RandomForest")
+  saveDatasheet(myScenario, RFSheet, "wisdm_RF")
   
   # add relevant model details to out 
   out$finalMod <- finalMod
@@ -228,7 +228,7 @@ progressBar(type = "begin", totalSteps = steps)
   modelSummary <- finalMod$importance
   modelSummary <- modelSummary[order(modelSummary[,3],decreasing=T),]
   
-  capture.output(cat(txt0),cat(txt1),print(round(modelSummary,4)),file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),append=TRUE) 
+  capture.output(cat(txt0),cat(txt1),print(round(modelSummary,4)),file=file.path(ssimTempDir, paste0(modType, "_output.txt")),append=TRUE) 
   
   updateRunLog("\nSummary of Model:\n")
   coeftbl <- modelSummary
@@ -267,7 +267,7 @@ progressBar(type = "begin", totalSteps = steps)
   updateRunLog(pander::pandoc.table.return(tbl, style = "simple", split.tables = 100))
   
   # save model info to temp storage
-  saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
+  saveRDS(finalMod, file = file.path(ssimTempDir, paste0(modType, "_model.rds")))
   
   
 ## Run Cross Validation (if specified) -----------------------------------------
@@ -293,31 +293,31 @@ progressBar(type = "begin", totalSteps = steps)
 
 # Save model outputs -----------------------------------------------------------
 
-  tempFiles <- list.files(file.path(ssimTempDir, "Data"))
+  tempFiles <- list.files(ssimTempDir)
   
   # add model Outputs to datasheet
   modelOutputsSheet <- addRow(modelOutputsSheet, 
                               list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
-                                   ModelRDS = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"),
-                                   ResponseCurves = paste0(ssimTempDir,"\\Data\\", modType, "_ResponseCurves.png"),
-                                   TextOutput = paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),
-                                   ResidualSmoothPlot = paste0(ssimTempDir,"\\Data\\", modType, "_ResidualSmoothPlot.png"),
-                                   ResidualSmoothRDS = paste0(ssimTempDir,"\\Data\\", modType, "_ResidualSmoothFunction.rds")))
+                                   ModelRDS = file.path(ssimTempDir, paste0(modType, "_model.rds")),
+                                   ResponseCurves = file.path(ssimTempDir, paste0(modType, "_ResponseCurves.png")),
+                                   TextOutput = file.path(ssimTempDir, paste0(modType, "_output.txt")),
+                                   ResidualSmoothPlot = file.path(ssimTempDir, paste0(modType, "_ResidualSmoothPlot.png")),
+                                   ResidualSmoothRDS = file.path(ssimTempDir, paste0(modType, "_ResidualSmoothFunction.rds"))))
   
   
   if(out$modelFamily != "poisson"){
-    if("rf_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_StandardResidualPlots.png") }
-    modelOutputsSheet$ConfusionMatrix <-  paste0(ssimTempDir,"\\Data\\", modType, "_ConfusionMatrix.png")
-    modelOutputsSheet$VariableImportancePlot <-  paste0(ssimTempDir,"\\Data\\", modType, "_VariableImportance.png")
-    modelOutputsSheet$VariableImportanceData <-  paste0(ssimTempDir,"\\Data\\", modType, "_VariableImportance.csv")
-    modelOutputsSheet$ROCAUCPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_ROCAUCPlot.png")
-    modelOutputsSheet$CalibrationPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_CalibrationPlot.png")
+    if("rf_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- file.path(ssimTempDir, paste0(modType, "_StandardResidualPlots.png")) }
+    modelOutputsSheet$ConfusionMatrix <-  file.path(ssimTempDir, paste0(modType, "_ConfusionMatrix.png"))
+    modelOutputsSheet$VariableImportancePlot <-  file.path(ssimTempDir, paste0(modType, "_VariableImportance.png"))
+    modelOutputsSheet$VariableImportanceData <-  file.path(ssimTempDir, paste0(modType, "_VariableImportance.csv"))
+    modelOutputsSheet$ROCAUCPlot <- file.path(ssimTempDir, paste0(modType, "_ROCAUCPlot.png"))
+    modelOutputsSheet$CalibrationPlot <- file.path(ssimTempDir, paste0(modType, "_CalibrationPlot.png"))
   } else {
-    modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_PoissonResidualPlots.png")
+    modelOutputsSheet$ResidualsPlot <- file.path(ssimTempDir, paste0(modType, "_PoissonResidualPlots.png"))
   }
   
-  if("rf_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_AUCPRPlot.png") } 
+  if("rf_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- file.path(ssimTempDir, paste0(modType, "_AUCPRPlot.png")) } 
   
-  saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs", append = T)
+  saveDatasheet(myScenario, modelOutputsSheet, "wisdm_OutputModel", append = T)
   progressBar(type = "end")
   

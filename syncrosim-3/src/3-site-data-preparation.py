@@ -1,9 +1,9 @@
 ## ---------------------------------
 ## wisdm - site data preparation
-## ApexRMS, October 2023
+## ApexRMS, March 2024
 ## ---------------------------------
 
-# built under Python version 3.11.0 & SyncroSim version 2.4.36
+# built under Python version 3.11.0 & SyncroSim version 3.0.0
 # Script pulls in covariate rasters and processes field data to ensure sites 
 # are in the template CRS and extent; aggregates or weights sites by spatial distribution;
 # extracts site-specific covaraite data and generates datasheet of covariate site data.
@@ -68,7 +68,7 @@ mySession = ps.Session()
 
 result = mySession._Session__call_console(["--conda", "--config"])
 conda_fpath = result.stdout.decode('utf-8').strip().split(": ")[1]
-if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
+if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
     os.environ['GDAL_DATA'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\gdal")
     os.environ['GDAL_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
     os.environ["PROJ_DATA"] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")
@@ -88,20 +88,16 @@ if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
 myScenario = ps.Scenario()  
 
 # Create a temporary folder for storing rasters
-ssimTempDir = ps.runtime_temp_folder("Data")
-
-# Get path to scnario inputs 
-ssimInputDir = myScenario.library.location + ".input\Scenario-" + str(myScenario.sid)
+# ssimTempDir = myLibrary.info["Value"][myLibrary.info.Property == "Temporary files:"].item()
+ssimTempDir = ps.runtime_temp_folder("DataTransfer\Scenario-" + str(myScenario.sid))
 
 # Load datasheets
 # inputs
-networkSheet = myScenario.library.datasheets("Network")
-# covariatesSheet = myScenario.project.datasheets("Covariates")
-covariateDataSheet = myScenario.datasheets("CovariateData", show_full_paths=True)
-fieldDataSheet = myScenario.datasheets("FieldData")
-fieldDataOptions = myScenario.datasheets("FieldDataOptions")
-templateRasterSheet = myScenario.datasheets("TemplateRaster", show_full_paths=False)
-# restrictionRasterSheet = myScenario.datasheets("RestrictionRaster", show_full_paths=True)
+networkSheet = myScenario.library.datasheets("wisdm_Network")
+covariateDataSheet = myScenario.datasheets("wisdm_CovariateData", show_full_paths=True)
+fieldDataSheet = myScenario.datasheets("wisdm_FieldData")
+fieldDataOptions = myScenario.datasheets("wisdm_FieldDataOptions")
+templateRasterSheet = myScenario.datasheets("wisdm_TemplateRaster", show_full_paths=True)
 multiprocessingSheet = myScenario.datasheets("core_Multiprocessing")
 
 # outputs
@@ -148,7 +144,7 @@ if any(pd.isna(fieldDataSheet.SiteID)):
     
 # check of field data options were provided
 if len(fieldDataOptions) == 0:
-    fieldDataOptions = fieldDataOptions.append({'AggregateAndWeight': 'None'}, ignore_index=True)
+    fieldDataOptions = fieldDataOptions.append({'AggregateOrWeight': 'None'}, ignore_index=True)
 
 
  
@@ -157,7 +153,7 @@ if len(fieldDataOptions) == 0:
 # set defualt chunk dimensions
 chunkDims = 4096 #1024
 
-templatePath = ssimInputDir + "\\wisdm_TemplateRaster\\" + templateRasterSheet.RasterFilePath.item()
+templatePath = templateRasterSheet.RasterFilePath.item()
 templateRaster = rioxarray.open_rasterio(templatePath, chunks={'x': chunkDims, 'y': chunkDims}, masked=True)
 templateMask = templateRaster.to_masked_array().mask[0]
 
@@ -205,10 +201,10 @@ siteCoords = [Point(x, y) for x, y in zip(fieldDataSheet.X, fieldDataSheet.Y)]
 # gpd.GeoSeries(siteCoords).plot()
     
 # Define field data crs
-if pd.isnull(fieldDataOptions.EPSG[0]):
+if pd.isnull(fieldDataOptions.CRS[0]):
     fieldDataCRS = templateCRS
 else:
-    fieldDataCRS = fieldDataOptions.EPSG[0]
+    fieldDataCRS = fieldDataOptions.CRS[0]
 
 # Convert shapely object to a geodataframe with a crs
 sites = gpd.GeoDataFrame(fieldDataSheet, geometry=siteCoords, crs=fieldDataCRS)
@@ -254,8 +250,7 @@ sites["RasterCellID"] = rasterCellIDs
 ps.environment.progress_bar()
 
 # If there are multiple points per cell - Aggregate or Weight sites
-# if pd.notnull(fieldDataOptions.AggregateAndWeight[0]):
-if fieldDataOptions.AggregateAndWeight[0] != "None":
+if fieldDataOptions.AggregateOrWeight[0] != "None":
     if len(np.unique(sites.RasterCellID)) != len(sites.RasterCellID):
         # find duplicates
         seen = set()
@@ -268,7 +263,7 @@ if fieldDataOptions.AggregateAndWeight[0] != "None":
         dupes = list(set(dupes)) # get unsorted unique list of tuples
 
         # if Aggregate sites is selected       
-        if fieldDataOptions.AggregateAndWeight[0] == "Aggregate":
+        if fieldDataOptions.AggregateOrWeight[0] == "Aggregate":
             # if presence absence data
             if all(sites.Response.isin([0,1])):
                 for d in dupes:
@@ -305,7 +300,7 @@ if fieldDataOptions.AggregateAndWeight[0] != "None":
 #%% Save updated field data to scenario 
 outputFieldDataSheet = sites.iloc[:,0:7]
 outputFieldDataSheet.SiteID = outputFieldDataSheet.SiteID.astype(int) # ensure SiteID is type integer
-myScenario.save_datasheet(name="FieldData", data=outputFieldDataSheet) 
+myScenario.save_datasheet(name="wisdm_FieldData", data=outputFieldDataSheet) 
   
 # update progress bar
 ps.environment.progress_bar()
@@ -336,7 +331,7 @@ for i in range(len(covariateDataSheet.CovariatesID)):
 siteData = pd.melt(sitesOut, id_vars= "SiteID", value_vars=sitesOut.columns[1:], var_name="CovariatesID", value_name="Value")
 
 # Save site data to scenario 
-myScenario.save_datasheet(name="SiteData", data=siteData)  
+myScenario.save_datasheet(name="wisdm_SiteData", data=siteData)  
 
 # update progress bar
 ps.environment.progress_bar(report_type = "end")

@@ -1,8 +1,9 @@
 ## ---------------------------------
 ## wisdm - prep multiprocessing
-## ApexRMS, October 2022
+## ApexRMS, March 2024
 ## ---------------------------------
 
+# built under Python version 3.11.0 & SyncroSim version 3.0.0
 # This script generates a spatial multiprocessing (smp) grid from a 
 # template raster -- here specificaly set up to generaet smp grids 
 # for conus map zones
@@ -35,19 +36,18 @@ ps.environment.progress_bar(report_type = "begin", total_steps = steps)
 
 # Load current scenario
 myScenario = ps.Scenario()  
+myLibrary = myScenario.library
 
 # Create a temporary folder for storing rasters
-ssimTempDir = ps.runtime_temp_folder("Data")
-
-# Get path to scnario inputs 
-ssimInputDir = myScenario.library.location + ".input\Scenario-" + str(myScenario.sid)
+# ssimTempDir = myLibrary.info["Value"][myLibrary.info.Property == "Temporary files:"].item() 
+ssimTempDir = ps.runtime_temp_folder("DataTransfer\Scenario-" + str(myScenario.sid))
 
 # Load datasheets
-networkSheet = myScenario.library.datasheets("Network")
-templateRasterSheet = myScenario.datasheets("TemplateRaster", show_full_paths=True)
+networkSheet = myScenario.library.datasheets("wisdm_Network")
+templateRasterSheet = myScenario.datasheets("wisdm_TemplateRaster", show_full_paths=True)
 multiprocessingSheet = myScenario.datasheets("core_Multiprocessing")
 
-spatialMultiprocessingSheet = myScenario.datasheets("corestime_Multiprocessing")
+spatialMultiprocessingSheet = myScenario.datasheets("core_SpatialMultiprocessing")
 
 # update progress bar
 ps.environment.progress_bar()
@@ -201,7 +201,7 @@ output_filename = "smpGrid-" + str(num_tiles) + "-" + str(int(tile_size/1e3)) + 
 
 # update template raster datasheet
 templateRasterSheet.TileCount = [num_tiles]
-myScenario.save_datasheet(name="TemplateRaster", data=templateRasterSheet)
+myScenario.save_datasheet(name="wisdm_TemplateRaster", data=templateRasterSheet)
 
 # update progress bar
 ps.environment.progress_bar()
@@ -230,7 +230,7 @@ with rasterio.open(os.path.join(ssimTempDir, output_filename), "w", compress='de
 # Save to sample grid to scenario
 # add a row to the datasheet
 spatialMultiprocessingSheet["MaskFileName"] = [os.path.join(ssimTempDir, output_filename)]
-myScenario.save_datasheet(name="corestime_Multiprocessing", data=spatialMultiprocessingSheet) 
+myScenario.save_datasheet(name="core_SpatialMultiprocessing", data=spatialMultiprocessingSheet) 
 
 # update progress bar
 ps.environment.progress_bar(report_type = "end")

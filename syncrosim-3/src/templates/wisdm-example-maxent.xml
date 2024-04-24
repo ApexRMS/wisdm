@@ -2,8 +2,7 @@
 <template
   name="wisdm-example-maxent"
   displayName="WISDM - Maxent Example"
-  description="
-    {br} Example library for modeling Brewer's and Vesper's Sparrow distributions in the Wyoming Basins, USA." 
-  location="https://s3.us-west-2.amazonaws.com/apexrms.com.syncrosim.templates/wisdm/v1.0.15/wisdm-example-maxent.zip"
+  description="{br} Example library for modeling Brewer's and Vesper's Sparrow distributions in the Wyoming Basins, USA." 
+  location="https://s3.us-west-2.amazonaws.com/apexrms.com.syncrosim.templates/wisdm/v2.0.0/wisdm-example-maxent.zip"
   liveUpdate="True">
 </template>

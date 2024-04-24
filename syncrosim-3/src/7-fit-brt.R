@@ -1,15 +1,15 @@
 ## --------------------
 ## wisdm - fit brt
-## ApexRMS, October 2023
+## ApexRMS, April 2024
 ## --------------------
 
-# built under R version 4.1.3 & SyncroSim version 2.4.40
+# built under R version 4.1.3 & SyncroSim version 3.0.0
 # script pulls in pre-processed field, site and covariate data; fits boost 
 # regression trees (brt) model; builds model diagnostic and validation plots 
 
 # source dependencies ----------------------------------------------------------
   
-  library(rsyncrosim)
+  library(rsyncrosim) # install.packages("C:/GitHub/rsyncrosim", type="source", repos=NULL) 
   library(tidyr)
   library(dplyr)
   library(dismo)
@@ -30,17 +30,17 @@ progressBar(type = "begin", totalSteps = steps)
   # datasheet(myScenario)
   
   # Path to ssim temporary directory
-  ssimTempDir <- Sys.getenv("ssim_temp_directory")
+  ssimTempDir <- ssimEnvironment()$TransferDirectory
   
   # Read in datasheets
   covariatesSheet <- datasheet(myScenario, "wisdm_Covariates", optional = T)
   modelsSheet <- datasheet(myScenario, "wisdm_Models")
-  fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
+  fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T) %>% dplyr::select(-ScenarioId)
   validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
-  reducedCovariatesSheet <- datasheet(myScenario, "wisdm_ReducedCovariates", lookupsAsFactors = F)
-  siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
-  BRTSheet <- datasheet(myScenario, "wisdm_BRT")
-  modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T, empty = T, lookupsAsFactors = F)
+  retainedCovariatesSheet <- datasheet(myScenario, "wisdm_RetainedCovariates", lookupsAsFactors = F)
+  siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F) %>% dplyr::select(-ScenarioId)
+  BRTSheet <- datasheet(myScenario, "wisdm_BRT") %>% dplyr::select(-ScenarioId)
+  modelOutputsSheet <- datasheet(myScenario, "wisdm_OutputModel", optional = T, returnInvisible = T, empty = T, lookupsAsFactors = F) %>% drop_na()
 
   progressBar()
 
@@ -54,8 +54,9 @@ progressBar(type = "begin", totalSteps = steps)
 #  Set defaults ----------------------------------------------------------------  
   
   ## BRT Sheet
-  if(nrow(BRTSheet)<1){
+  if(nrow(BRTSheet)<1 | all(is.na(BRTSheet))){
     fitFromDefaults <- TRUE
+    BRTSheet <- BRTSheet %>% drop_na()
     BRTSheet <- addRow(BRTSheet, list(FittingMethod = "Use defaults and tuning",
                                       LearningRate = 0.001,                     # learning.rate
                                       BagFraction = 0.75,                       # bag.fraction
@@ -91,7 +92,7 @@ progressBar(type = "begin", totalSteps = steps)
   siteDataWide <- spread(siteDataSheet, key = CovariatesID, value = "Value")
   
   # remove variables dropped due to correlation
-  siteDataWide <- siteDataWide[,c('SiteID', reducedCovariatesSheet$CovariatesID)]
+  siteDataWide <- siteDataWide[,c('SiteID', retainedCovariatesSheet$CovariatesID)]
   
   # merge field and site data
   siteDataWide <- merge(fieldDataSheet, siteDataWide, by = "SiteID")
@@ -148,7 +149,7 @@ progressBar(type = "begin", totalSteps = steps)
   } else { out$modelFamily <- "bernoulli"} # "binomial"
   
   ## Candidate variables 
-  out$inputVars <- reducedCovariatesSheet$CovariatesID
+  out$inputVars <- retainedCovariatesSheet$CovariatesID
   out$factorInputVars <- factorInputVars
   
   ## training data
@@ -167,12 +168,12 @@ progressBar(type = "begin", totalSteps = steps)
   out$validationOptions <- validationDataSheet 
   
   ## path to temp ssim storage 
-  out$tempDir <- file.path(ssimTempDir, "Data")
+  out$tempDir <- ssimTempDir
   
 # Create output text file ------------------------------------------------------
 
-  capture.output(cat("Boosted Regression Tree Results"), file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt")) 
-  on.exit(capture.output(cat("Model Failed\n\n"),file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),append=TRUE))  
+  capture.output(cat("Boosted Regression Tree Results"), file=file.path(ssimTempDir, paste0(modType, "_output.txt"))) 
+  on.exit(capture.output(cat("Model Failed\n\n"),file=file.path(ssimTempDir, paste0(modType, "_output.txt"),append=TRUE)))  
 
 
 # Review model data ------------------------------------------------------------
@@ -250,6 +251,7 @@ progressBar(type = "begin", totalSteps = steps)
                 "\n\tn folds                      : ",finalMod$gbm.call$cv.folds,
                 "\n\tn covariates in final model  : ",paste(out$finalVars, collapse = ", "),
                 sep="")
+  
   txt1 <- "\nRelative influence of predictors in final model:\n\n"
   # txt2 <- "\nImportant interactions in final model:\n\n"
   
@@ -257,7 +259,7 @@ progressBar(type = "begin", totalSteps = steps)
   modelSummary <- modelSummary[order(modelSummary[,2],decreasing=T),]
   row.names(modelSummary) <- NULL
   
-  capture.output(cat(txt0),cat(txt1),print(modelSummary),file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),append=TRUE) 
+  capture.output(cat(txt0),cat(txt1),print(modelSummary),file=file.path(ssimTempDir, paste0(modType, "_output.txt")),append=TRUE) 
   
   updateRunLog("\nSummary of Model:\n")
   coeftbl <- modelSummary
@@ -292,7 +294,7 @@ progressBar(type = "begin", totalSteps = steps)
   updateRunLog(pander::pandoc.table.return(tbl, style = "simple", split.tables = 100))
   
   # save model info to temp storage
-  saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
+  saveRDS(finalMod, file = file.path(ssimTempDir, paste0(modType, "_model.rds")))
   
 ## Run Cross Validation (if specified) -----------------------------------------
   
@@ -317,31 +319,31 @@ progressBar(type = "begin", totalSteps = steps)
 
 # Save model outputs -----------------------------------------------------------
 
-  tempFiles <- list.files(file.path(ssimTempDir, "Data"))
+  tempFiles <- list.files(ssimTempDir)
   
   # add model Outputs to datasheet
   modelOutputsSheet <- addRow(modelOutputsSheet, 
                               list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
-                                   ModelRDS = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"),
-                                   ResponseCurves = paste0(ssimTempDir,"\\Data\\", modType, "_ResponseCurves.png"),
-                                   TextOutput = paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),
-                                   ResidualSmoothPlot = paste0(ssimTempDir,"\\Data\\", modType, "_ResidualSmoothPlot.png"),
-                                   ResidualSmoothRDS = paste0(ssimTempDir,"\\Data\\", modType, "_ResidualSmoothFunction.rds")))
+                                   ModelRDS = file.path(ssimTempDir, paste0(modType, "_model.rds")),
+                                   ResponseCurves = file.path(ssimTempDir, paste0(modType, "_ResponseCurves.png")),
+                                   TextOutput = file.path(ssimTempDir, paste0(modType, "_output.txt")),
+                                   ResidualSmoothPlot = file.path(ssimTempDir, paste0(modType, "_ResidualSmoothPlot.png")),
+                                   ResidualSmoothRDS = file.path(ssimTempDir, paste0(modType, "_ResidualSmoothFunction.rds"))))
   
   
   if(out$modelFamily != "poisson"){
-    if("brt_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_StandardResidualPlots.png") }
-    modelOutputsSheet$ConfusionMatrix <-  paste0(ssimTempDir,"\\Data\\", modType, "_ConfusionMatrix.png")
-    modelOutputsSheet$VariableImportancePlot <-  paste0(ssimTempDir,"\\Data\\", modType, "_VariableImportance.png")
-    modelOutputsSheet$VariableImportanceData <-  paste0(ssimTempDir,"\\Data\\", modType, "_VariableImportance.csv")
-    modelOutputsSheet$ROCAUCPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_ROCAUCPlot.png")
-    modelOutputsSheet$CalibrationPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_CalibrationPlot.png")
+    if("brt_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- file.path(ssimTempDir, paste0(modType, "_StandardResidualPlots.png")) }
+    modelOutputsSheet$ConfusionMatrix <- file.path(ssimTempDir, paste0(modType, "_ConfusionMatrix.png"))
+    modelOutputsSheet$VariableImportancePlot <- file.path(ssimTempDir, paste0(modType, "_VariableImportance.png"))
+    modelOutputsSheet$VariableImportanceData <- file.path(ssimTempDir, paste0(modType, "_VariableImportance.csv"))
+    modelOutputsSheet$ROCAUCPlot <- file.path(ssimTempDir, paste0(modType, "_ROCAUCPlot.png"))
+    modelOutputsSheet$CalibrationPlot <- file.path(ssimTempDir, paste0(modType, "_CalibrationPlot.png"))
   } else {
-    modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_PoissonResidualPlots.png")
+    modelOutputsSheet$ResidualsPlot <- file.path(ssimTempDir, paste0(modType, "_PoissonResidualPlots.png"))
   }
   
-  if("brt_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_AUCPRPlot.png") } 
+  if("brt_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- file.path(ssimTempDir, paste0(modType, "_AUCPRPlot.png")) } 
   
-  saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs", append = T)
+  saveDatasheet(myScenario, modelOutputsSheet, "wisdm_OutputModel", append = T)
   progressBar(type = "end")
   
