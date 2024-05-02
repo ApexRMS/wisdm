@@ -789,8 +789,8 @@ roc <- function (obs,    # observed response
   
   if (length(obs) != length(preds))
     stop("ROC function failed - observed and predicted response must be equal lengths")
-  n.x <- length(obs[obs == 0])
-  n.y <- length(obs[obs == 1])
+  n.x <- as.numeric(length(obs[obs == 0]))
+  n.y <- as.numeric(length(obs[obs == 1]))
   xy <- c(preds[obs == 0], preds[obs == 1])
   rnk <- rank(xy)
   wilc <- ((n.x * n.y) + ((n.x * (n.x + 1))/2) - sum(rnk[1:n.x]))/(n.x * n.y)
@@ -1269,8 +1269,7 @@ calcStat <- function(x,       # x <- out$data[[i]]
     }
     null.dev <- mean(null.dev)
     dev.fit <- mean(dev.vect)
-  }
-  else if(has.split & all(x$UseInModelEvaluation)){ # in the test split for pseudoAbs -- deviance shouldn't be calculated because calibration is wrong
+  } else if(has.split & all(x$UseInModelEvaluation)){ # in the test split for pseudoAbs -- deviance shouldn't be calculated because calibration is wrong
     null.dev = NA
     dev.fit = NA
   } else{
