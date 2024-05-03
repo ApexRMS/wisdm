@@ -15,7 +15,7 @@ currentBreakPoint <- proc.time()
 
 # source dependencies ----------------------------------------------------------
 
-library(rsyncrosim)
+library(rsyncrosim) # install.packages("https://github.com/syncrosim/rsyncrosim/releases/download/1.4.8/rsyncrosim_1.4.8.tar.gz", repo=NULL)
 library(terra)
 library(dplyr)
 
@@ -44,7 +44,7 @@ spatialMulitprocessingSheet <- datasheet(myScenario, "corestime_Multiprocessing"
 covariateDataSheet <- datasheet(myScenario, "CovariateData", optional = T, lookupsAsFactors = F)
 templateSheet <- datasheet(myScenario, "TemplateRaster")
 restrictionSheet <- datasheet(myScenario, "RestrictionRaster")
-modelOutputsSheet <- datasheet(myScenario, "ModelOutputs", optional = T, lookupsAsFactors = F)
+modelOutputsSheet <- datasheet(myScenario, "ModelOutputs", optional = T, lookupsAsFactors = F) #, returnInvisible = T
 outputOptionsSheet <- datasheet(myScenario, "OutputOptions", optional = T)
 
 spatialOutputsSheet <- datasheet(myScenario, "SpatialOutputs", optional = T, lookupsAsFactors = T)

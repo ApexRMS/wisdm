@@ -7,6 +7,6 @@
 /syncrosim-2/packageVersions
 /syncrosim-2/onlineExampleLibraries
 /syncrosim-3/exampleLibraries
-.bak
-.gitattributes
-.ssimpkg
+*.bak
+*.gitattributes
+*.ssimpkg

@@ -39,7 +39,7 @@ progressBar(type = "begin", totalSteps = steps)
   reducedCovariatesSheet <- datasheet(myScenario, "wisdm_ReducedCovariates", lookupsAsFactors = F)
   siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
   GLMSheet <- datasheet(myScenario, "wisdm_GLM")
-  modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T, empty = T, lookupsAsFactors = F)
+  modelOutputsSheet <- datasheet(myScenario, "wisdm_ModelOutputs", optional = T, empty = T, lookupsAsFactors = F) # , returnInvisible = T
 
   progressBar()
 
