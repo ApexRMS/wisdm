@@ -38,7 +38,7 @@ fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T) %>% sel
 siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F) %>% select(-ScenarioId)
 covariateSelectionSheet <- datasheet(myScenario, "wisdm_CovariateSelectionOptions", optional = T)
 retainedCovariatesSheet <- datasheet(myScenario, "wisdm_RetainedCovariates")
-covariateCorrelationSheet <- datasheet(myScenario, "wisdm_OutputCovariateCorrelationMatrix", optional = T)
+covariateCorrelationSheet <- datasheet(myScenario, "wisdm_OutputCovariateCorrelationMatrix", optional = T) %>% drop_na()
 
 progressBar()
 

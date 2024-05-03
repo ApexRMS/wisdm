@@ -527,21 +527,13 @@
 	</group>
 </layout>
 
-<!--Maps Layout-->
-<layout type="Map" displayName="Visuals">
-	<item name="CovariateMaps" displayName="Covariate Maps" dataSheet="CovariateData" column="RasterFilePath" filter="CovariatesID"/>
+<!--Image Layout-->
+<layout type="Image">	
 	<group name="CovariateCorrelationMatrix" displayName="Covariate Correlations">
 		<item  name="InitialMatrix" displayName="Initial Matrix" dataSheet="OutputCovariateCorrelationMatrix" column="InitialMatrix"/>
 		<item  name="SelectedMatrix" displayName="Selected Matrix" dataSheet="OutputCovariateCorrelationMatrix" column="SelectedMatrix"/>
 	</group>
-	<group name="MapOutputs" displayName="Map Outputs">
-		<item name="ProbabilityMap" displayName="Probability" dataSheet="OutputSpatial" column="ProbabilityRaster" filter="ModelsID" extendedIdentifier="(Probability)"/>
-		<item name="BinaryMap" displayName="Binary" dataSheet="OutputSpatial" column="BinaryRaster" filter="ModelsID" extendedIdentifier="(Binary)"/>
-		<item name="MessMap" displayName="MESS" dataSheet="OutputSpatial" column="MessRaster" filter="ModelsID" extendedIdentifier="(MESS)"/>
-		<item name="ModMap" displayName="MoD" dataSheet="OutputSpatial" column="ModRaster" filter="ModelsID" extendedIdentifier="(MoD)"/>
-		<item name="ResidualsMap" displayName="Residuals" dataSheet="OutputSpatial" column="ResidualsRaster" filter="ModelsID" extendedIdentifier="(Residuals)"/>
-	</group>
-	<group name="ModelOutputs" displayName="Model Outputs">
+		<group name="ModelOutputs" displayName="Model Outputs">
 		<item name="ResponseCurves" displayName="Response Curves" dataSheet="OutputModel" column="ResponseCurves" filter="ModelsID" extendedIdentifier="(Response Curves)"/>
 		<item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="OutputModel" column="ResidualsPlot" filter="ModelsID" extendedIdentifier="(Standard Residuals)"/>
 		<item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="OutputModel" column="ResidualSmoothPlot" filter="ModelsID" extendedIdentifier="(Residuals Smooth)"/>	
@@ -550,6 +542,18 @@
 		<item name="AUCPRPlot" displayName="AUCPR" dataSheet="OutputModel" column="AUCPRPlot" filter="ModelsID" extendedIdentifier="(AUCPR)"/>
 		<item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="OutputModel" column="ConfusionMatrix" filter="ModelsID" extendedIdentifier="(Confusion Matrix)"/>
 		<item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="OutputModel" column="VariableImportancePlot" filter="ModelsID" extendedIdentifier="(Variable Importance)"/>		
+	</group>
+</layout>
+
+<!--Maps Layout-->
+<layout type="Map">	
+	<item name="CovariateMaps" displayName="Covariate Maps" dataSheet="CovariateData" column="RasterFilePath" filter="CovariatesID"/>
+	<group name="MapOutputs" displayName="Map Outputs">
+		<item name="ProbabilityMap" displayName="Probability" dataSheet="OutputSpatial" column="ProbabilityRaster" filter="ModelsID" extendedIdentifier="(Probability)"/>
+		<item name="BinaryMap" displayName="Binary" dataSheet="OutputSpatial" column="BinaryRaster" filter="ModelsID" extendedIdentifier="(Binary)"/>
+		<item name="MessMap" displayName="MESS" dataSheet="OutputSpatial" column="MessRaster" filter="ModelsID" extendedIdentifier="(MESS)"/>
+		<item name="ModMap" displayName="MoD" dataSheet="OutputSpatial" column="ModRaster" filter="ModelsID" extendedIdentifier="(MoD)"/>
+		<item name="ResidualsMap" displayName="Residuals" dataSheet="OutputSpatial" column="ResidualsRaster" filter="ModelsID" extendedIdentifier="(Residuals)"/>
 	</group>
 	<group name="EnsembleOutputs" displayName="Ensemble Outputs">
 		<item name="ProbabilityMapMean" displayName="Probability Ensemble (Mean)" dataSheet="OutputEnsemble" column="ProbabilityRasterMean"/>
