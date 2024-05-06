@@ -157,23 +157,23 @@
 <!--Output Datasheets-->
 
 <dataSheet name="OutputCovariateCorrelationMatrix">
-	<column name="InitialMatrix" dataType="String" isExternalFile="True" isPngImage="True"/>
-	<column name="SelectedMatrix" dataType="String" isExternalFile="True" isPngImage="True"/>
+	<column name="InitialMatrix" dataType="String" isExternalFile="True" isImage="True"/>
+	<column name="SelectedMatrix" dataType="String" isExternalFile="True" isImage="True"/>
 </dataSheet>
 
 <dataSheet name="OutputModel" displayName="Model Outputs">
 	<column name="ModelsID" dataType="Integer" validationType="Datasheet" formula1="Models" isVisible="False"/>						
 	<column name="ModelRDS" displayName="Model RDS" dataType="String" isExternalFile="True" isReadOnly="True"/>
-	<column name="ResponseCurves" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
-	<column name="ResidualsPlot" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
-	<column name="ResidualSmoothPlot" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
+	<column name="ResponseCurves" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+	<column name="ResidualsPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+	<column name="ResidualSmoothPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
 	<column name="ResidualSmoothRDS" dataType="String" isExternalFile="True" isVisible="False"/>
 	<column name="TextOutput" dataType="String" isExternalFile="True" isVisible="False"/>
-	<column name="CalibrationPlot" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
-	<column name="ROCAUCPlot" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
-	<column name="AUCPRPlot" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
-	<column name="ConfusionMatrix" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
-	<column name="VariableImportancePlot" dataType="String" isExternalFile="True" isPngImage="True" isVisible="False"/>
+	<column name="CalibrationPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+	<column name="ROCAUCPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+	<column name="AUCPRPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+	<column name="ConfusionMatrix" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+	<column name="VariableImportancePlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
 	<column name="VariableImportanceData" dataType="String" isExternalFile="True" isVisible="False"/>
 	<column name="MaxentFiles" dataType="String" isExternalFile="True" isVisible="False"/>
 </dataSheet>
@@ -530,10 +530,10 @@
 <!--Image Layout-->
 <layout type="Image">	
 	<group name="CovariateCorrelationMatrix" displayName="Covariate Correlations">
-		<item  name="InitialMatrix" displayName="Initial Matrix" dataSheet="OutputCovariateCorrelationMatrix" column="InitialMatrix"/>
-		<item  name="SelectedMatrix" displayName="Selected Matrix" dataSheet="OutputCovariateCorrelationMatrix" column="SelectedMatrix"/>
+		<item name="InitialMatrix" displayName="Initial Matrix" dataSheet="OutputCovariateCorrelationMatrix" column="InitialMatrix"/>
+		<item name="SelectedMatrix" displayName="Selected Matrix" dataSheet="OutputCovariateCorrelationMatrix" column="SelectedMatrix"/>
 	</group>
-		<group name="ModelOutputs" displayName="Model Outputs">
+	<group name="ModelOutputs" displayName="Model Outputs">
 		<item name="ResponseCurves" displayName="Response Curves" dataSheet="OutputModel" column="ResponseCurves" filter="ModelsID" extendedIdentifier="(Response Curves)"/>
 		<item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="OutputModel" column="ResidualsPlot" filter="ModelsID" extendedIdentifier="(Standard Residuals)"/>
 		<item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="OutputModel" column="ResidualSmoothPlot" filter="ModelsID" extendedIdentifier="(Residuals Smooth)"/>	
