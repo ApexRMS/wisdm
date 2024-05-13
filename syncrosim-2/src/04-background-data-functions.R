@@ -166,6 +166,8 @@ backgroundPointGeneration <- function(sp,                           # species na
       
       while(nrow(pts) < n){
         
+        if(nrow(used) == nrow(valid)) break()
+        
         tmp <- valid[sample(nrow(valid), 1000),]
         tmp <- tmp[!(tmp$id %in% used$id), ]
         
@@ -193,7 +195,7 @@ backgroundPointGeneration <- function(sp,                           # species na
       
       # convert to spatVector and write out
       v <- as.data.frame(terra::xyFromCell(r, pts[[2]]))
-      v$Response <- c(rep(-9998, n))
+      v$Response <- c(rep(-9998, nrow(v)))
       colnames(v) <- c("X", "Y", "Response")
       write.csv(v, kde_pts_out, row.names = F)
       

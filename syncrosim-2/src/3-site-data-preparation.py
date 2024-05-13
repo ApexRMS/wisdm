@@ -200,6 +200,10 @@ ps.environment.progress_bar()
 
 nInitial = len(fieldDataSheet.SiteID)
 
+# if nInitial > 1000000:
+#     # random sample 1 million sites
+#     fieldDataSheet = fieldDataSheet.sample(n=1000000, random_state=1)
+
 # Create shapely points from the coordinate-tuple list
 siteCoords = [Point(x, y) for x, y in zip(fieldDataSheet.X, fieldDataSheet.Y)]
 # gpd.GeoSeries(siteCoords).plot()
