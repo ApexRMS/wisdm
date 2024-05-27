@@ -16,10 +16,10 @@ import os
 import sys
 
 # import modules
+import rasterio
 import pysyncrosim as ps
 from rasterio import enums
 import rioxarray
-import rasterio
 import xarray
 import numpy as np
 import math

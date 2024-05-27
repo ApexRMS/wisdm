@@ -46,12 +46,12 @@ if len(gdal_installations) > 1:
                     [p for p in os.environ['PATH'].split(os.pathsep) if folder not in p])
 
 ## dependencies
+import rasterio
 import pysyncrosim as ps     
 import numpy as np          
 import pandas as pd          
 import rioxarray
 import xarray
-import rasterio
 import geopandas as gpd
 import shapely
 import dask
