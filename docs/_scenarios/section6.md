@@ -82,11 +82,20 @@ Determines whether to create a binary map, which is generated from the probabili
 
 ### **Binary Threshold Optimization Method**
 The **Binary Threshold Optimization Method** argument indicates which method do use for setting the threshold value when generating the binary map. Options include:
-* <u>Max kappa</u>: The threshold at which kappa is highest.
-* <u>Max sensitivity and specificity</u>: The threshold at which the sum of the sensitivity (true positive rate) and specificity (true negative rate) is highest.
-* <u>No omission</u>: The highest threshold at which there is no omission.
-* <u>Prevalence</u>: The threshold at which modeled prevalence is closest to observed prevalence.
-* <u>Sensitivity equals specificity</u>: The threshold at which there is equal sensitivity and specificity.
+* <u>Max kappa</u>: 
+    * The threshold at which kappa is highest.
+
+* <u>Max sensitivity and specificity</u>: 
+    * The threshold at which the sum of the sensitivity (true positive rate) and specificity (true negative rate) is highest.
+
+* <u>No omission</u>: 
+    * The highest threshold at which there is no omission.
+
+* <u>Prevalence</u>: 
+    * The threshold at which modeled prevalence is closest to observed prevalence.
+
+* <u>Sensitivity equals specificity</u>: 
+    * The threshold at which there is equal sensitivity and specificity.
 
 <br>
 
@@ -139,7 +148,7 @@ The **Normalize probability before ensemble** argument specifies whether each pr
 </div>
 
 ### **Make binary ensemble map**
-If the **Make binary ensemble map** argument is set to "Yes", binary maps will be combined to create a single binary ensemble map. Provided inputs for the **Binary ensemble method** and **Ignore predicted NA values** aruments will further impact the binary ensemble map created. 
+If the **Make binary ensemble map** argument is set to "Yes", binary maps will be combined to create a single binary ensemble map. Provided inputs for the **Binary ensemble method** and **Ignore predicted NA values** arguments will further impact the binary ensemble map created. 
 
 <div class=indentation> 
     <i>Default:</i> No.
@@ -170,7 +179,7 @@ The **Ensemble Outputs** datasheet contains information about the ensembled outp
 * Binary Ensemble (Mean)
 * Binary Ensemble (Sum)
 
-Note that only one probability and one binary ensemble can created for the result **Scenario**.  The ensemble output type will depend on the inputs (or defaults) in the **Ensemble Outputs** datasheet.
+Note that only one probability and one binary ensemble can be created for the result **Scenario**.  The ensemble output type will depend on the inputs (or defaults) in the **Ensemble Outputs** datasheet.
 
 ### **Probability Ensemble (Mean)**
 The **Probability Ensemble (Mean)** is a map of probability created by taking the per-pixel average of values in the **Scenario**'s individual probability outputs. Values represent the likelihood of occurrence ranging from 0 - 100%.

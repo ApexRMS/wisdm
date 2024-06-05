@@ -50,9 +50,9 @@ In the SyncroSim UI, the **Models** tab can be accessed by right-clicking on a *
 
 <br>
 
-<p id="heading04"> <h2><b>Boosted Regression Tree</b></h2> </p>
+<p id="heading04"> <h2><b>Boosted Regression Trees</b></h2> </p>
 
-The **Boosted Regression Tree** *Datasheet* contains information about the Boosted Regression Tree (BRT) algorithm, which is a machine-learning model and is described in and uses code from [Elith et al., 2008](https://doi.org/10.1111/j.1365-2656.2008.01390.x) and [Valavi et al., 2021](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecm.1486). Arguments for this model correspond with model fitting inputs for the gbm.step function in the [dismo R package](https://cran.r-project.org/web/packages/dismo/dismo.pdf), and defaults were set based on Valavi et al., 2021.
+The **Boosted Regression Trees** *Datasheet* contains information about the Boosted Regression Tree (BRT) algorithm, which is a machine-learning model and is described in and uses code from [Elith et al., 2008](https://doi.org/10.1111/j.1365-2656.2008.01390.x) and [Valavi et al., 2021](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecm.1486). Arguments for this model correspond with model fitting inputs for the gbm.step function in the [dismo R package](https://cran.r-project.org/web/packages/dismo/dismo.pdf), and defaults were set based on Valavi et al., 2021.
 
 ### **Fitting Method**
 The BRT fitting process can either be more user-specified or default-based. This argument allows the user to specify whether default values or user-specified values should be used in the fitting process for BRT. If this argument is set to "Use defaults and tuning", the code will tune the learning rate and number of trees to find values that fit a model to the full dataset and all CV splits.  If the argument is set to "Use values provided below", tuning does not occur and only the values provided in the below arguments will be used for model fitting.
@@ -95,7 +95,7 @@ Sets the maximum number of trees to fit before stopping.
 The **GLM** *Datasheet* contains information about the Generalized Linear Model (GLM) algorithm options.
 
 ### **Select Best Predictors**
-Determines whether to the GLM should use internal statistical methods to determine which predictors are significant to the model and  remove predictors that are unimportant for the *Scenario* ("Yes"). If *Select Best Predictors* is set to "No", the GLM will use all predictors offered to it. 
+Determines whether to the GLM should use internal statistical methods to determine which predictors are significant to the model and  remove predictors that are unimportant for the *Scenario*. If *Select Best Predictors* is set to "No", the GLM will use all predictors offered to it. 
 
 <div class=indentation> 
     <i>Default:</i> No.
@@ -109,14 +109,14 @@ Defines how the predictors are chosen for the GLM. Two options are available: "A
 </div>
 
 ### **Consider Squared Terms**
-Determines whether the GLM should consider relationships between the predictors and the response in a non-linear relationship by squaring the predictor values ("Yes"). 
+Determines whether the GLM should consider relationships between the predictors and the response in a non-linear relationship by squaring the predictor values. 
 
 <div class=indentation> 
     <i>Default:</i> No.
 </div>
 
 ### **Consider Interactions**
-Determines whether the GLM should take into account interactions among covariates during the modeling process ("Yes"). 
+Determines whether the GLM should take into account interactions among covariates during the modeling process. 
 
 <div class=indentation> 
     <i>Default:</i> No.
@@ -139,27 +139,27 @@ Sets the memory that should be allocated to the Maxent algorithm, in gigabytes.
 Sets the maximum number of background points that will be generated during the modeling process for the Maxent algorithm. More background points will lead to a higher entropy of the model, and only one background point can be generated per raster cell. 
 
 <div class=indentation> 
-    <i>Default:</i> 10,000.
+    <i>Default:</i> 10,000, or maximum number of raster cells.
 </div>
 
 
 ### **Number of processing threads**
-Sets the number of processing threads used for the Maxent algorithm. If this argument is not specified, the number of processing threads for Maxent will rely on the .
+Sets the number of processing threads used for the Maxent algorithm. If this argument is not specified, the number of processing threads for Maxent will be set relative to the number of cores on the machine on which the **Scenario** is being run.
 
 <div class=indentation> 
     <i>Default:</i> SyncroSim multiprocessing settings.
 </div>
 
 ### **View maxent user interface during run**
-Determine whether to show the Maxent user interface ("Yes"). 
+Determine whether to show the Maxent user interface. 
 
 <div class=indentation> 
     <i>Default:</i> No.
 </div>
 
 
-### **Save maxent formated input/output files**
-Determines whether to save Maxent's input and output files to the library folders ("Yes").
+### **Save maxent formatted input/output files**
+Determines whether to save Maxent's input and output files to the library folders.
 
 <div class=indentation> 
     <i>Default:</i> No.
@@ -172,14 +172,14 @@ Determines whether to save Maxent's input and output files to the library folder
 The **Random Forest** *Datasheet* contains information about the Random Forest (RF) algorithm - a machine-learning ensemble classifier. More information about Random Forest can be found in the [randomForest R package documentation](https://cran.r-project.org/web/packages/randomForest/randomForest.pdf).
 
 ### **Evaluate covariate importance**
-Determines whether the RF algorithm should evaluate covariate importance during the modeling process by calculating the change in fit statistics for trees that include each covariate ("Yes"). 
+Determines whether the RF algorithm should evaluate covariate importance during the modeling process by calculating the change in fit statistics for trees that include each covariate. 
 
 <div class=indentation> 
     <i>Default:</i> Yes.
 </div>
 
 ### **Calculate casewise importance**
-Determines whether the RF algorithm should calculate the importance of each covariate during the classification process and measure how significantly covariates influence the output ("Yes"). For more information about covariate and casewise importance in the RF algorithm, see [Classification and Regression with Random Forest](https://haoen-cui.github.io/SOA-Exam-PA-R-Package-Documentation/randomForest/reference/randomForest.html). 
+Determines whether the RF algorithm should calculate the importance of each covariate during the classification process and measure how significantly covariates influence the output. For more information about covariate and casewise importance in the RF algorithm, see [Classification and Regression with Random Forest](https://haoen-cui.github.io/SOA-Exam-PA-R-Package-Documentation/randomForest/reference/randomForest.html). 
 
 <div class=indentation> 
     <i>Default:</i> No.
@@ -202,21 +202,21 @@ Sets the number of trees for the RF algorithm.
 *Optional*. Sets the size of the terminal nodes. A larger node size causes smaller trees to be grown and will take less time.
 
 ### **Normalize votes**
-Determines whether each decision tree's vote should be divided by the total number of votes to ensure that the sum of the votes is 1 ("Yes"). Votes will be expressed as fractions.
+Determines whether each decision tree's vote should be divided by the total number of votes to ensure that the sum of the votes is 1. Votes will be expressed as fractions.
 
 <div class=indentation> 
     <i>Default:</i> Yes.
 </div>
 
 ### **Calculate proximity**
-Determines whether proximity measures should be calculated ("Yes"). Proximity measures are based on the frequency that pairs of data points are in the same terminal nodes.
+Determines whether proximity measures should be calculated. Proximity measures are based on the frequency that pairs of data points are in the same terminal nodes.
 
 <div class=indentation> 
     <i>Default:</i> No.
 </div>
 
 ### **Sample with replacement**
-Determines whether each decision tree should be trained on a bootstrap sample of the data, so some observations can be repeated or left out ("Yes").
+Determines whether each decision tree should be trained on a bootstrap sample of the data, so some observations can be repeated or left out.
 
 <div class=indentation> 
     <i>Default:</i> No.
@@ -261,7 +261,7 @@ The **Model Outputs** *Datasheet* contains information about the outputs of the 
 * Variable Importance Data
 * Maxent Files
 
-Note that not all outputs are generated per model run. The outputs that are generated depend on the selected model and the type of field data being used (e.g., presence/absence, count).
+Note that not all outputs are generated per model run. The outputs that are generated depend on the type of model selected and the type of field data being used (e.g., presence/absence, count).
 
 ### **Model RDS**
 Defines the names of the model .rds files (which hold R objects) for algorithms that have completed execution.
@@ -291,7 +291,7 @@ The **ROC/AUC Plots** show the relationship between sensitivity (true positives)
 The **AUCPR** plots show the relationship between recall (True positives / (True positives + False negatives)) and precision (True positives / (True positives + False Positives)) of the algorithm along with the Training split AUC and cross validation mean AUC. For more information about ROC/AUC and AUCPR plots, see [(Davis & Goadrich, 2006)](https://www.researchgate.net/publication/215721831_The_Relationship_Between_Precision-Recall_and_ROC_Curves#full-text). 
 
 ### **Confusion Matrix**
-The **Confusion Matrix** Shows the number of values classified by the algorithm as a presence or an absence compared to the observed number of presences and absences in the data. The algorithm will output a confusion matrix for the train data, and a confusion matrix for the cross validation or test data. Each matrix consists of 4 cells, which predicted values on the left and observed values on the bottom. The top left cell shows the number of values predicted to be a presence that were observed to be a presence. The top right cell shows the number of values predicted to be a presence that were actually observed as absences. The bottom left cell shows the number of values predicted to be an absence that were actually observed as presences. The bottom right cell shows the number of values predicted to be an absence that were also observed to be abcenses. These values contribute to the calculation of the statistics at the bottom of the matrix: percent correctly classified, sensitivity, specificity, true skill statistic, and Cohen's Kappa. The values in the **Confusion Matrix** can help identify how well or poorly the algorithm has made its predictions.
+The **Confusion Matrix** Shows the number of values classified by the algorithm as a presence or an absence compared to the observed number of presences and absences in the data. The algorithm will output a confusion matrix for the train data, and a confusion matrix for the cross validation or test data. Each matrix consists of 4 cells, which predicted values on the left and observed values on the bottom. The top left cell shows the number of values predicted to be a presence that were observed to be a presence. The top right cell shows the number of values predicted to be a presence that were actually observed as absences. The bottom left cell shows the number of values predicted to be an absence that were actually observed as presences. The bottom right cell shows the number of values predicted to be an absence that were also observed to be absences. These values contribute to the calculation of the statistics at the bottom of the matrix: percent correctly classified, sensitivity, specificity, true skill statistic, and Cohen's Kappa. The values in the **Confusion Matrix** can help identify how well or poorly the algorithm has made its predictions.
 
 ### **Variable Importance Plot**
 The **Variable Importance Plot** shows the relative influence of each predictor in the model. Variable importance is calculated by permuting the values of the predictors in the dataset and predicting the model to the new dataset with the permuted predictor values and measuring the mean drop in the AUC value using 5 different permutations of the predictor. The importance is measured by the change in AUC when each predictor is permuted and appears on the x-axis with individual variables on the y-axis. The importance is shown for the cross-validation, train, and test data.

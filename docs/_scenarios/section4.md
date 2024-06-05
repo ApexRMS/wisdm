@@ -43,6 +43,7 @@ The **Variable Reduction** tab groups the following *Scenario Datasheets*::
 * Covariate Selection Options
 * Reduced Covariate List
 
+
 In the SyncroSim UI, the **Variable Reduction** tab can be accessed by right-clicking on a **WISDM** *Scenario* and selecting *Properties* from the context menu.
 
 <br>
@@ -50,7 +51,7 @@ In the SyncroSim UI, the **Variable Reduction** tab can be accessed by right-cli
 <p id="heading01"> <h2><b>Site Data</b></h2> </p>
 
 The **Site Data** *Datasheet* contains information about covariate values at each *Field Data* site (*i.e.*, presence location or absence location provided in *Field Data*). 
-> The *Site Data* *Datasheet* will be auto-populated after a *Scenario* has finished running. 
+> The *Site Data* *Datasheet* will be automatically populated after a *Scenario* has finished running. 
 
 ### **Site**
 Sets the site IDs for each site containing data for a given covariate. The ID is based on the *Field Data* *Datasheet*.
@@ -68,14 +69,14 @@ Sets the covariates values at each site.
 The **Covariate Selection Options** *Datasheet* contains options for how correlations among covariates should be treated during the modeling process for *Stage 4 - Variable Reduction*.
 
 ### **Covariate Selection Method**
-The *Covariate Selection Method* defines which method to use for variable reduction, and can either be Interactive (Correlation Viewer) or Automatic (Variance Inflation Factor). The Interactive method allows users to interact with the pop-up correlation viewer and select which variables to include in model development. The Automatic method automatically drops correlated variables using the "vifcor" function in the [usdm R package](https://cran.r-project.org/web/packages/usdm/usdm.pdf). 
+The *Covariate Selection Method* defines which method to use for variable reduction, and can either be Interactive (Correlation Viewer) or Automatic (Variance Inflation Factor). The Interactive method allows users to interact with the pop-up correlation viewer and select which variables to include in model development. The Automatic method automatically drops correlated variables using the "vifstep" function in the [usdm R package](https://cran.r-project.org/web/packages/usdm/usdm.pdf). 
 
 <div class=indentation> 
     <i>Default:</i> Interactive (Correlation viewer).
 </div>
 
 ### **Display Highest Correlations**
-Determines whether only variables that are significantly correlated with the variable that has the <u>most total correlations</u> will be displayed in a correlation matrix ("Yes"). Other correlations between covariates, excluding the variable with the most total correlations, will not be displayed in the covariate correlation matrix. If "No" is selected, all correlations will be displayed in the matrix, including those not correlated with the variable that has the most correlations. 
+Determines whether only variables that are significantly correlated with the variable that has the <u>most total correlations</u> will be displayed in a correlation matrix. Other correlations between covariates, excluding the variable with the most total correlations, will not be displayed in the covariate correlation matrix. If "No" is selected, all correlations will be displayed in the matrix, including those not correlated with the variable that has the most correlations. 
 
 <div class=indentation> 
     <i>Default:</i> Yes.

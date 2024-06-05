@@ -45,7 +45,7 @@ In the SyncroSim UI, it can be accessed by right-clicking on a **WISDM** *Projec
 Provides a name for the covariate. The *Covariate Name* is used by the **Site Data** *Datasheet* under the [**Variable Reduction**](variable-reduction#heading01) tab.  
 
 ### **Is Categorical**
-*Optional*. Determines whether the covariate is factor-based ("Yes"). 
+*Optional*. Determines whether the covariate is factor-based. 
 
 <div class=indentation> 
     <i>Default:</i> No.
