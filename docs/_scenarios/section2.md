@@ -60,13 +60,13 @@ Defines the owner of the *Scenario*.
 ### **Description**
 Provides a description of the *Scenario*, including objectives, species names, geographic extent, and other pertinent information to be captured.
 
-### **Project**
-Defines the *Project* to which the *Scenario* belongs. The *Project* is the second highest level of organization within the *Library Explorer* window. It is nested within the *Library* level, and contains all of the *Scenarios*. In the SyncroSim UI, the default *Project* name "Definitions" can be modified by right-clicking the *Project* on the *Library Explorer* window, selecting ***Properties*** from the context menu, and editing the "Name" field. 
-> Covariates are defined at the *Project* scope.
-
 ### **Library**
 Defines the *Library* to which the *Scenario* belongs. The *Library* is the highest level of organization within the *Library Explorer* window, and contains the *Project*. In the SyncroSim UI, the *Library* name can be modified by right-clicking the *Library* on the *Library Explorer* window, selecting ***Properties*** from the context menu, and editing the "Name" field .
 > R and Python configurations are controlled at the *Library* level.
+
+### **Project**
+Defines the *Project* to which the *Scenario* belongs. The *Project* is the second highest level of organization within the *Library Explorer* window. It is nested within the *Library* level and contains all *Scenarios* for a specific project. In the SyncroSim UI, the default *Project* name "Definitions" can be modified by right-clicking the *Project* on the *Library Explorer* window, selecting ***Properties*** from the context menu, and editing the "Name" field.
+> Covariates are defined at the *Project* scope.
 
 ### **Last modified**
 Defines when the *Scenario* was last modified. It is presented in the following format: Month-Day-Year Hour:Minute:Second AM/PM. 
@@ -78,7 +78,7 @@ Used to autogenerate *Scenarios* for factorial combinations of parameter inputs.
 Checking "Read only" prevents the *Scenario* from being edited. 
 
 ### **Merge Dependencies**
-Checking "Merge dependencies" allows the dependencies for the source *Scenario(s)* to be merged, rather than prioritized. Dependencies allow different steps of the pipeline to be run in different *Scenarios*. For more information about dependencies, see the [SyncroSim documentation](https://docs.syncrosim.com/how_to_guides/properties_dependencies.html).
+Dependencies allow different steps of the pipeline to be run in different *Scenarios*. For more information about dependencies, see the [SyncroSim documentation](https://docs.syncrosim.com/how_to_guides/properties_dependencies.html). Checking "Merge Dependencies" allows the dependencies for the source *Scenario(s)* to be merged rather than being prioritized by the order they appear in the list of dependencies.
 
 ### **Ignore Dependencies...**
 Selecting "Ignore Dependencies" will lead to a panel showing *Datafeeds* and *Packages*. Checking the box "Ignore" allows the *Scenario* to ignore the selected *Package(s)* when running. 
@@ -98,23 +98,58 @@ Defines the transformers that will be run in the *Scenario*. The general stages 
 5. Prepare Training/Testing Data
 6. Variable Reduction
 7. Models 
+    * Boosted Regression Trees (BRTs)
     * Generalized Linear Model (GLM)
-    * Boosted Regression Trees (BRTs): New transformer for building BRT models using methods and defaults described in [Valavi et al., 2021](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecm.1486). See Appendix 2 for code and model development details. 
-    * Random Forest
     * Maxent
+    * Random Forest
 8. Apply Model
 9. Ensemble Model
 
 Here are some short descriptions of each stage:
-1. <u>Prepare Multiprocessing</u>: Generates a tiling raster that will be used by subsequent transformers to divide spatial data into smaller chunks for parallel processing. Required inputs: Template Raster File. Outputs: Spatial Multiprocessing Tiling Raster.
-2. <u>Spatial Data Preparation</u>: Prepares Covariate and Restriction rasters to align with the extent, resolution, and reference system of the Template raster. Required inputs: Template Raster File, Covariate data. Outputs: Updated covariate data
-3. <u>Site Data Preparation</u>: Field Data are projected and clipped to the resolution and extent of the Template Raster. If Aggregate or Weight is selected under **Field Data Options**, the field data records are aggregated or weighted based on their spatial distribution. Covariate values are then extracted for the remaining field data records. Required inputs: Template Raster File, Field Data, Covariate Data. Outputs: Updated Field Data and Site Data.
-4. <u>Background Data Generation</u>: Generates background sites (pseudoabsences), extracts covariate data for the pseudoabsence sites and updates the Field Data and Site Data to include pseudoabsence data. Required inputs: Template Raster File, Field Data, Covariate Data, Site Data. Outputs: Updated Field Data and updated Site Data. 
-5. <u>Prepare Training/Testing Data</u>: Divides Field Data into training and testing sets and/or cross validation folds based on the provided Validation Options arguments. Required inputs: Field Data, Site Data. Outputs: Updated Field Data. 
-6. <u>Variable Reduction</u>: Reduces correlated covariates through either an automated approach (using Variance Inflation Factors) or an interactive approach which involves user selection of covariates through a correlation viewer application. Required inputs: Field Data, Site Data. Outputs: Updated Retained Covariate List and a Covariate Selection Matrix if the interactive approach was used.
-7. <u>Fit Models</u> (Boosted Regression Trees, Generalized Linear Model, Maxent, Random Forest): Fits the selected model and generates validation and diagnostic summaries and figures. Required inputs: Field Data, Validation Options, Site Data, Retained Covariate List. Outputs: Updated Model Outputs.
-8. <u>Apply Model</u>: Generates map outputs for the selected model(s). Maps are generated based on the model, selected Output Options, and the provided Covariate Data. Required inputs: Template Raster File, Model Outputs, Covariate Data. Outputs: Map Outputs
-9. <u>Ensemble Model</u>: Generates ensembled outputs of the models run in the **Scenario**. Ensembles are generated based on the fitted models, apply models, and selected Ensemble Options. Required inputs: Model Outputs, Map Outputs. Outputs: Ensemble Outputs.
+1. <u>Prepare Multiprocessing</u>: 
+    * Generates a tiling raster that will be used by subsequent transformers to divide spatial data into smaller chunks for parallel processing. 
+        * Required inputs: Template Raster File. 
+        * Outputs: Spatial Multiprocessing Tiling Raster.
+
+2. <u>Spatial Data Preparation</u>: 
+    * Prepares Covariate and Restriction rasters to align with the extent, resolution, and reference system of the Template raster. 
+        * Required inputs: Template Raster File, Covariate data. 
+        * Outputs: Updated covariate data.
+
+3. <u>Site Data Preparation</u>: 
+    * Field Data are projected and clipped to the resolution and extent of the Template Raster. If Aggregate or Weight is selected under **Field Data Options**, the field data records are aggregated or weighted based on their spatial distribution. Covariate values are then extracted for the remaining field data records. 
+        * Required inputs: Template Raster File, Field Data, Covariate Data. 
+        * Outputs: Updated Field Data and Site Data.
+
+4. <u>Background Data Generation</u>: 
+    * Generates background sites (pseudoabsences), extracts covariate data for the pseudoabsence sites and updates the Field Data and Site Data to include pseudoabsence data. 
+        * Required inputs: Template Raster File, Field Data, Covariate Data, Site Data. 
+        * Outputs: Updated Field Data and updated Site Data. 
+
+5. <u>Prepare Training/Testing Data</u>: 
+    * Divides Field Data into training and testing sets and/or cross validation folds based on the provided Validation Options arguments. 
+        * Required inputs: Field Data, Site Data. 
+        * Outputs: Updated Field Data. 
+
+6. <u>Variable Reduction</u>: 
+    * Reduces correlated covariates through either an automated approach (using Variance Inflation Factors) or an interactive approach which involves user selection of covariates through a correlation viewer application. 
+        * Required inputs: Field Data, Site Data. 
+        * Outputs: Updated Retained Covariate List and a Covariate Selection Matrix if the interactive approach was used.
+
+7. <u>Fit Models</u> (Boosted Regression Trees, Generalized Linear Model, Maxent, Random Forest): 
+    * Fits the selected model and generates validation and diagnostic summaries and figures. 
+        * Required inputs: Field Data, Validation Options, Site Data, Retained Covariate List. 
+        * Outputs: Updated Model Outputs.
+
+8. <u>Apply Model</u>: 
+    * Generates map outputs for the selected model(s). Maps are generated based on the model, selected Output Options, and the provided Covariate Data. 
+        * Required inputs: Template Raster File, Model Outputs, Covariate Data. 
+        * Outputs: Map Outputs.
+
+9. <u>Ensemble Model</u>: 
+    * Generates ensembled outputs of the models run in the **Scenario**. Ensembles are generated based on the fitted models, apply models, and selected Ensemble Options. 
+        * Required inputs: Model Outputs, Map Outputs. 
+        * Outputs: Ensemble Outputs.
 
 ### **Run Order**
 Sets the order in which the stages will be run.

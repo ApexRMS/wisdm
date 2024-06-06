@@ -42,7 +42,7 @@ In the SyncroSim UI, it can be accessed by right-clicking on a **WISDM** *Librar
 <br>
 
 ### **Access online transformation library**
-Determines whether to use [PROJ](https://proj.org/en/9.3/) to query its online repository for the best transformation available for projecting spatial data between two different CRS ("Yes"). If "No" is selected, then PROJ is only able to use transformations stored in the **WISDM** *Library*, which get downloaded when PROJ is installed. Enabling network access is recommended, as depending on the desired transformation, a more accurate option maybe available online. Nevertheless, disabling network access is an option for handling restricted network issues or for those who wish to run **WISDM** offline.
+Determines whether to use [PROJ](https://proj.org/en/9.3/) to query its online repository for the best transformation available for projecting spatial data between two different coordinate reference systems (CRS). If "No" is selected, then PROJ is only able to use transformations stored in the **WISDM** *Library*, which get downloaded when PROJ is installed. Enabling network access is recommended, as depending on the desired transformation, a more accurate option maybe available online. Nevertheless, disabling network access is an option for handling restricted network issues or for those who wish to run **WISDM** offline.
 
 > [PROJ](https://proj.org/en/9.3/) is used to transform spatial data in the "Spatial Data Preparation" [*Stage*](general#heading02).  
 
