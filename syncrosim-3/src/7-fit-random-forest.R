@@ -36,10 +36,10 @@ progressBar(type = "begin", totalSteps = steps)
   # Read in datasheets
   covariatesSheet <- datasheet(myScenario, "wisdm_Covariates", optional = T)
   modelsSheet <- datasheet(myScenario, "wisdm_Models")
-  fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T) %>% select(-ScenarioId)
+  fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
   validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
   retainedCovariatesSheet <- datasheet(myScenario, "wisdm_RetainedCovariates", lookupsAsFactors = F)
-  siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F) %>% select(-ScenarioId)
+  siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
   RFSheet <- datasheet(myScenario, "wisdm_RF")
   modelOutputsSheet <- datasheet(myScenario, "wisdm_OutputModel", optional = T, returnInvisible = T, empty = T, lookupsAsFactors = F) %>% drop_na()
 

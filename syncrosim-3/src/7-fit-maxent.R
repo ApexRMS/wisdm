@@ -37,11 +37,11 @@ ssimTempDir <- ssimEnvironment()$TransferDirectory
 # Read in datasheets
 covariatesSheet <- datasheet(myScenario, "wisdm_Covariates", optional = T)
 modelsSheet <- datasheet(myScenario, "wisdm_Models")
-fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T) %>% select(-ScenarioId)
+fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
 validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
 retainedCovariatesSheet <- datasheet(myScenario, "wisdm_RetainedCovariates", lookupsAsFactors = F)
-siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F) %>% select(-ScenarioId)
-maxentSheet <- datasheet(myScenario, "wisdm_Maxent") %>% select(-ScenarioId)
+siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
+maxentSheet <- datasheet(myScenario, "wisdm_Maxent")
 mulitprocessingSheet <- datasheet(myScenario, "core_Multiprocessing")
 modelOutputsSheet <- datasheet(myScenario, "wisdm_OutputModel", optional = T, returnInvisible = T, empty = T, lookupsAsFactors = F) %>% drop_na()
 
@@ -52,9 +52,9 @@ progressBar()
 # check for for background data
 if(!any(fieldDataSheet$Response == -9998)){
   if(any(siteDataSheet$Response == 0)){
-    stop("Maxent is a presence-background method; please select a method suitable for presence-absense data before continuing.")
+    stop("Maxent is a presence-background method; please select a method suitable for presence-absence data before continuing.")
   }
-  stop("Maxent is a presence-background method; please generate pseudo-absences before continuing. Note: Pseuso-absences can be generated in the '3 - Data Preperation (Non-Spatial)' Stage of the Pipeline. See 'Background Data Options' for more details.")
+  stop("Maxent is a presence-background method; please generate pseudo-absences before continuing. Note: Pseuso-absences can be generated in the '4 - Background Data Generation' Stage of the Pipeline. See 'Background Data Options' for more details.")
 }
 
 #  Set defaults ----------------------------------------------------------------  

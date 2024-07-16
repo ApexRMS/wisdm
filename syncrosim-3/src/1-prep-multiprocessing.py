@@ -132,12 +132,12 @@ ps.environment.progress_bar()
 tile_dimension = math.ceil(math.sqrt((templateRaster.size / tile_size)))
 
 # Define coords of smp grid ----
-x_left = templateRaster.coords['x'][0]
-x_right = templateRaster.coords['x'][-1]
+x_left = templateRaster.coords['x'][0].item()
+x_right = templateRaster.coords['x'][-1].item()
 x_coords = np.linspace(x_left, x_right, num = tile_dimension)
 
-y_left = templateRaster.coords['y'][0]
-y_right = templateRaster.coords['y'][-1]
+y_left = templateRaster.coords['y'][0].item()
+y_right = templateRaster.coords['y'][-1].item()
 y_coords = np.linspace(y_left, y_right, num = tile_dimension)
 
 coords = {'band': [1], 'x': x_coords, 'y': y_coords}

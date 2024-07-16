@@ -33,9 +33,9 @@ ssimTempDir <- ssimEnvironment()$TransferDirectory
 
 # Read in datasheets
 covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
-fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T) %>% select(-ScenarioId)
+fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
 validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
-siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", optional = T, lookupsAsFactors = F) %>% select(-ScenarioId)
+siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", optional = T, lookupsAsFactors = F)
 
 # Prep inputs ------------------------------------------------------------------
 

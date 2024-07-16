@@ -78,8 +78,8 @@ def prep_spatial_data():
     result = mySession._Session__call_console(["--conda", "--config"])
     conda_fpath = result.stdout.decode('utf-8').strip().split(": ")[1]
     if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
-        os.environ["PROJ_DATA"] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")
-        os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
+        os.environ["PROJ_DATA"] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\proj")
+        os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem")
 
     # if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
     #    os.environ["PROJ_DATA"] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")
@@ -95,7 +95,7 @@ def prep_spatial_data():
 
     # Create a temporary folder for storing rasters
     # ssimTempDir = myLibrary.info["Value"][myLibrary.info.Property == "Temporary files:"].item() # ps.runtime_temp_folder("DataTransfer")
-    ssimTempDir = ps.runtime_temp_folder("DataTransfer\Scenario-" + str(myScenario.sid))
+    ssimTempDir = ps.runtime_temp_folder(os.path.join("DataTransfer", "Scenario-" + str(myScenario.sid)))
     
     # Load datasheets
     # inputs
@@ -138,21 +138,25 @@ def prep_spatial_data():
     # Identify categorical variables 
     catCovs = covariatesSheet.query('IsCategorical == "Yes"').CovariateName.tolist()
 
+    # Convert Resample and Aggregation method columns to strings
+    covariateDataSheet = covariateDataSheet.astype({'ResampleMethod': 'string', 
+                                                    "AggregationMethod" : "string"})
+
     # Set resample defaults
     for i in range(len(covariateDataSheet.ResampleMethod)):
         if pd.isnull(covariateDataSheet.ResampleMethod[i]):
             if covariateDataSheet.CovariatesID[i] in catCovs:
-                covariateDataSheet.ResampleMethod[i] = "Nearest Neighbor"
+                covariateDataSheet.loc[i, "ResampleMethod"] = "Nearest Neighbor"
             else:
-                covariateDataSheet.ResampleMethod[i] = "Bilinear"  
+                covariateDataSheet.loc[i, "ResampleMethod"] = "Bilinear"
 
     # Set aggregate defaults
     for i in range(len(covariateDataSheet.AggregationMethod)):
         if pd.isnull(covariateDataSheet.AggregationMethod[i]):
             if covariateDataSheet.CovariatesID[i] in catCovs:
-                covariateDataSheet.AggregationMethod[i] = "Majority"
+                covariateDataSheet.loc[i, "AggregationMethod"] = "Majority"
             else:
-                covariateDataSheet.AggregationMethod[i] = "Mean" 
+                covariateDataSheet.loc[i, "AggregationMethod"] = "Mean"
 
     # Define rasterio up/down-sample method
     resampleAggregateMethodName = ["Nearest Neighbor", "Bilinear", "Cubic", "Cubic Spline", "Lanczos", "Mean", "Min", "Max", "Majority"]
@@ -276,10 +280,10 @@ def prep_spatial_data():
                         # Mask and set no data value
                         maskStack = xr.concat([covariateRaster, templateRaster], dim = "band", join="override").chunk({'band':-1, 'x':chunkDims, 'y':chunkDims})
                         maskedCovariateRaster = maskStack.map_blocks(mask, kwargs=dict(input_nodata=covariateRaster.rio.nodata, template_nodata=templateRaster.rio.nodata), template = covariateRaster)
-                        maskedCovariateRaster.rio.write_nodata(nodata_value, inplace=True)
+                        maskedCovariateRaster.rio.write_nodata(nodata_value, encoded=True, inplace=True)
 
                         # Write to disk
-                        maskedCovariateRaster.rio.to_raster(outputCovariatePath, tiled = True, lock = True, windowed=True, overwrite = True, compress = 'lzw')
+                        maskedCovariateRaster.rio.to_raster(outputCovariatePath, tiled = True, lock = Lock(client = client), windowed=True, overwrite = True, compress = 'lzw')
         
         # Tornado's ioloop.py occassionally throws an attribute error looking for an f_code attribute, but the output is still produced correctly      
         except Exception as e:
@@ -364,7 +368,7 @@ def prep_spatial_data():
 
                             # Mask and set no data value
                             maskedRestrictionRaster = xr.concat([restrictionRaster, templateRaster], "band").chunk({'band':-1, 'x':chunkDims, 'y':chunkDims}).map_blocks(mask, kwargs=dict(input_nodata=restrictionRaster.rio.nodata, template_nodata=templateRaster.rio.nodata), template = restrictionRaster)
-                            maskedRestrictionRaster.rio.write_nodata(nodata_value, inplace=True)
+                            maskedRestrictionRaster.rio.write_nodata(nodata_value, encoded=True, inplace=True)
 
                                 # Write to disk
                             maskedRestrictionRaster.rio.to_raster(outputRestrictionPath, tiled = True, lock = True, windowed=True, overwrite = True, compress = 'lzw')

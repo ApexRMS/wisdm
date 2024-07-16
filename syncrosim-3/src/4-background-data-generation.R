@@ -30,9 +30,9 @@ ssimTempDir <- ssimEnvironment()$TransferDirectory
 # Read in datasheets
 templateSheet <- datasheet(myScenario, "wisdm_TemplateRaster")
 covariateDataSheet <- datasheet(myScenario, "wisdm_CovariateData", optional = T, lookupsAsFactors = F)
-fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T) %>% select(-ScenarioId)
+fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
 backgroundDataOptionsSheet <- datasheet(myScenario, "wisdm_BackgroundDataOptions", optional = T)
-siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", optional = T, lookupsAsFactors = F) %>% select(-ScenarioId)
+siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", optional = T, lookupsAsFactors = F)
 
 # Set progress bar -------------------------------------------------------------
 

@@ -69,18 +69,18 @@ mySession = ps.Session()
 result = mySession._Session__call_console(["--conda", "--config"])
 conda_fpath = result.stdout.decode('utf-8').strip().split(": ")[1]
 if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
-    os.environ['GDAL_DATA'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\gdal")
-    os.environ['GDAL_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
-    os.environ["PROJ_DATA"] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")
-    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
-    # os.environ.setdefault("PROJ_LIB", os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj"))
-    # os.environ.setdefault("CURL_CA_BUNDLE", os.path.join(conda_fpath , "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem"))
+    os.environ['GDAL_DATA'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\gdal")
+    os.environ['GDAL_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem")
+    os.environ["PROJ_DATA"] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\proj")
+    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem")
+    # os.environ.setdefault("PROJ_LIB", os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\proj"))
+    # os.environ.setdefault("CURL_CA_BUNDLE", os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem"))
    
 # if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
-#    os.environ["PROJ_DATA"] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj")
-#    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem")
-    # pyproj.datadir.set_data_dir(os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\share\\proj"))
-    # pyproj.network.set_ca_bundle_path(os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-py-conda\\Library\\ssl\\cacert.pem"))
+#    os.environ["PROJ_DATA"] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\proj")
+#    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem")
+    # pyproj.datadir.set_data_dir(os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\proj"))
+    # pyproj.network.set_ca_bundle_path(os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem"))
     
 #%% Connect to SyncroSim library ------------------------------------------------
 
@@ -201,10 +201,10 @@ siteCoords = [Point(x, y) for x, y in zip(fieldDataSheet.X, fieldDataSheet.Y)]
 # gpd.GeoSeries(siteCoords).plot()
     
 # Define field data crs
-if pd.isnull(fieldDataOptions.CRS[0]):
+if pd.isnull(fieldDataOptions.EPSG[0]):
     fieldDataCRS = templateCRS
 else:
-    fieldDataCRS = fieldDataOptions.CRS[0]
+    fieldDataCRS = fieldDataOptions.EPSG[0]
 
 # Convert shapely object to a geodataframe with a crs
 sites = gpd.GeoDataFrame(fieldDataSheet, geometry=siteCoords, crs=fieldDataCRS)
@@ -250,7 +250,7 @@ sites["RasterCellID"] = rasterCellIDs
 ps.environment.progress_bar()
 
 # If there are multiple points per cell - Aggregate or Weight sites
-if fieldDataOptions.AggregateOrWeight[0] != "None":
+if fieldDataOptions.AggregateAndWeight[0] != "None":
     if len(np.unique(sites.RasterCellID)) != len(sites.RasterCellID):
         # find duplicates
         seen = set()
@@ -263,27 +263,27 @@ if fieldDataOptions.AggregateOrWeight[0] != "None":
         dupes = list(set(dupes)) # get unsorted unique list of tuples
 
         # if Aggregate sites is selected       
-        if fieldDataOptions.AggregateOrWeight[0] == "Aggregate":
+        if fieldDataOptions.AggregateAndWeight[0] == "Aggregate":
             # if presence absence data
             if all(sites.Response.isin([0,1])):
                 for d in dupes:
                     sitesInd = sites.index[sites.RasterCellID == d].to_list() 
                     resp_d = sites.Response[sitesInd].to_list() 
                     if sum(resp_d) == 0 or np.mean(resp_d) == 1: # if all absence or all presence
-                        sites.Response[sitesInd[1:]] = -9999 
+                        sites.loc[sitesInd[1:], "Response"] = -9999 
                     else: # if response is mix of presence/absence
                         keep_d = (sites.Response[sitesInd] == 1).index[0] # keep a presence and convert rest of repeat sites to background points 
                         sitesInd.remove(keep_d)
-                        sites.Response[sitesInd] = -9999 
+                        sites.loc[sitesInd, "Response"] = -9999
             else: # if count data 
                 for d in dupes:
                     sitesInd = sites.index[sites.RasterCellID == d].to_list() 
                     resp_d = sites.Response[sitesInd].to_list()
                     if sum(resp_d) == 0: # if all counts are zero
-                        sites.Response[sitesInd[1:]] = -9999 
+                        sites.loc[sitesInd[1:], "Response"] = -9999
                     else: # if any counts are greater then zero
-                        sites.Response[sitesInd[0]] = sum(resp_d)
-                        sites.Response[sitesInd[1:]] = -9999 
+                        sites.loc[sitesInd[0], "Response"] = sum(resp_d)
+                        sites.loc[sitesInd[1:], "Response"] = -9999
         else: # if weight sites is selected
             if all(sites.Weight.isna()): # check for user defined weights;
                 sites.Weight = 1

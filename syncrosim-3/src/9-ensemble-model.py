@@ -71,11 +71,11 @@ if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
 myScenario = ps.Scenario()  
 
 # Create a temporary folder for storing rasters
-ssimTempDir = ps.runtime_temp_folder("DataTransfer\Scenario-" + str(myScenario.sid))
+ssimTempDir = ps.runtime_temp_folder("DataTransfer\\Scenario-" + str(myScenario.sid))
 # ssimTempDir = myLibrary.info["Value"][myLibrary.info.Property == "Temporary files:"].item()
 
 # Get path to scnario inputs 
-ssimInputDir = myScenario.library.location + ".input\Scenario-" + str(myScenario.sid)
+ssimInputDir = myScenario.library.location + ".input\\Scenario-" + str(myScenario.sid)
 
 # Load datasheets
 # inputs
@@ -107,7 +107,11 @@ client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False
 
 # Set ensemble defaults if not provided
 if len(ensembleOptionsSheet) == 0:
-    ensembleOptionsSheet = ensembleOptionsSheet.append({'MakeProbabilityEnsemble': "Yes", 'ProbabilityMethod': "Mean", "NormalizeProbability": "No", 'MakeBinaryEnsemble': "No", 'IgnoreNA': "Yes"}, ignore_index=True)
+    ensembleOptionsSheet = pd.DataFrame({'MakeProbabilityEnsemble': "Yes", 
+                                         'ProbabilityMethod': "Mean", 
+                                         "NormalizeProbability": "No", 
+                                         'MakeBinaryEnsemble': "No", 
+                                         'IgnoreNA': "Yes"})
 if ensembleOptionsSheet.MakeProbabilityEnsemble.item() == "Yes":
     if pd.isnull(ensembleOptionsSheet.ProbabilityMethod.item()):
         ensembleOptionsSheet['ProbabilityMethod'] = "Mean"
@@ -228,7 +232,8 @@ if ensembleOptionsSheet.MakeProbabilityEnsemble.item() == "Yes":
         outputStack.rio.to_raster(os.path.join(ssimTempDir, 'prob_mean.tif'), tiled=True, lock=Lock("rio", client=client), windowed = True, overwrite= True, compress = 'lzw')
 
         if len(ensembleOutputSheet) == 0:
-            ensembleOutputSheet = ensembleOutputSheet.append({'ProbabilityRasterMean': os.path.join(ssimTempDir, 'prob_mean.tif')}, ignore_index=True)
+            newRow = pd.DataFrame({'ProbabilityRasterMean': [os.path.join(ssimTempDir, 'prob_mean.tif')]})
+            ensembleOutputSheet = pd.concat([ensembleOutputSheet, newRow], ignore_index=True)
         else:
             ensembleOutputSheet['ProbabilityRasterMean'] = os.path.join(ssimTempDir, 'prob_mean.tif')
     
@@ -243,7 +248,8 @@ if ensembleOptionsSheet.MakeProbabilityEnsemble.item() == "Yes":
         outputStack.rio.to_raster(os.path.join(ssimTempDir, 'prob_sum.tif'), tiled=True, lock=Lock("rio", client=client), windowed = True, overwrite= True, compress = 'lzw')
 
         if len(ensembleOutputSheet) == 0:
-            ensembleOutputSheet = ensembleOutputSheet.append({'ProbabilityRasterSum': os.path.join(ssimTempDir, 'prob_sum.tif')}, ignore_index=True)
+            newRow = pd.DataFrame({'ProbabilityRasterSum': [os.path.join(ssimTempDir, 'prob_sum.tif')]})
+            ensembleOutputSheet = pd.concat([ensembleOutputSheet, newRow], ignore_index=True)
         else:
             ensembleOutputSheet['ProbabilityRasterSum'] = os.path.join(ssimTempDir, 'prob_sum.tif')
 
@@ -267,7 +273,8 @@ if ensembleOptionsSheet.MakeBinaryEnsemble.item() == "Yes":
             outputStack.rio.to_raster(os.path.join(ssimTempDir, 'bin_mean.tif'), tiled=True, lock=Lock("rio", client=client), windowed = True, overwrite= True, compress = 'lzw')
     
             if len(ensembleOutputSheet) == 0:
-                ensembleOutputSheet = ensembleOutputSheet.append({'BinaryRasterMean': os.path.join(ssimTempDir, 'bin_mean.tif')}, ignore_index=True)
+                newRow = pd.DataFrame({'BinaryRasterMean': [os.path.join(ssimTempDir, 'bin_mean.tif')]})
+                ensembleOutputSheet = pd.concat([ensembleOutputSheet, newRow], ignore_index=True)
             else:
                 ensembleOutputSheet['BinaryRasterMean'] = os.path.join(ssimTempDir, 'bin_mean.tif')
         
@@ -282,7 +289,8 @@ if ensembleOptionsSheet.MakeBinaryEnsemble.item() == "Yes":
             outputStack.rio.to_raster(os.path.join(ssimTempDir, 'bin_sum.tif'), tiled=True, lock=Lock("rio", client=client), windowed = True, overwrite= True, compress = 'lzw')
     
             if len(ensembleOutputSheet) == 0:
-                ensembleOutputSheet = ensembleOutputSheet.append({'BinaryRasterSum': os.path.join(ssimTempDir, 'bin_sum.tif')}, ignore_index=True)
+                newRow = pd.DataFrame({'BinaryRasterSum': [os.path.join(ssimTempDir, 'bin_sum.tif')]})
+                ensembleOutputSheet = pd.concat([ensembleOutputSheet, newRow], ignore_index=True)
             else:
                 ensembleOutputSheet['BinaryRasterSum'] = os.path.join(ssimTempDir, 'bin_sum.tif')
 

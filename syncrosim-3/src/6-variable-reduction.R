@@ -34,8 +34,8 @@ ssimTempDir <- ssimEnvironment()$TransferDirectory
 
 # Read in datasheets
 covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T, includeKey = T)
-fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T) %>% select(-ScenarioId)
-siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F) %>% select(-ScenarioId)
+fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
+siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F) 
 covariateSelectionSheet <- datasheet(myScenario, "wisdm_CovariateSelectionOptions", optional = T)
 retainedCovariatesSheet <- datasheet(myScenario, "wisdm_RetainedCovariates")
 covariateCorrelationSheet <- datasheet(myScenario, "wisdm_OutputCovariateCorrelationMatrix", optional = T) %>% drop_na()
@@ -117,8 +117,8 @@ if(covariateSelectionSheet$SelectionMethod == "Automatic (Variance Inflation Fac
   
   source(file.path(packageDir, "usdm-vif.R"))
   
-  if(length(reducedCovariatesSheet$CovariatesID)>0){
-    colin <- vifstep(x = covData, th = covariateSelectionSheet$VIFThreshold, keep = as.character(reducedCovariatesSheet$CovariatesID))
+  if(length(retainedCovariatesSheet$CovariatesID)>0){
+    colin <- vifstep(x = covData, th = covariateSelectionSheet$VIFThreshold, keep = as.character(retainedCovariatesSheet$CovariatesID))
   } else{
     colin <- vifstep(x = covData, th = covariateSelectionSheet$VIFThreshold)
   }
@@ -222,9 +222,14 @@ if(covariateSelectionSheet$SelectionMethod == "Interactive (Correlation Viewer)"
   }
   
   # save image files
-  covariateCorrelationSheet <- addRow(covariateCorrelationSheet, data.frame(InitialMatrix = file.path(ssimTempDir, "InitialCovariateCorrelationMatrix.png"), 
-                                                                          SelectedMatrix = file.path(ssimTempDir, "SelectedCovariateCorrelationMatrix.png")))
-  saveDatasheet(myScenario, covariateCorrelationSheet, "wisdm_OutputCovariateCorrelationMatrix")
+  covariateCorrelationSheet <- addRow(
+    covariateCorrelationSheet, 
+    data.frame(InitialMatrix = file.path(ssimTempDir, 
+                                         "InitialCovariateCorrelationMatrix.png"), 
+               SelectedMatrix = file.path(ssimTempDir, 
+                                          "SelectedCovariateCorrelationMatrix.png")))
+  saveDatasheet(myScenario, covariateCorrelationSheet, 
+                "wisdm_OutputCovariateCorrelationMatrix")
   progressBar()
 } # end if "Interactive" 
 

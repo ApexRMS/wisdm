@@ -42,8 +42,8 @@
 </dataSheet>
 
 <dataSheet name="FieldDataOptions" displayName="Field Data Options" isSingleRow="True">
-	<column name="CRS" displayName="Coordinate reference system (e.g., EPSG:4326)" dataType="String" isOptional="True"/>
-	<column name="AggregateOrWeight" displayName="Aggregate or weight data" dataType="Integer" validationType="List" formula1="0:Aggregate|1:Weight" isOptional="True"/>
+	<column name="EPSG" displayName="Coordinate reference system (e.g., EPSG:4326)" dataType="String" isOptional="True"/>
+	<column name="AggregateAndWeight" displayName="Aggregate or weight data" dataType="Integer" validationType="List" formula1="0:Aggregate|1:Weight" isOptional="True"/>
 </dataSheet>
 
 <dataSheet name="BackgroundDataOptions" displayName="Background Data Options" isSingleRow="True">
@@ -203,7 +203,7 @@
   isRunnable="True"
   programName="Python"
   programArguments="1-prep-multiprocessing.py"
-  condaEnv="wisdm-py-conda-s3.yml"
+  condaEnv="wisdm-conda-s3.yml"
   condaEnvVersion="1">
 	<dataSheet name="TemplateRaster" type="Input"/>
 	<dataSheet name="core_SpatialMultiprocessing" type="Output"/>		
@@ -216,12 +216,12 @@
   isRunnable="True"
   programName="Python"
   programArguments="2-spatial-data-preparation.py"
-  condaEnv="wisdm-py-conda-s3.yml"
+  condaEnv="wisdm-conda-s3.yml"
   condaEnvVersion="1"
   runContext="LocalOnly">
 	<dataSheet name="TemplateRaster" type="Input"/>
 	<dataSheet name="RestrictionRaster" type="Output"/>
-	<dataSheet name="CovariateData" type="Output"/>
+	<dataSheet name="CovariateData" type="Both"/>
 </transformer>
 
 <!--Site Data Preparation Transformer-->
@@ -231,7 +231,7 @@
 	isRunnable="True"
 	programName="Python"
 	programArguments="3-site-data-preparation.py"
-	condaEnv="wisdm-py-conda-s3.yml"
+	condaEnv="wisdm-conda-s3.yml"
   	condaEnvVersion="1"
 	runContext="LocalOnly">
 		<dataSheet name="TemplateRaster" type="Input"/>
@@ -248,7 +248,7 @@
 	isRunnable="True"
 	programName="Rscript"
 	programArguments="4-background-data-generation.R"
-	condaEnv="wisdm-r-conda-s3.yml"
+	condaEnv="wisdm-conda-s3.yml"
   	condaEnvVersion="1">
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="FieldData" type="Both"/>
@@ -264,7 +264,7 @@
 	isRunnable="True"
 	programName="Rscript"
 	programArguments="5-prepare-training-testing-data.R"
-	condaEnv="wisdm-r-conda-s3.yml"
+	condaEnv="wisdm-conda-s3.yml"
   	condaEnvVersion="1">
 		<dataSheet name="FieldData" type="Both"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
@@ -278,7 +278,7 @@
 	isRunnable="True"
 	programName="Rscript"
 	programArguments="6-variable-reduction.R"
-	condaEnv="wisdm-r-conda-s3.yml"	
+	condaEnv="wisdm-conda-s3.yml"	
   	condaEnvVersion="1">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
@@ -294,7 +294,7 @@
 	isRunnable="True"
 	programName="Rscript"
 	programArguments="7-fit-glm.R"
-	condaEnv="wisdm-r-conda-s3.yml"
+	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="1">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
@@ -306,12 +306,12 @@
 					
 <!--Random Forest Transformer-->
 <transformer
-	name="RF"
+	name="RandomForest"
 	displayName ="7 - Random Forest"
 	isRunnable="True"
 	programName="Rscript"
 	programArguments="7-fit-random-forest.R"
-	condaEnv="wisdm-r-conda-s3.yml"
+	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="1">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
@@ -328,7 +328,7 @@
 	isRunnable="True"
 	programName="Rscript"
 	programArguments="7-fit-maxent.R"
-	condaEnv="wisdm-r-conda-s3.yml"
+	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="1">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
@@ -346,7 +346,7 @@
 	isRunnable="True"
 	programName="Rscript"
 	programArguments="7-fit-brt.R"
-	condaEnv="wisdm-r-conda-s3.yml"
+	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="1">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
@@ -365,7 +365,7 @@
 	programName="Rscript"
 	programArguments="8-apply-model.R"
 	isStochasticTime="True"
-	condaEnv="wisdm-r-conda-s3.yml"
+	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="1">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
 		<dataSheet name="TemplateRaster" type="Input"/>
@@ -384,7 +384,7 @@
 	programName="Python"
 	programArguments="9-ensemble-model.py"
 	runContext="LocalOnly"
-	condaEnv="wisdm-py-conda-s3.yml"
+	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="1">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
 		<dataSheet name="TemplateRaster" type="Input"/>

@@ -16,6 +16,7 @@ pairsExplore <- function(inputData,     # dataframe with response and covariate 
                          # bgd=TRUE,
                          # Debug=FALSE,
                          seed=1){
+  
   # input data
   response <- inputData$Response
   dat <- select(inputData, all_of(selectedCovs))
