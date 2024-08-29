@@ -72,6 +72,7 @@ if(any(is.na(covariatesSheet$ID))){
 if(nrow(outputOptionsSheet)<1){
   outputOptionsSheet <- addRow(outputOptionsSheet, list(T))
 }
+if(is.na(outputOptionsSheet$MakeProbabilityMap)){ outputOptionsSheet$MakeProbabilityMap <- F }
 if(is.na(outputOptionsSheet$MakeBinaryMap)){ outputOptionsSheet$MakeBinaryMap <- F }
 if(outputOptionsSheet$MakeBinaryMap){
   if(is.na(outputOptionsSheet$ThresholdOptimization)){

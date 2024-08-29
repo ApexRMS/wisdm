@@ -344,3 +344,4 @@ if(maxentSheet$SaveMaxentFiles){
 # save outputs datasheet
 saveDatasheet(myScenario, modelOutputsSheet, "wisdm_OutputModel", append = T)
 progressBar(type = "end")
+

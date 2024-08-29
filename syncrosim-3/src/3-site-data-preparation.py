@@ -144,8 +144,8 @@ if any(pd.isna(fieldDataSheet.SiteID)):
     
 # check of field data options were provided
 if len(fieldDataOptions) == 0:
-    fieldDataOptions = fieldDataOptions.append({'AggregateOrWeight': 'None'}, ignore_index=True)
-
+    fieldDataOptions = pd.concat([fieldDataOptions, pd.DataFrame({"AggregateOrWeight":["None"]})], 
+                                 ignore_index=True)
 
  
 #%% Load template raster ----------------------------------------------------------------
@@ -329,6 +329,7 @@ for i in range(len(covariateDataSheet.CovariatesID)):
 
 # Convert site data to long format
 siteData = pd.melt(sitesOut, id_vars= "SiteID", value_vars=sitesOut.columns[1:], var_name="CovariatesID", value_name="Value")
+siteData.drop_duplicates(inplace=True)
 
 # Save site data to scenario 
 myScenario.save_datasheet(name="wisdm_SiteData", data=siteData)  

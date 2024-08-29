@@ -61,7 +61,7 @@ progressBar(type = "begin", totalSteps = steps)
                                       ConsiderInteractions = FALSE))
   }
   if(is.na(GLMSheet$SelectBestPredictors)){GLMSheet$SelectBestPredictors <- FALSE}
-  if(is.na(GLMSheet$SimplificationMethod)){validationDataSheet$SplitData <- "AIC"}
+  if(is.na(GLMSheet$SimplificationMethod)){GLMSheet$SimplificationMethod <- "AIC"}
   if(is.na(GLMSheet$ConsiderSquaredTerms)){GLMSheet$ConsiderSquaredTerms <- FALSE}
   if(is.na(GLMSheet$ConsiderInteractions)){GLMSheet$ConsiderInteractions <- FALSE}
   

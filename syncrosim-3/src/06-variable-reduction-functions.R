@@ -16,7 +16,7 @@ pairsExplore <- function(inputData,     # dataframe with response and covariate 
                          # bgd=TRUE,
                          # Debug=FALSE,
                          seed=1){
-  
+
   # input data
   response <- inputData$Response
   dat <- select(inputData, all_of(selectedCovs))
@@ -326,7 +326,6 @@ myPairs <- function(for.dev,
 {
   
   ### Nested functions -----
-  
   textPanel <- function(x = 0.5, y = 0.5, txt, cex, font){
     text(x, y, txt, cex = cex, font = font)
   }

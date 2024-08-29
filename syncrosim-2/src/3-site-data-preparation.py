@@ -338,6 +338,7 @@ for i in range(len(covariateDataSheet.CovariatesID)):
 
 # Convert site data to long format
 siteData = pd.melt(sitesOut, id_vars= "SiteID", value_vars=sitesOut.columns[1:], var_name="CovariatesID", value_name="Value")
+siteData.drop_duplicates(inplace=True)
 
 # Save site data to scenario 
 myScenario.save_datasheet(name="SiteData", data=siteData)  

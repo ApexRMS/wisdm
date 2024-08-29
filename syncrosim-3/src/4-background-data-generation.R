@@ -110,7 +110,7 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
   # add background point to field data
   bgData <- read.csv(file.path(ssimTempDir, paste0("species_", methodInputs$method, "_bg_pts.csv")))
   
-  startId <- max(fieldDataSheet$SiteID)+1
+  startId <- max(fieldDataSheet$SiteID, siteDataSheet$SiteID)+1
   bgData$SiteID <- startId:(startId+nrow(bgData)-1)
   bgData$UseInModelEvaluation <- NA
   bgData$ModelSelectionSplit <- NA
@@ -191,6 +191,7 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
   
   siteDataSheet <- rbind(siteDataSheet, bgSiteData)
   siteDataSheet$SiteID <- format(siteDataSheet$SiteID, scientific = F)
+  siteDataSheet <- siteDataSheet %>% distinct(SiteID, CovariatesID, .keep_all = T)
   
   # save site data to scenario
   saveDatasheet(myScenario, siteDataSheet, "wisdm_SiteData")
@@ -207,3 +208,4 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
 }
 
 progressBar(type = "end")
+

@@ -9,10 +9,12 @@
 # are in the template CRS and extent; aggregates or weights sites by spatial distribution;
 # extracts site-specific covaraite data and generates datasheet of covariate site data.
 
-def prep_spatial_data():
+#def prep_spatial_data():
     #%% Source dependencies ----------------------------------------------------------
 
-    ## Modify os path if multiple GDAL installations ----
+## Modify os path if multiple GDAL installations ----
+def prep_spatial_data():
+
     import os
     import glob
     from win32api import GetFileVersionInfo, LOWORD, HIWORD
@@ -48,6 +50,7 @@ def prep_spatial_data():
                         [p for p in os.environ['PATH'].split(os.pathsep) if folder not in p])
 
     ## dependencies
+    from osgeo import gdal
     import rasterio
     import pysyncrosim as ps     
     import numpy as np          
@@ -59,9 +62,11 @@ def prep_spatial_data():
     import dask
     import pyproj
     from datetime import datetime
+    import threading
     # import spatialUtils
 
     from dask.distributed import Client, Lock
+    from dask.utils import SerializableLock
     from shapely.geometry import Point #, shape
     from rasterio.enums import Resampling #, MergeAlg
     from rasterio.vrt import WarpedVRT
@@ -96,7 +101,7 @@ def prep_spatial_data():
     # Create a temporary folder for storing rasters
     # ssimTempDir = myLibrary.info["Value"][myLibrary.info.Property == "Temporary files:"].item() # ps.runtime_temp_folder("DataTransfer")
     ssimTempDir = ps.runtime_temp_folder(os.path.join("DataTransfer", "Scenario-" + str(myScenario.sid)))
-    
+
     # Load datasheets
     # inputs
     networkSheet = myScenario.library.datasheets("wisdm_Network")
@@ -121,7 +126,9 @@ def prep_spatial_data():
         num_threads = 1
 
     # Note: Follow link in output to view progress
-    dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space')})
+    dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space')}, scheduler='threads', serializers=['dask'], deserializers=['dask'])
+    # client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
+    # client.dashboard_link
 
     #%% Check inputs and set defaults ---------------------------------------------
 
@@ -137,6 +144,10 @@ def prep_spatial_data():
 
     # Identify categorical variables 
     catCovs = covariatesSheet.query('IsCategorical == "Yes"').CovariateName.tolist()
+
+    # Ensure that covariate names do not contain spaces
+    if any(covariateDataSheet.CovariatesID.str.contains(" ")):
+        raise ValueError("Covariate names cannot contain spaces.")
 
     # Convert Resample and Aggregation method columns to strings
     covariateDataSheet = covariateDataSheet.astype({'ResampleMethod': 'string', 
@@ -169,12 +180,12 @@ def prep_spatial_data():
     #     # raise warning if field data was not provided
     #     ps.environment.update_run_log("Field data was not provided. Site data was not prepared, only the covaraite layers were prepared.")
         
-    
+
     #%% Load template raster ----------------------------------------------------------------
 
     # set defualt chunk dimensions and no data value
     warpMemoryLimit = 8192 #MB
-    chunkDims = 8192 #1024
+    chunkDims = 1024 #1024
     nodata_value = -9999
 
     templatePath = templateRasterSheet.RasterFilePath.item()
@@ -221,7 +232,7 @@ def prep_spatial_data():
 
         # Copy data back into appropriate xarray
         return block[[0]].copy(data = masked)
-    
+
     unmaskedTempPath = os.path.join(ssimTempDir,  "temp.tif")
 
     # Load and process covariate rasters
@@ -234,7 +245,7 @@ def prep_spatial_data():
         outputCovariatePath = os.path.join(ssimTempDir, os.path.basename(covariatePath))
 
         # Decide which resample method to use based on pixel size
-        with rioxarray.open_rasterio(covariatePath, chunks = True) as covariateRaster:
+        with rioxarray.open_rasterio(covariatePath, chunks = chunkDims) as covariateRaster:
             covPixelSize = np.abs(covariateRaster.rio.resolution()).prod()
 
             # if covariate resolution is finer then template use aggregate method (if coarser use resample method) 
@@ -268,7 +279,7 @@ def prep_spatial_data():
 
                             # Write reprojected and clipped layer to uncompresed temp file
                             # - Note! Some resampling algs fail when you try to write compressed, make sure you leave this temp file uncompresed
-                            covariateRaster.rio.to_raster(unmaskedTempPath, tiled = True, lock = Lock(client = client), windowed=True, overwrite = True)
+                            covariateRaster.rio.to_raster(unmaskedTempPath, tiled = True, lock = SerializableLock(), windowed=True, overwrite = True)
 
             # Restart client to avoid lock conflicts
             with Client(threads_per_worker = num_threads, n_workers = 1, processes=False) as client:
@@ -283,8 +294,8 @@ def prep_spatial_data():
                         maskedCovariateRaster.rio.write_nodata(nodata_value, encoded=True, inplace=True)
 
                         # Write to disk
-                        maskedCovariateRaster.rio.to_raster(outputCovariatePath, tiled = True, lock = Lock(client = client), windowed=True, overwrite = True, compress = 'lzw')
-        
+                        maskedCovariateRaster.rio.to_raster(outputCovariatePath, tiled = True, lock = SerializableLock(), windowed=True, overwrite = True, compress = 'lzw')
+    
         # Tornado's ioloop.py occassionally throws an attribute error looking for an f_code attribute, but the output is still produced correctly      
         except Exception as e:
             ps.environment.update_run_log("Caught exception processing covariate: " + covariateDataSheet.CovariatesID[i] + " -- " + str(type(e)) + " -- " + str(e))
@@ -356,7 +367,7 @@ def prep_spatial_data():
                             
                             # Write reprojected and clipped layer to uncompresed temp file
                             # - Note! Some resampling algs fail when you try to write compressed, make sure you leave this temp file uncompresed
-                            restrictionRaster.rio.to_raster(unmaskedTempPath, tiled = True, lock = Lock(client = client), windowed=True, overwrite = True)
+                            restrictionRaster.rio.to_raster(unmaskedTempPath, tiled = True, lock = SerializableLock(), windowed=True, overwrite = True)
             
             # Restart client to avoid lock conflicts
             with Client(threads_per_worker = num_threads, n_workers = 1, processes=False) as client:
@@ -371,7 +382,7 @@ def prep_spatial_data():
                             maskedRestrictionRaster.rio.write_nodata(nodata_value, encoded=True, inplace=True)
 
                                 # Write to disk
-                            maskedRestrictionRaster.rio.to_raster(outputRestrictionPath, tiled = True, lock = True, windowed=True, overwrite = True, compress = 'lzw')
+                            maskedRestrictionRaster.rio.to_raster(outputRestrictionPath, tiled = True, lock = SerializableLock(), windowed=True, overwrite = True, compress = 'lzw')
 
         # Tornado's ioloop.py occassionally throws an attribute error looking for an f_code attribute, but the output is still produced correctly
         except AttributeError:
@@ -387,7 +398,11 @@ def prep_spatial_data():
     ps.environment.progress_bar(report_type="end")
     ps.environment.progress_bar("message", message = "Done at " + datetime.now().strftime("%H:%M:%S"))
     ps.environment.update_run_log("Done at " + datetime.now().strftime("%H:%M:%S"))
-#%%
+    #%%
+    # if __name__ == "__main__":
+    #     prep_spatial_data()
+    #%%
+
 if __name__ == "__main__":
     prep_spatial_data()
-#%%
+    # prep_s

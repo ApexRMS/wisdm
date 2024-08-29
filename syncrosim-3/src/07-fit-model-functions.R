@@ -20,13 +20,22 @@ fitModel <- function(dat,           # df of training data
                      weight=NULL){
                      # Fold,...
                      
-  
   # This function was written to separate the steps involved in model fitting 
   # from the post processing steps needed to produce several of the later outputs
   # so the same function call can be used for cross-validation and generic model fit.  
   
   out$seed <- 32639
   set.seed(out$seed)
+  
+  # Sanitize output variable names
+  sanitizedVarNames <- out$inputVars
+  for (i in 1:length(sanitizedVarNames)) {
+    if (grepl("\\s", sanitizedVarNames[i])){
+      oldVarName <- sanitizedVarNames[i]
+      newVarName <- paste0("`", oldVarName, "`")
+      sanitizedVarNames[i] <- newVarName
+    }
+  }
   
   #================================================================
   #                        GLM
@@ -42,30 +51,30 @@ fitModel <- function(dat,           # df of training data
     
     penalty <- if(out$modOptions$SimplificationMethod == "AIC"){2} else {log(nrow(dat))}
     
-    factor.mask <- na.omit(match(out$factorInputVars,out$inputVars))
+    factor.mask <- na.omit(match(out$factorInputVars,sanitizedVarNames))
     cont.mask <- seq(1:length(out$inputVars))
     if(length(factor.mask)!=0){cont.mask<-cont.mask[-c(factor.mask)]}
     
     if(!out$modOptions$ConsiderSquaredTerms & !out$modOptions$ConsiderInteractions){
       scopeGLM <- list(lower = as.formula(paste("Response","~1")),
-                       upper = as.formula(paste("Response","~",paste(out$inputVars, collapse='+'))))
+                       upper = as.formula(paste("Response","~",paste(sanitizedVarNames, collapse='+'))))
     }
     if(out$modOptions$ConsiderSquaredTerms & out$modOptions$ConsiderInteractions){ # creates full scope with interactions and squared terms
       scopeGLM <- list(lower = as.formula(paste("Response","~1")),
-                       upper = as.formula(paste("Response","~",paste(c(if(length(factor.mask)>0) paste(out$inputVars[factor.mask],collapse=" + "),
-                                                                       paste("(",paste(out$inputVars[cont.mask],collapse=" + "),")^2",sep=""),
-                                                                       paste("I(",out$inputVars[cont.mask],"^2)",sep="")),collapse=" + "),sep="")))
+                       upper = as.formula(paste("Response","~",paste(c(if(length(factor.mask)>0) paste(sanitizedVarNames[factor.mask],collapse=" + "),
+                                                                       paste("(",paste(sanitizedVarNamess[cont.mask],collapse=" + "),")^2",sep=""),
+                                                                       paste("I(",sanitizedVarNames[cont.mask],"^2)",sep="")),collapse=" + "),sep="")))
     }
     if(!out$modOptions$ConsiderSquaredTerms & out$modOptions$ConsiderInteractions){ # creates full scope with interactions
       scopeGLM <- list(lower = as.formula(paste("Response","~1")),
-                       upper = as.formula(paste("Response","~",paste(c(if(length(factor.mask)>0) paste(out$inputVars[factor.mask],collapse=" + "),
-                                                                       paste("(",paste(out$inputVars[cont.mask],collapse=" + "),")^2",sep="")),
+                       upper = as.formula(paste("Response","~",paste(c(if(length(factor.mask)>0) paste(sanitizedVarNames[factor.mask],collapse=" + "),
+                                                                       paste("(",paste(sanitizedVarNames[cont.mask],collapse=" + "),")^2",sep="")),
                                                                      collapse=" + "),sep="")))
     }
     if(out$modOptions$ConsiderSquaredTerms & !out$modOptions$ConsiderInteractions){ # creates full scope with squared terms
       scopeGLM <- list(lower = as.formula(paste("Response","~1")),
-                       upper = as.formula(paste("Response","~",paste(c(paste(out$inputVars,collapse=" + "),
-                                                                       paste("I(",out$inputVars[cont.mask],"^2)",sep="")),collapse=" + "),sep="")))
+                       upper = as.formula(paste("Response","~",paste(c(paste(sanitizedVarNames,collapse=" + "),
+                                                                       paste("I(",sanitizedVarNames[cont.mask],"^2)",sep="")),collapse=" + "),sep="")))
     }
     
     if(out$modOptions$SelectBestPredictors){
@@ -159,7 +168,21 @@ fitModel <- function(dat,           # df of training data
   #                        MAXENT
   #=================================================================
   if(out$modType == "maxent"){
-    if(fullFit == T){
+    
+      # If there are parentheses in the working folder name, then the jar file will not run properly
+      validTempPath <- sum(
+        grepl("\\(", strsplit(out$tempDir, "")[[1]])
+        ) + sum(
+          grepl("\\)", strsplit(out$tempDir, "")[[1]])
+          ) == 0
+      
+      if (!validTempPath){
+        stop(paste0("Maxent model will not run if there are parentheses in the",
+                    " temporary directory path. Please set a different ",
+                    "temporary folder before continuing."))
+      }
+
+      if(fullFit == T){
       
       # prepare batch file
       capture.output(cat("java -mx", out$modOptions$MemoryLimit, "m", sep=""), file = out$batchPath)
@@ -398,26 +421,26 @@ fitModel <- function(dat,           # df of training data
     bgNum <- as.numeric(table(dat$Response)["0"])                                # number of backgrounds
     wt <- ifelse(dat$Response == 1, 1, prNum / bgNum)
     
-    factor.mask <- na.omit(match(out$factorInputVars,out$inputVars))
-    cont.mask <- seq(1:length(out$inputVars))
+    factor.mask <- na.omit(match(out$factorInputVars,sanitizedVarNames))
+    cont.mask <- seq(1:length(sanitizedVarNames))
     if(length(factor.mask)!=0){cont.mask<-cont.mask[-c(factor.mask)]}
  
     if(out$modOptions$AllowShrinkageSmoothers){  
       
       if(out$modOptions$ConsiderLinearTerms){ # creates formula with smooth and linear terms
-        startModel = as.formula(paste("Response","~",paste(paste(out$inputVars, collapse=" + "), 
-                                                           paste0("s(", out$inputVars, ", bs='ts')",collapse=" + "), sep = " + ")))
+        startModel = as.formula(paste("Response","~",paste(paste(sanitizedVarNames, collapse=" + "), 
+                                                           paste0("s(", sanitizedVarNames, ", bs='ts')",collapse=" + "), sep = " + ")))
         } else { # creates formula with smooth terms oly
-          startModel = as.formula(paste("Response","~", paste0("s(", out$inputVars, ", bs='ts')",collapse=" + "), sep = ""))
+          startModel = as.formula(paste("Response","~", paste0("s(", sanitizedVarNames, ", bs='ts')",collapse=" + "), sep = ""))
         }
       
       } else {
         
         if(out$modOptions$ConsiderLinearTerms){ # creates full scope with smooth and linear terms
-          startModel = as.formula(paste("Response","~",paste(paste(out$inputVars, collapse=" + "), 
-                                                             paste0("s(", out$inputVars, ")",collapse=" + "), sep = " + ")))
+          startModel = as.formula(paste("Response","~",paste(paste(sanitizedVarNames, collapse=" + "), 
+                                                             paste0("s(", sanitizedVarNames, ")",collapse=" + "), sep = " + ")))
         } else { # creates full scope with smooth terms
-          startModel = as.formula(paste("Response","~", paste0("s(", out$inputVars, ")",collapse=" + "), sep = ""))
+          startModel = as.formula(paste("Response","~", paste0("s(", sanitizedVarNames, ")",collapse=" + "), sep = ""))
         }
       }
     
@@ -1552,6 +1575,13 @@ resid.image <- function(dev.contrib,
   # dev.contrib is negative for binomial and bernoulli and positive for poisson
   if(label!="eval"){ z <- sign(dat$Response - dat$predicted)*abs(dev.contrib) 
   } else { z <- dat$Response - dat$predicted }
+  
+  # Remove all infinite values 
+  wgt <- wgt[is.finite(z)]
+  x <- x[is.finite(z)]
+  y <- y[is.finite(z)]
+  z <- z[is.finite(z)]
+  
   MinCol <- min(z)
   MaxCol <- max(z)
   col.i <- beachcolours(heightrange=c(min(z),max(z)),sealevel=0,s=1,ncolours=(length(table(z))+1))
@@ -1559,7 +1589,8 @@ resid.image <- function(dev.contrib,
   s1 <- seq(from=MinCol,to=MaxCol,length=length(table(z)))
   col.ind <- apply((outer(s1,z,f)),2,which.min)
   
-  a <- loess(z~x*y,weights=wgt, control = loess.control(surface = "direct"))
+  a <- loess(z~x*y,weights=wgt, 
+             control = loess.control(surface = "direct"))
   x.lim <- rep(seq(from=min(x),to=max(x),length=100),each=100)
   y.lim <- rep(seq(from=min(y),to=max(y),length=100),times=100)
   z <- predict(a,newdata=cbind("x"=x.lim,"y"=y.lim))
@@ -1572,7 +1603,9 @@ resid.image <- function(dev.contrib,
     png(file=file.name,width=1000,height=1000,pointsize=13)
     par(oma=c(3,3,3,3))
     layout(matrix(data=c(1,2), nrow=1, ncol=2), widths=c(4,1), heights=c(1,1))
-    image(z,x=x.lim,y=y.lim,col=beachcolours(heightrange=c(min(z),max(z)),sealevel=0,s=.5,ncolours=length(table(z))),
+    image(z,x=x.lim,y=y.lim,
+          col=beachcolours(heightrange=c(min(z),max(z)),
+                           sealevel=0,s=.5,ncolours=length(table(z))),
           main=paste("Spatial pattern of", ifelse(label!="eval"," deviance residuals\n(magnitude and sign)"," prediction error")),
           xlab="X coordinate",ylab="Y coordinate",cex.main=2.2,cex.axis=1.6,cex.lab=1.8)
     
@@ -2164,6 +2197,14 @@ capture.stats <- function(Stats.lst,  # stats or lst output from calcStat functi
 
 response.curves <- function(out){
   
+  # Desanitize output variable names
+  for (i in 1:length(out$finalVars)) {
+    if (grepl("\\s", out$finalVars[i])){
+      oldVarName <- out$finalVars[i]
+      newVarName <- gsub("`", "", oldVarName)
+      out$finalVars[i] <- newVarName
+    }
+  }
   # if(out$modType %in% c("mars")){ nVars <- nrow(out$mod$summary)
   # if(out$modType %in% c("udc")) nVars <- out$mods$n.vars.final
   if(out$modType %in% c("glm", "rf", "maxent", "brt", "gam")){ nVars <- out$nVarsFinal  }
