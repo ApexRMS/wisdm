@@ -89,7 +89,7 @@ myScenario = ps.Scenario()
 
 # Create a temporary folder for storing rasters
 # ssimTempDir = myLibrary.info["Value"][myLibrary.info.Property == "Temporary files:"].item()
-ssimTempDir = ps.runtime_temp_folder("DataTransfer\Scenario-" + str(myScenario.sid))
+ssimTempDir = ps.runtime_temp_folder(os.path.join("DataTransfer", "Scenario-" + str(myScenario.sid)))
 
 # Load datasheets
 # inputs
