@@ -323,6 +323,11 @@ for i in range(len(covariateDataSheet.CovariatesID)):
     # Load processed covariate rasters and extract site values
     outputCovariatePath = covariateDataSheet.RasterFilePath[i]
     covariateRaster = rioxarray.open_rasterio(outputCovariatePath, chunks=True)
+    if i == 0:
+        covariateRasterShape = covariateRaster.shape
+    else:
+        if covariateRaster.shape != covariateRasterShape:
+            raise ValueError("Covariate rasters do not all have the same dimensions.")
     sitesOut[covariateDataSheet.CovariatesID[i]] = covariateRaster[0].isel(x=xLoc,y=yLoc).values.tolist() 
     # update progress bar
     ps.environment.progress_bar()
