@@ -292,6 +292,7 @@ if fieldDataOptions.AggregateAndWeight[0] != "None":
                 for d in dupes:
                     sitesInd = sites.index[sites.RasterCellID == d].to_list()
                     weight_d = np.float64(1/len(sitesInd))
+                    sites = sites.astype({"Weight": float})
                     sites.loc[sitesInd, "Weight"] = weight_d
             else: 
                 ps.environment.update_run_log("Weights were already present in the field data, new weights were not assigned.")
