@@ -62,6 +62,8 @@ from dask.distributed import Client, Lock
 from shapely.geometry import Point #, shape
 from rasterio.enums import Resampling #, MergeAlg
 
+pd.options.mode.chained_assignment = None
+
 ## Modify the os PROJ path (when running with Conda) ----
 myLibrary = ps.Library()
 mySession = ps.Session()
@@ -289,8 +291,8 @@ if fieldDataOptions.AggregateAndWeight[0] != "None":
                 sites.Weight = 1
                 for d in dupes:
                     sitesInd = sites.index[sites.RasterCellID == d].to_list()
-                    weight_d = 1/len(sitesInd)
-                    sites.Weight[sitesInd] = weight_d
+                    weight_d = np.float64(1/len(sitesInd))
+                    sites.loc[sitesInd, "Weight"] = weight_d
             else: 
                 ps.environment.update_run_log("Weights were already present in the field data, new weights were not assigned.")
 
@@ -328,7 +330,7 @@ for i in range(len(covariateDataSheet.CovariatesID)):
     else:
         if covariateRaster.shape != covariateRasterShape:
             raise ValueError("Covariate rasters do not all have the same dimensions.")
-    sitesOut[covariateDataSheet.CovariatesID[i]] = covariateRaster[0].isel(x=xLoc,y=yLoc).values.tolist() 
+    sitesOut.loc[:,covariateDataSheet.CovariatesID[i]] = covariateRaster[0].isel(x=xLoc,y=yLoc).values.tolist() 
     # update progress bar
     ps.environment.progress_bar()
 
