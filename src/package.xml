@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.0.2" url="https://apexrms.github.io/wisdm/">
+<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.0.3" url="https://apexrms.github.io/wisdm/">
 
 <!--Library Datasheets-->
 
@@ -55,8 +55,8 @@
 </dataSheet>
 
 <dataSheet name="CovariateData" displayName="Covariate Data">
-	<column name="CovariatesID" displayName="Covariate" dataType="Integer" validationType="Datasheet" formula1="Covariates"/>
-	<column name="RasterFilePath" displayName="Raster File" dataType="String" isExternalFile="True" isRaster="True"/>
+	<column name="CovariatesID" displayName="Covariate" dataType="Integer" validationType="Datasheet" formula1="Covariates" allowDbNull="False"/>
+	<column name="RasterFilePath" displayName="Raster File" dataType="String" isExternalFile="True" isRaster="True" allowDbNull="False"/>
 	<column name="ResampleMethod" displayName="Resample Method" dataType="Integer" validationType="List" formula1="0:Nearest Neighbor|1:Bilinear|2:Cubic|3:Cubic Spline|4:Lanczos" isOptional="True" />
 	<column name="AggregationMethod" displayName="Aggregation Method" dataType="Integer" validationType="List" formula1="0:Mean|1:Max|2:Min|3:Majority" isOptional="True" />
 </dataSheet>
