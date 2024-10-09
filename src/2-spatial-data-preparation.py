@@ -206,7 +206,7 @@ def prep_spatial_data():
 
     # Loop through and "PARC" covariate rasters -------------------------------------------
 
-    # %%First check that all rasters have a valid crs
+    # %%First check that all rasters have a valid crs and have valid dimensions
     invalidCRS = []
     for i in range(len(covariateDataSheet.CovariatesID)):
         # Load covariate rasters
@@ -216,6 +216,13 @@ def prep_spatial_data():
             invalidCRS.append(covariateDataSheet.CovariatesID[i])
         elif covariateRaster.rio.crs.is_valid == False:
             invalidCRS.append(covariateDataSheet.CovariatesID[i]) 
+        if covariateRaster.rio.width < templateRaster.rio.width or \
+            covariateRaster.rio.height < templateRaster.rio.height:
+            msg = f"Covariate raster dimensions are smaller than the template raster dimensions."
+            msg += f"\nPlease ensure that all covariate rasters are at least the same size as the template raster."
+            msg += f"\nCovariate name: {covariateDataSheet.CovariatesID[i]}."
+            msg += f"\nCovariate raster dimensions: {covariateRaster.rio.width} x {covariateRaster.rio.height}. "
+            raise ValueError(msg)
     if len(invalidCRS)>0:
         raise ValueError(print("The following covariate rasters have an invalid or unknown CRS:", *invalidCRS, "Ensure that the covariate rasters have a valid CRS before continuing.", sep="\n") )      
 
