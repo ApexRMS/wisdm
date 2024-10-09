@@ -50,7 +50,7 @@ def prep_spatial_data():
                         [p for p in os.environ['PATH'].split(os.pathsep) if folder not in p])
 
     ## dependencies
-    from osgeo import gdal
+    # from osgeo import gdal
     import rasterio
     import pysyncrosim as ps     
     import numpy as np          
@@ -216,13 +216,6 @@ def prep_spatial_data():
             invalidCRS.append(covariateDataSheet.CovariatesID[i])
         elif covariateRaster.rio.crs.is_valid == False:
             invalidCRS.append(covariateDataSheet.CovariatesID[i]) 
-        if covariateRaster.rio.width < templateRaster.rio.width or \
-            covariateRaster.rio.height < templateRaster.rio.height:
-            msg = f"Covariate raster dimensions are smaller than the template raster dimensions."
-            msg += f"\nPlease ensure that all covariate rasters are at least the same size as the template raster."
-            msg += f"\nCovariate name: {covariateDataSheet.CovariatesID[i]}."
-            msg += f"\nCovariate raster dimensions: {covariateRaster.rio.width} x {covariateRaster.rio.height}. "
-            raise ValueError(msg)
     if len(invalidCRS)>0:
         raise ValueError(print("The following covariate rasters have an invalid or unknown CRS:", *invalidCRS, "Ensure that the covariate rasters have a valid CRS before continuing.", sep="\n") )      
 
@@ -249,7 +242,7 @@ def prep_spatial_data():
 
         # Determine input and output file paths
         covariatePath = covariateDataSheet.RasterFilePath[i]
-        outputCovariatePath = os.path.join(ssimTempDir, os.path.basename(covariatePath))
+        outputCovariatePath = os.path.join(ssimTempDir, "processed_" + os.path.basename(covariatePath))
 
         # Decide which resample method to use based on pixel size
         with rioxarray.open_rasterio(covariatePath, chunks = chunkDims) as covariateRaster:
@@ -282,7 +275,8 @@ def prep_spatial_data():
                             tb = templateBounds
                             cb = covariateRaster.rio.bounds()
                             if cb[0] > tb[0] or cb[1] > tb[1] or cb[2] < tb[2] or cb[3] < tb[3]:
-                                raise ValueError(print("The extent of the", covariateDataSheet.CovariatesID[i], "raster does not overlap the full extent of the template raster. Ensure all covariate rasters overlap the template extent before continuing."))
+                                raise ValueError(print("The extent of the", covariateDataSheet.CovariatesID[i], 
+                                                       "raster does not overlap the full extent of the template raster. Ensure all covariate rasters overlap the template extent before continuing."))
 
                             # Write reprojected and clipped layer to uncompresed temp file
                             # - Note! Some resampling algs fail when you try to write compressed, make sure you leave this temp file uncompresed
