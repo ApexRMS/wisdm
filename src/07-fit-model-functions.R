@@ -62,7 +62,7 @@ fitModel <- function(dat,           # df of training data
     if(out$modOptions$ConsiderSquaredTerms & out$modOptions$ConsiderInteractions){ # creates full scope with interactions and squared terms
       scopeGLM <- list(lower = as.formula(paste("Response","~1")),
                        upper = as.formula(paste("Response","~",paste(c(if(length(factor.mask)>0) paste(sanitizedVarNames[factor.mask],collapse=" + "),
-                                                                       paste("(",paste(sanitizedVarNamess[cont.mask],collapse=" + "),")^2",sep=""),
+                                                                       paste("(",paste(sanitizedVarNames[cont.mask],collapse=" + "),")^2",sep=""),
                                                                        paste("I(",sanitizedVarNames[cont.mask],"^2)",sep="")),collapse=" + "),sep="")))
     }
     if(!out$modOptions$ConsiderSquaredTerms & out$modOptions$ConsiderInteractions){ # creates full scope with interactions
