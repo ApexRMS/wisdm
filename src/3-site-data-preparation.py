@@ -336,6 +336,10 @@ for i in range(len(covariateDataSheet.CovariatesID)):
         raise ValueError(msg)
 
     sitesOut.loc[:,covariateDataSheet.CovariatesID[i]] = covariateRaster[0].isel(x=xLoc,y=yLoc).values.tolist() 
+
+    # Replace no data values with -9999
+    sitesOut.loc[sitesOut[covariateDataSheet.CovariatesID[i]] == covariateRaster.rio.nodata, covariateDataSheet.CovariatesID[i]] = -9999
+
     # update progress bar
     ps.environment.progress_bar()
 
