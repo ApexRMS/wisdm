@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<update comment="Rename tables">
+  <action code="Exec" condition="TableExists" criteria="wisdm_RF">
+    <item>DROP TABLE wisdm_RF</item>
+  </action>
+  <action code="RenameTable" oldTableName="wisdm_RandomForest" newTableName="wisdm_RF"/>
+  <action code="Exec" condition="TableExists" criteria="wisdm_RetainedCovariates">
+    <item>DROP TABLE wisdm_RetainedCovariates</item>
+  </action>
+  <action code="RenameTable" oldTableName="wisdm_ReducedCovariates" newTableName="wisdm_RetainedCovariates"/>
+  <action code="Exec" condition="TableExists" criteria="wisdm_OutputSpatial">
+    <item>DROP TABLE wisdm_OutputSpatial</item>
+  </action>
+  <action code="RenameTable" oldTableName="wisdm_SpatialOutputs" newTableName="wisdm_OutputSpatial"/>
+  <action code="Exec" condition="TableExists" criteria="wisdm_OutputEnsemble">
+    <item>DROP TABLE wisdm_OutputEnsemble</item>
+  </action>
+  <action code="RenameTable" oldTableName="wisdm_EnsembleOutputs" newTableName="wisdm_OutputEnsemble"/>
+  <action code="Exec" condition="TableExists" criteria="wisdm_OutputModel">
+    <item>DROP TABLE wisdm_OutputModel</item>
+  </action>
+  <action code="RenameTable" oldTableName="wisdm_ModelOutputs" newTableName="wisdm_OutputModel"/>
+  <action code="Exec" condition="TableExists" criteria="wisdm_OutputCovariateCorrelationMatrix">
+    <item>DROP TABLE wisdm_OutputCovariateCorrelationMatrix</item>
+  </action>
+  <action code="RenameTable" oldTableName="wisdm_CovariateCorrelationMatrix" newTableName="wisdm_OutputCovariateCorrelationMatrix"/>
+</update>

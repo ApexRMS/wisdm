@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<update comment="Legacy Update 2">
+  <action code="Exec" condition="TableNotExists" criteria="wisdm_RestrictionRaster">
+    <item>CREATE TABLE wisdm_RestrictionRaster(RestrictionRasterID INTEGER, ScenarioID INTEGER, RasterFilePath TEXT, Description TEXT)</item>
+  </action>
+</update>
