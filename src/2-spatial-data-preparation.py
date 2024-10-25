@@ -126,7 +126,9 @@ def prep_spatial_data():
         num_threads = 1
 
     # Note: Follow link in output to view progress
-    dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space')}, scheduler='threads', serializers=['dask'], deserializers=['dask'])
+    dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space'),
+                       'distributed.scheduler.worker-ttl': None}, 
+                       scheduler='threads', serializers=['dask'], deserializers=['dask'])
     # client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
     # client.dashboard_link
 
