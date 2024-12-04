@@ -149,7 +149,7 @@ small_grid = xarray.DataArray(
     coords = coords,
     attrs = templateRaster.attrs)
 
-small_grid.rio.set_crs(templateRaster.rio.crs)
+small_grid.rio.write_crs(templateRaster.rio.crs)
 
 # Write to disk
 with rasterio.open(templatePath) as src:
@@ -183,16 +183,16 @@ ps.environment.progress_bar()
 
 #%% Mask to analysis area ----------------------------------------------------
 
-mask = templateRaster.to_numpy()
+mask = templateRaster
 nodata_value = templateRaster.rio.nodata
 if np.isnan(nodata_value):
    mask = ~np.isnan(mask)*1
 else:
    mask = (mask != nodata_value)*1
 
-smp_grid = rioxarray.open_rasterio(os.path.join(ssimTempDir, "smp-grid.tif")).to_numpy()
+smp_grid = rioxarray.open_rasterio(os.path.join(ssimTempDir, "smp-grid.tif"))
 
-smp_grid = smp_grid.astype(int) * mask
+smp_grid = smp_grid.astype(np.int16) * mask
 
 # Set output filename of smp grid
 oldVals = np.unique(smp_grid)
@@ -219,6 +219,9 @@ smp_grid = lookup_array[smp_grid]
 
 # Update 0 to NA Value
 smp_grid[smp_grid == 0] = -9999
+
+# Convert to int
+smp_grid = smp_grid.astype(np.int16)
 
 #%% Save sampling grid -------------------------------------------------------
 
