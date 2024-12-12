@@ -218,6 +218,8 @@ def prep_spatial_data():
             invalidCRS.append(covariateDataSheet.CovariatesID[i])
         elif covariateRaster.rio.crs.is_valid == False:
             invalidCRS.append(covariateDataSheet.CovariatesID[i]) 
+        elif "unnamed" in str(covariateRaster.rio.crs):
+            invalidCRS.append(covariateDataSheet.CovariatesID[i])
     if len(invalidCRS)>0:
         raise ValueError(print("The following covariate rasters have an invalid or unknown CRS:", *invalidCRS, "Ensure that the covariate rasters have a valid CRS before continuing.", sep="\n") )      
 
