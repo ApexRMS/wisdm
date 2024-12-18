@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.1.4" url="https://apexrms.github.io/wisdm/">
+<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.1.5" url="https://apexrms.github.io/wisdm/">
 
 <!--Library Datasheets-->
 
@@ -221,7 +221,7 @@
   runContext="LocalOnly">
 	<dataSheet name="TemplateRaster" type="Input"/>
 	<dataSheet name="RestrictionRaster" type="Output"/>
-	<dataSheet name="CovariateData" type="Both"/>
+	<dataSheet name="CovariateData" type="Both" spatialMultiProcessing="True"/>
 </transformer>
 
 <!--Site Data Preparation Transformer-->
@@ -236,9 +236,9 @@
 	runContext="LocalOnly">
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="FieldDataOptions" type="Input"/>
-		<dataSheet name="FieldData" type="Both"/>
-		<dataSheet name="CovariateData" type="Both"/>
-		<dataSheet name="SiteData" type="Output"/>
+		<dataSheet name="FieldData" type="Both" spatialMultiProcessing="True"/>
+		<dataSheet name="CovariateData" type="Both" spatialMultiProcessing="True"/>
+		<dataSheet name="SiteData" type="Output" spatialMultiProcessing="True"/>
 </transformer>
 
 <!--Background Data Preparation Transformer-->
@@ -251,10 +251,10 @@
 	condaEnv="wisdm-conda-s3.yml"
   	condaEnvVersion="1">
 		<dataSheet name="TemplateRaster" type="Input"/>
-		<dataSheet name="FieldData" type="Both"/>
+		<dataSheet name="FieldData" type="Both" spatialMultiProcessing="True"/>
 		<dataSheet name="BackgroundDataOptions" type="Input"/>
-		<dataSheet name="CovariateData" type="Both"/>
-		<dataSheet name="SiteData" type="Both"/>
+		<dataSheet name="CovariateData" type="Both" spatialMultiProcessing="True"/>
+		<dataSheet name="SiteData" type="Both" spatialMultiProcessing="True"/>
 </transformer>
 		
 <!--Split Data for Training/Testing Transformer-->
@@ -266,7 +266,7 @@
 	programArguments="5-prepare-training-testing-data.R"
 	condaEnv="wisdm-conda-s3.yml"
   	condaEnvVersion="1">
-		<dataSheet name="FieldData" type="Both"/>
+		<dataSheet name="FieldData" type="Both" spatialMultiProcessing="True"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 </transformer>
@@ -283,8 +283,8 @@
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="CovariateSelectionOptions" type ="Input"/>
-		<dataSheet name="RetainedCovariates" type="Both"/>
-		<dataSheet name="OutputCovariateCorrelationMatrix" type="Output"/>
+		<dataSheet name="RetainedCovariates" type="Both" spatialMultiProcessing="True"/>
+		<dataSheet name="OutputCovariateCorrelationMatrix" type="Output" spatialMultiProcessing="True"/>
 </transformer>
 			
 <!--GLM Transformer-->
@@ -301,7 +301,7 @@
 		<dataSheet name="RetainedCovariates" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="GLM" type="Input"/>
-		<dataSheet name="OutputModel" type="Output"/>
+		<dataSheet name="OutputModel" type="Output" spatialMultiProcessing="True"/>
 </transformer>
 					
 <!--Random Forest Transformer-->
@@ -318,7 +318,7 @@
 		<dataSheet name="RetainedCovariates" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="RF" type="Input"/>
-		<dataSheet name="OutputModel" type="Output"/>
+		<dataSheet name="OutputModel" type="Output" spatialMultiProcessing="True"/>
 </transformer>
 
 <!--Maxent Transformer-->
@@ -336,7 +336,7 @@
 		<dataSheet name="RetainedCovariates" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="Maxent" type="Input"/>
-		<dataSheet name="OutputModel" type="Output"/>
+		<dataSheet name="OutputModel" type="Output" spatialMultiProcessing="True"/>
 </transformer>
 
 <!--BRT Transformer-->
@@ -354,7 +354,7 @@
 		<dataSheet name="RetainedCovariates" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="BRT" type="Input"/>
-		<dataSheet name="OutputModel" type="Output"/>
+		<dataSheet name="OutputModel" type="Output" spatialMultiProcessing="True"/>
 </transformer>
 
 <!--Apply Model Transformer-->
@@ -373,7 +373,7 @@
 		<dataSheet name="OutputModel" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
 		<dataSheet name="OutputOptions" type="Input"/>
-		<dataSheet name="OutputSpatial" type="Output"/>
+		<dataSheet name="OutputSpatial" type="Output" spatialMultiProcessing="True"/>
 </transformer>
 
 <!--Ensemble Model Transformer-->
@@ -390,7 +390,7 @@
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="EnsembleOptions" type="Input"/>
 		<dataSheet name="OutputSpatial" type="Input"/>
-		<dataSheet name="OutputEnsemble" type="Output"/>
+		<dataSheet name="OutputEnsemble" type="Output" spatialMultiProcessing="True"/>
 </transformer>
 
  <!--Export Transformers-->

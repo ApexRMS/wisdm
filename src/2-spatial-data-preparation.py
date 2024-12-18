@@ -402,7 +402,7 @@ def prep_spatial_data():
         restrictionRasterSheet.RasterFilePath = outputRestrictionPath
 
         # Save updated covariate data to scenario 
-        myScenario.save_datasheet(name="wisdm_RestrictionRaster", data=restrictionRasterSheet)     
+        myScenario.save_datasheet(name="wisdm_RestrictionRaster", data=restrictionRasterSheet)    
 
     # update progress bar
     ps.environment.progress_bar(report_type="end")
