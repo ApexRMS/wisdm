@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.1.5" url="https://apexrms.github.io/wisdm/">
+<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.1.5" minSyncroSimVersion="3.0.21" url="https://apexrms.github.io/wisdm/">
 
 <!--Library Datasheets-->
 
@@ -200,8 +200,6 @@
 <transformer
   name="PrepMultiprocessing"
   displayName ="1 - Prepare Multiprocessing"
-  isRunnable="True"
-  programName="Python"
   programArguments="1-prep-multiprocessing.py"
   condaEnv="wisdm-conda-s3.yml"
   condaEnvVersion="1">
@@ -213,12 +211,9 @@
 <transformer
   name="SpatialDataPreparation"
   displayName ="2 - Spatial Data Preparation"
-  isRunnable="True"
-  programName="Python"
   programArguments="2-spatial-data-preparation.py"
   condaEnv="wisdm-conda-s3.yml"
-  condaEnvVersion="1"
-  runContext="LocalOnly">
+  condaEnvVersion="1">
 	<dataSheet name="TemplateRaster" type="Input"/>
 	<dataSheet name="RestrictionRaster" type="Output"/>
 	<dataSheet name="CovariateData" type="Both" spatialMultiProcessing="True"/>
@@ -228,12 +223,9 @@
 <transformer
 	name="SiteDataPreparation"
 	displayName ="3 - Site Data Preparation"
-	isRunnable="True"
-	programName="Python"
 	programArguments="3-site-data-preparation.py"
 	condaEnv="wisdm-conda-s3.yml"
-  	condaEnvVersion="1"
-	runContext="LocalOnly">
+  	condaEnvVersion="1">
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="FieldDataOptions" type="Input"/>
 		<dataSheet name="FieldData" type="Both" spatialMultiProcessing="True"/>
@@ -245,13 +237,11 @@
 <transformer
 	name="BackgroundDataGeneration"
 	displayName ="4 - Background Data Generation"
-	isRunnable="True"
-	programName="Rscript"
 	programArguments="4-background-data-generation.R"
 	condaEnv="wisdm-conda-s3.yml"
   	condaEnvVersion="1">
 		<dataSheet name="TemplateRaster" type="Input"/>
-		<dataSheet name="FieldData" type="Both" spatialMultiProcessing="True"/>
+		<dataSheet name="FieldData" type="Both"/>
 		<dataSheet name="BackgroundDataOptions" type="Input"/>
 		<dataSheet name="CovariateData" type="Both" spatialMultiProcessing="True"/>
 		<dataSheet name="SiteData" type="Both" spatialMultiProcessing="True"/>
@@ -261,12 +251,11 @@
 <transformer
 	name="FieldDataPreparation"
 	displayName ="5 - Prepare Training/Testing Data"
-	isRunnable="True"
-	programName="Rscript"
 	programArguments="5-prepare-training-testing-data.R"
+	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
   	condaEnvVersion="1">
-		<dataSheet name="FieldData" type="Both" spatialMultiProcessing="True"/>
+		<dataSheet name="FieldData" type="Both"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 </transformer>
@@ -275,25 +264,23 @@
 <transformer
 	name="VariableReduction"
 	displayName ="6 - Variable Reduction"
-	isRunnable="True"
-	programName="Rscript"
 	programArguments="6-variable-reduction.R"
+	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"	
   	condaEnvVersion="1">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="CovariateSelectionOptions" type ="Input"/>
-		<dataSheet name="RetainedCovariates" type="Both" spatialMultiProcessing="True"/>
-		<dataSheet name="OutputCovariateCorrelationMatrix" type="Output" spatialMultiProcessing="True"/>
+		<dataSheet name="RetainedCovariates" type="Both"/>
+		<dataSheet name="OutputCovariateCorrelationMatrix" type="Output"/>
 </transformer>
 			
 <!--GLM Transformer-->
 <transformer
 	name="GLM"
 	displayName ="7 - Generalized Linear Model"
-	isRunnable="True"
-	programName="Rscript"
 	programArguments="7-fit-glm.R"
+	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="1">
 		<dataSheet name="FieldData" type="Input"/>
@@ -301,16 +288,15 @@
 		<dataSheet name="RetainedCovariates" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="GLM" type="Input"/>
-		<dataSheet name="OutputModel" type="Output" spatialMultiProcessing="True"/>
+		<dataSheet name="OutputModel" type="Output"/>
 </transformer>
 					
 <!--Random Forest Transformer-->
 <transformer
 	name="RandomForest"
 	displayName ="7 - Random Forest"
-	isRunnable="True"
-	programName="Rscript"
 	programArguments="7-fit-random-forest.R"
+	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="1">
 		<dataSheet name="FieldData" type="Input"/>
@@ -318,16 +304,15 @@
 		<dataSheet name="RetainedCovariates" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="RF" type="Input"/>
-		<dataSheet name="OutputModel" type="Output" spatialMultiProcessing="True"/>
+		<dataSheet name="OutputModel" type="Output"/>
 </transformer>
 
 <!--Maxent Transformer-->
 <transformer
 	name="Maxent"
 	displayName ="7 - Maxent"
-	isRunnable="True"
-	programName="Rscript"
 	programArguments="7-fit-maxent.R"
+	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="1">
 		<dataSheet name="FieldData" type="Input"/>
@@ -336,16 +321,15 @@
 		<dataSheet name="RetainedCovariates" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="Maxent" type="Input"/>
-		<dataSheet name="OutputModel" type="Output" spatialMultiProcessing="True"/>
+		<dataSheet name="OutputModel" type="Output"/>
 </transformer>
 
 <!--BRT Transformer-->
 <transformer
 	name="BRT"
 	displayName ="7 - Boosted Regression Tree"
-	isRunnable="True"
-	programName="Rscript"
 	programArguments="7-fit-brt.R"
+	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="1">
 		<dataSheet name="FieldData" type="Input"/>
@@ -354,17 +338,14 @@
 		<dataSheet name="RetainedCovariates" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="BRT" type="Input"/>
-		<dataSheet name="OutputModel" type="Output" spatialMultiProcessing="True"/>
+		<dataSheet name="OutputModel" type="Output"/>
 </transformer>
 
 <!--Apply Model Transformer-->
 <transformer
 	name="ApplyModel"
 	displayName ="8 - Apply Model"
-	isRunnable="True"
-	programName="Rscript"
 	programArguments="8-apply-model.R"
-	isStochasticTime="True"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="1">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
@@ -380,10 +361,7 @@
 <transformer
 	name="EnsembleModel"
 	displayName="9 - Ensemble Model"
-	isRunnable="True"
-	programName="Python"
 	programArguments="9-ensemble-model.py"
-	runContext="LocalOnly"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="1">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
@@ -471,32 +449,32 @@
 <layout type="Scenario">
 	<group name="DataPreparation" displayName="Data Preparation">
 	 	<group name="SpatialData" displayName="Spatial Data">
-			<item name="TemplateRaster" showIf="inPipeline"/>
-			<item name="CovariateData" showIf="inPipeline"/>
-			<item name="RestrictionRaster" showIf="inPipeline"/>
+			<item name="TemplateRaster"/>
+			<item name="CovariateData"/>
+			<item name="RestrictionRaster"/>
 		</group>
 	  	<group name="FieldData" displayName="Field Data">
-			<item name="FieldData" showIf="inPipeline"/>
-			<item name="FieldDataOptions" showIf="inPipeline"/>
-			<item name="BackgroundDataOptions" showIf="inPipeline"/>
+			<item name="FieldData"/>
+			<item name="FieldDataOptions"/>
+			<item name="BackgroundDataOptions"/>
 	  	</group>
-	  	<item name="ValidationOptions" showIf="inPipeline"/>
+	  	<item name="ValidationOptions"/>
 	</group>
 	<group name="VariableReduction" displayName="Variable Reduction">
-		<item name="SiteData" showIf="inPipeline"/>
-		<item name="CovariateSelectionOptions" showIf="inPipeline"/>
-		<item name="RetainedCovariates" showIf="inPipeline"/>
+		<item name="SiteData"/>
+		<item name="CovariateSelectionOptions"/>
+		<item name="RetainedCovariates"/>
 	</group>
 	<group name="Models">
-	  	<item name="BRT" showIf="inPipeline"/>
-		<item name="GLM" showIf="inPipeline"/>
-		<item name="Maxent" showIf="inPipeline"/>
-		<item name="RF" displayName="Random Forest" showIf="inPipeline"/>
-		<item name="OutputModel" showIf="inPipeline"/>
+	  	<item name="BRT"/>
+		<item name="GLM"/>
+		<item name="Maxent"/>
+		<item name="RF" displayName="Random Forest"/>
+		<item name="OutputModel"/>
 	</group>
 	<group name="OutputOptions" displayName="Output Options">
-	  	<item name="OutputOptions" showIf="inPipeline"/>
-		<item name="EnsembleOptions" showIf="inPipeline"/>
+	  	<item name="OutputOptions"/>
+		<item name="EnsembleOptions"/>
 	</group>
 </layout> 
 
