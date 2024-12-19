@@ -402,39 +402,39 @@
 </transformer>
 
 <transformer 
-	name="ProbMapExport" dataSheet="OutputSpatial" column="ProbabilityRaster" isRasterExport="True">
+	name="ProbMapExport" dataSheet="OutputSpatial" column="ProbabilityRaster" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="MessMapExport" dataSheet="OutputSpatial" column="MessRaster" isRasterExport="True">
+	name="MessMapExport" dataSheet="OutputSpatial" column="MessRaster" isFolderExport="True">
 </transformer>
 		
 <transformer 
-	name="ModMapExport" dataSheet="OutputSpatial" column="ModRaster" isRasterExport="True">
+	name="ModMapExport" dataSheet="OutputSpatial" column="ModRaster" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="ResidMapExport" dataSheet="OutputSpatial" column="ResidualsRaster" isRasterExport="True">
+	name="ResidMapExport" dataSheet="OutputSpatial" column="ResidualsRaster" isFolderExport="True">
 </transformer>
 
 <transformer
-	name="BinMapExport" dataSheet="OutputSpatial" column="BinaryRaster" isRasterExport="True">
+	name="BinMapExport" dataSheet="OutputSpatial" column="BinaryRaster" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="MeanProbEnsembleExport" dataSheet="OutputEnsemble" column="ProbabilityRasterMean" isRasterExport="True">
+	name="MeanProbEnsembleExport" dataSheet="OutputEnsemble" column="ProbabilityRasterMean" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="SumProbEnsembleExport" dataSheet="OutputEnsemble" column="ProbabilityRasterSum" isRasterExport="True">
+	name="SumProbEnsembleExport" dataSheet="OutputEnsemble" column="ProbabilityRasterSum" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="MeanBinEnsembleExport" dataSheet="OutputEnsemble" column="BinaryRasterMean" isRasterExport="True">
+	name="MeanBinEnsembleExport" dataSheet="OutputEnsemble" column="BinaryRasterMean" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="SumBinEnsembleExport" dataSheet="OutputEnsemble" column="BinaryRasterSum" isRasterExport="True">
+	name="SumBinEnsembleExport" dataSheet="OutputEnsemble" column="BinaryRasterSum" isFolderExport="True">
 </transformer>
 
 <!--Library Layout-->
