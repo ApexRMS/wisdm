@@ -353,17 +353,18 @@ for (i in 1:nrow(modelOutputsSheet)){
         pred.rng[is.na(pred.rng)] <- -9999  # typeof(pred.rng)
         
         if(outputOptionsSheet$MakeMessMap){ 
-        messRaster <- rast(templateRaster, vals = pred.rng)
-        if(!is.null(maskValues)){messRaster <- extend(messRaster, maskExt)}
-        writeRaster(x = messRaster, 
-                    filename = file.path(ssimTempDir, paste0(modType,"_mess_map.tif")), 
-                    datatype = "INT4S",
-                    NAflag = -9999,
-                    overwrite = TRUE)  # is.int(messRaster) 
-        
-        remove(messRaster)
-        progressBar()
-        updateRunLog("Finished MESS Map in ", updateBreakpoint())
+          messRaster <- rast(templateRaster, vals = pred.rng)
+          NAflag(messRaster) <- -9999
+          if(!is.null(maskValues)){messRaster <- extend(messRaster, maskExt)}
+          writeRaster(x = messRaster, 
+                      filename = file.path(ssimTempDir, paste0(modType,"_mess_map.tif")), 
+                      datatype = "INT4S",
+                      NAflag = -9999,
+                      overwrite = TRUE)  # is.int(messRaster) 
+          
+          remove(messRaster)
+          progressBar()
+          updateRunLog("Finished MESS Map in ", updateBreakpoint())
         }
         if(outputOptionsSheet$MakeModMap){ 
           

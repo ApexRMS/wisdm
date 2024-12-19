@@ -180,19 +180,19 @@
 
 <dataSheet name="OutputSpatial" spatialMultiProcessing="True">
 	<column name="ModelsID" dataType="Integer" validationType="Datasheet" formula1="Models"/>
-	<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True"/>
-	<column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True"/>
-	<column name="ModRaster" dataType="String" isExternalFile="True" isRaster="True"/>
-	<column name="ResidualsRaster" dataType="String" isExternalFile="True" isRaster="True"/>
-	<column name="BinaryRaster" dataType="String" isExternalFile="True" isRaster="True"/>
+	<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
+	<column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
+	<column name="ModRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
+	<column name="ResidualsRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
+	<column name="BinaryRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
 	<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
 </dataSheet>
 
 <dataSheet name="OutputEnsemble">
-	<column name="ProbabilityRasterMean" dataType="String" isExternalFile="True" isRaster="True"/>
-	<column name="ProbabilityRasterSum" dataType="String" isExternalFile="True" isRaster="True"/>
-	<column name="BinaryRasterMean" dataType="String" isExternalFile="True" isRaster="True"/>
-	<column name="BinaryRasterSum" dataType="String" isExternalFile="True" isRaster="True"/>
+	<column name="ProbabilityRasterMean" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
+	<column name="ProbabilityRasterSum" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
+	<column name="BinaryRasterMean" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
+	<column name="BinaryRasterSum" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
 	<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
 </dataSheet>
 
@@ -212,11 +212,12 @@
   name="SpatialDataPreparation"
   displayName ="2 - Spatial Data Preparation"
   programArguments="2-spatial-data-preparation.py"
+  isMultiprocessing="False"
   condaEnv="wisdm-conda-s3.yml"
   condaEnvVersion="1">
 	<dataSheet name="TemplateRaster" type="Input"/>
 	<dataSheet name="RestrictionRaster" type="Output"/>
-	<dataSheet name="CovariateData" type="Both" spatialMultiProcessing="True"/>
+	<dataSheet name="CovariateData" type="Both"/>
 </transformer>
 
 <!--Site Data Preparation Transformer-->
@@ -224,13 +225,14 @@
 	name="SiteDataPreparation"
 	displayName ="3 - Site Data Preparation"
 	programArguments="3-site-data-preparation.py"
+	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
   	condaEnvVersion="1">
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="FieldDataOptions" type="Input"/>
-		<dataSheet name="FieldData" type="Both" spatialMultiProcessing="True"/>
-		<dataSheet name="CovariateData" type="Both" spatialMultiProcessing="True"/>
-		<dataSheet name="SiteData" type="Output" spatialMultiProcessing="True"/>
+		<dataSheet name="FieldData" type="Both"/>
+		<dataSheet name="CovariateData" type="Both"/>
+		<dataSheet name="SiteData" type="Output"/>
 </transformer>
 
 <!--Background Data Preparation Transformer-->
@@ -238,13 +240,14 @@
 	name="BackgroundDataGeneration"
 	displayName ="4 - Background Data Generation"
 	programArguments="4-background-data-generation.R"
+	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
   	condaEnvVersion="1">
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="FieldData" type="Both"/>
 		<dataSheet name="BackgroundDataOptions" type="Input"/>
-		<dataSheet name="CovariateData" type="Both" spatialMultiProcessing="True"/>
-		<dataSheet name="SiteData" type="Both" spatialMultiProcessing="True"/>
+		<dataSheet name="CovariateData" type="Both"/>
+		<dataSheet name="SiteData" type="Both"/>
 </transformer>
 		
 <!--Split Data for Training/Testing Transformer-->
@@ -362,13 +365,14 @@
 	name="EnsembleModel"
 	displayName="9 - Ensemble Model"
 	programArguments="9-ensemble-model.py"
+	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="1">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="EnsembleOptions" type="Input"/>
 		<dataSheet name="OutputSpatial" type="Input"/>
-		<dataSheet name="OutputEnsemble" type="Output" spatialMultiProcessing="True"/>
+		<dataSheet name="OutputEnsemble" type="Output"/>
 </transformer>
 
  <!--Export Transformers-->
