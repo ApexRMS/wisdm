@@ -75,8 +75,8 @@ if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
     os.environ['GDAL_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem")
     os.environ["PROJ_DATA"] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\proj")
     os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem")
-    # os.environ.setdefault("PROJ_LIB", os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\proj"))
-    # os.environ.setdefault("CURL_CA_BUNDLE", os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem"))
+    pyproj.datadir.set_data_dir(os.path.join(conda_fpath, "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\proj"))
+    pyproj.network.set_ca_bundle_path(os.path.join(conda_fpath, "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem"))
    
 # if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
 #    os.environ["PROJ_DATA"] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\proj")

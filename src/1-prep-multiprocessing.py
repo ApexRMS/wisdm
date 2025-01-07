@@ -23,6 +23,7 @@ import rioxarray
 import xarray
 import numpy as np
 import math
+import pyproj
 
 import dask
 from dask.distributed import Client
@@ -37,6 +38,17 @@ ps.environment.progress_bar(report_type = "begin", total_steps = steps)
 # Load current scenario
 myScenario = ps.Scenario()  
 myLibrary = myScenario.library
+mySession = ps.Session()
+
+result = mySession._Session__call_console(["--conda", "--config"])
+conda_fpath = result.stdout.decode('utf-8').strip().split(": ")[1]
+if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
+    os.environ['GDAL_DATA'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\gdal")
+    os.environ['GDAL_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem")
+    os.environ["PROJ_DATA"] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\proj")
+    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(conda_fpath , "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem")
+    pyproj.datadir.set_data_dir(os.path.join(conda_fpath, "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\proj"))
+    pyproj.network.set_ca_bundle_path(os.path.join(conda_fpath, "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem"))
 
 # Create a temporary folder for storing rasters
 # ssimTempDir = myLibrary.info["Value"][myLibrary.info.Property == "Temporary files:"].item() 
@@ -103,15 +115,15 @@ templateRaster = rioxarray.open_rasterio(templatePath)
 if templateRasterSheet.TileCount.isnull().item():
     if templateRaster.size <= 10000:
         raise ValueError("Template raster has only " + str(templateRaster.size) + " pixels. Multiprocessing is not required.")
-    elif templateRaster.size <= 10000:
+    elif templateRaster.size > 10000 & templateRaster.size <= 1e5:
         numTiles = templateRaster.size/10000
-    elif templateRaster.size <= 100000:
-        numTiles = templateRaster.size/100000
-    elif templateRaster.size <= 1e6:
+    elif templateRaster.size > 1e5 & templateRaster.size <= 1e6:
+        numTiles = templateRaster.size/1e5
+    elif templateRaster.size > 1e6 & templateRaster.size <= 1e7:
         numTiles = templateRaster.size/1e6
-    elif templateRaster.size <= 1e7:
+    elif templateRaster.size > 1e7 & templateRaster.size <= 1e8:
         numTiles = templateRaster.size/1e7
-    elif templateRaster.size > 1e7:
+    elif templateRaster.size > 1e8 & templateRaster.size <= 1e9:
         numTiles = templateRaster.size/1e7
         if numTiles > 20:
             numTiles = templateRaster.size/5e7
