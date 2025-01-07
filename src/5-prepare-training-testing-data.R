@@ -20,6 +20,7 @@ source(file.path(packageDir, "05-training-testing-data-prep-functions.R"))
 # Set progress bar -------------------------------------------------------------
 
 steps <- 5 
+updateRunLog('5 - Prepare Training/Testing Data => Begin')
 progressBar(type = "begin", totalSteps = steps)
 
 # Connect to library -----------------------------------------------------------

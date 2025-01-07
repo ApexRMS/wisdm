@@ -31,6 +31,7 @@ from dask.distributed import Client
 #%% Set progress bar ---------------------------------------------------------
 
 steps = 6
+ps.environment.update_run_log('1 - Prepare Multiprocessing => Begin')
 ps.environment.progress_bar(report_type = "begin", total_steps = steps)
 
 #%% Connect to SyncroSim library --------------------------------------------

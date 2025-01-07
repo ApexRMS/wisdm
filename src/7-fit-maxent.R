@@ -24,6 +24,7 @@ options(scipen = 999)
 # Set progress bar -------------------------------------------------------------
 
 steps <- 11
+updateRunLog('7 - Maxent => Begin')
 progressBar(type = "begin", totalSteps = steps)
 
 # Connect to library -----------------------------------------------------------

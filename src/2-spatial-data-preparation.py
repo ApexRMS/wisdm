@@ -71,6 +71,7 @@ def prep_spatial_data():
     from rasterio.enums import Resampling #, MergeAlg
     from rasterio.vrt import WarpedVRT
 
+    ps.environment.update_run_log('2 - Spatial Data Preparation => Begin')
     ps.environment.progress_bar("message", message = "Preparing inputs for spatial data prep...")
 
     # Suppress pandas Setting with Copy warning

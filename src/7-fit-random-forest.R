@@ -22,6 +22,7 @@
 # Set progress bar -------------------------------------------------------------
 
 steps <- 11
+updateRunLog('7 - Random Forest => Begin')
 progressBar(type = "begin", totalSteps = steps)
   
 # Connect to library -----------------------------------------------------------

@@ -64,6 +64,8 @@ from rasterio.enums import Resampling #, MergeAlg
 
 pd.options.mode.chained_assignment = None
 
+ps.environment.update_run_log('3 - Site Data Preparation => Begin')
+
 ## Modify the os PROJ path (when running with Conda) ----
 myLibrary = ps.Library()
 mySession = ps.Session()

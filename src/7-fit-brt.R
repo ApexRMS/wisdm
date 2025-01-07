@@ -21,6 +21,7 @@
 # Set progress bar -------------------------------------------------------------
 
 steps <- 11
+updateRunLog('7 - Boosted Regression Trees => Begin')
 progressBar(type = "begin", totalSteps = steps)
   
 # Connect to library -----------------------------------------------------------

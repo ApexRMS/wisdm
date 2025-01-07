@@ -20,6 +20,7 @@
 # set progress bar -------------------------------------------------------------
 
 steps <- 11
+updateRunLog('7 - Generalized Linear Model => Begin')
 progressBar(type = "begin", totalSteps = steps)
 
 # Connect to library -----------------------------------------------------------

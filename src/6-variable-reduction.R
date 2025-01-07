@@ -21,6 +21,7 @@ source(file.path(packageDir, "06-variable-reduction-functions.R"))
 # Set progress bar -------------------------------------------------------------
 
 steps <- 6
+updateRunLog('6 - Variable Reduction => Begin')
 progressBar(type = "begin", totalSteps = steps)
 
 # Connect to library -----------------------------------------------------------

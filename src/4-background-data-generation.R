@@ -18,6 +18,8 @@ library(pander)
 packageDir <- (Sys.getenv("ssim_package_directory"))
 source(file.path(packageDir, "04-background-data-functions.R"))
 
+updateRunLog('4 - Background Data Generation => Begin')
+
 # Connect to library -----------------------------------------------------------
 
 # Active project and scenario
