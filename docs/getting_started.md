@@ -4,8 +4,6 @@ title: Getting Started
 permalink: /getting_started
 ---
 
-# Getting started with **WISDM**
-
 ---
 ## ⚠️ **Notice to Users**
 
@@ -13,6 +11,9 @@ The **Getting Started** documentation and associated **Tutorials** for this Sync
 In the meantime, please note that some instructions, references, and/or images may not fully align with the latest version of SyncroSim. We appreciate your patience as we work to provide updated resources.
 
 ---
+<br>
+
+# Getting started with **WISDM**
 
 ### Here we provide a guided tutorial on **WISDM**, an open-source package for developing and applying species distribution models (SDMs) and visualizing their outputs.
 
