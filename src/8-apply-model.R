@@ -338,16 +338,18 @@ for (i in 1:nrow(modelOutputsSheet)){
         
         # order the training data so that we can consider the first and last row only in mess calculations
         train.dat <- select(trainingData, all_of(modVars))
-        for(k in 1:nrow(covData)){ train.dat[ ,k] <- sort(train.dat[ ,k]) } 
+        for(k in covData$CovariatesID){ train.dat[ ,k] <- sort(train.dat[ ,k]) } 
         ids <- NULL
-        for(n in names(train.dat)){ ids[n] <- covariatesSheet$ID[covariatesSheet$CovariateName == n]}
+        trainNames <- names(train.dat)
+        for(n in trainNames){ ids[n] <- covariatesSheet$ID[covariatesSheet$CovariateName == n]}
         names(train.dat) <- ids
         
         pred.rng <- rep(NA, nrow(temp))
         names(pred.rng) <- NA
           
         if(any(complete.cases(temp))){
-            MessVals <- CalcMESS(rast = data.frame(temp[complete.cases(temp),]), train.dat = train.dat)
+            rast <- data.frame(temp[complete.cases(temp),]) %>% select(trainNames)
+            MessVals <- CalcMESS(rast = rast, train.dat = train.dat)
             pred.rng[complete.cases(temp)] <- MessVals[ ,2]
             names(pred.rng)[complete.cases(temp)] <- MessVals[ ,1]
         }
