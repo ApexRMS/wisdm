@@ -6,6 +6,8 @@
 # built under R version 4.1.3 & SyncroSim version 3.0.0
 # Script pulls in field data and splits sites into test/train or CV groupings
 
+SEED = 1234
+
 # source dependencies ----------------------------------------------------------
 
 library(rsyncrosim) # install.packages("C:/GitHub/rsyncrosim", type="source", repos=NULL) 
@@ -90,7 +92,8 @@ if(validationDataSheet$SplitData){
   inputData <- testTrainSplit(inputData = inputData,
                                trainProp = validationDataSheet$ProportionTrainingData,
                                # ratioPresAbs = validationDataSheet$RatioPresenceAbsence,
-                               factorVars = factorVars)
+                               factorVars = factorVars,
+                               seed = SEED)
 } else {
   # set all data to be used in model training
   inputData$UseInModelEvaluation <- FALSE
@@ -104,7 +107,8 @@ if(validationDataSheet$CrossValidate){
   inputData <- crossValidationSplit(inputData = inputData,
                                      factorVars = factorVars,
                                      nFolds = validationDataSheet$NumberOfFolds,
-                                     stratify = validationDataSheet$StratifyFolds)
+                                     stratify = validationDataSheet$StratifyFolds,
+                                     seed = SEED)
 }
 
 progressBar()

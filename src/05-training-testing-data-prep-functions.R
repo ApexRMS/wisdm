@@ -10,7 +10,8 @@
 testTrainSplit <- function(inputData,             # dataframe with field data and Covariate Values 
                            trainProp,             # proportion of data to use in model training
                            factorVars = NULL,     # names of categorical variables (if any)
-                           ratioPresAbs = NULL){  # ratio of presence to absence points that should be used
+                           ratioPresAbs = NULL,
+                           seed = NULL){  # ratio of presence to absence points that should be used
                            
   
   # Description:
@@ -27,6 +28,10 @@ testTrainSplit <- function(inputData,             # dataframe with field data an
   # Background points are ignored by this module (they are read in and written out, 
   # but not assigned to either the test or training split). 
   
+  if (!is.null(seed)){
+    set.seed(seed)
+  }
+
   if(trainProp<=0 | trainProp>1){ stop("Training Proportion must be a number between 0 and 1 excluding 0") }
   if(!is.null(ratioPresAbs)) {
     if(ratioPresAbs<=0) stop("The ratio of presence to absence (ratioPresAbs) must be a \ngreater than 0")}
@@ -174,7 +179,8 @@ crossValidationSplit <- function(inputData,         # dataframe with field data 
                                  factorVars,        # names of categorical variables (if any)
                                  nFolds = 10,       # ValidationDataSheet$NumberOfFolds
                                  stratify = FALSE,  # ValidationDataSheet$StratifyFolds,
-                                 spatSplit = FALSE){
+                                 spatSplit = FALSE,
+                                 seed = NULL){
   
   # Description:
   # this code takes as input an mds file with the first line being the predictor or
@@ -188,7 +194,10 @@ crossValidationSplit <- function(inputData,         # dataframe with field data 
   # by this module (they are read in, written out, but not assigned to cv folds.
   
   # cross validation can only be used for model selection
-  
+  if (!is.null(seed)){
+    set.seed(seed)
+  }
+
   options(warn=1)
   if(nFolds<=1 | nFolds%%1!=0) stop("Number of folds must be an integer greater than 1")
   
