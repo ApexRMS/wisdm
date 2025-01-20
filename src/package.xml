@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.1.7" minSyncroSimVersion="3.0.21" url="https://apexrms.github.io/wisdm/">
+<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.1.8" minSyncroSimVersion="3.0.21" url="https://apexrms.github.io/wisdm/">
 
 <!--Library Datasheets-->
 
