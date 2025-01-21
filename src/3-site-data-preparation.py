@@ -73,6 +73,8 @@ mySession = ps.Session()
 result = mySession._Session__call_console(["--conda", "--config"])
 conda_fpath = result.stdout.decode('utf-8').strip().split("Conda path is currently: ")[1]
 if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
+    ps.environment.update_run_log("GDAL path: " + os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\gdal"))
+    ps.environment.update_run_log("PROJ path: " + os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\proj"))
     os.environ['GDAL_DATA'] = os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\gdal")
     os.environ['GDAL_CURL_CA_BUNDLE'] = os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\ssl\\cacert.pem")
     os.environ["PROJ_DATA"] = os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\proj")
@@ -80,6 +82,7 @@ if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
     os.environ["PROJ_LIB"] = os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\proj")
     pyproj.datadir.set_data_dir(os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\proj"))
     pyproj.network.set_ca_bundle_path(os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\ssl\\cacert.pem"))
+    ps.environment.update_run_log("pyproj data directory: " + pyproj.datadir.get_data_dir())    
    
 # if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
 #    os.environ["PROJ_DATA"] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\proj")

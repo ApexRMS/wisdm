@@ -65,13 +65,20 @@ mySession = ps.Session()
 result = mySession._Session__call_console(["--conda", "--config"])
 conda_fpath = result.stdout.decode('utf-8').strip().split("Conda path is currently: ")[1]
 if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
-    os.environ['GDAL_DATA'] = os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\gdal")
-    os.environ['GDAL_CURL_CA_BUNDLE'] = os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\ssl\\cacert.pem")
-    os.environ["PROJ_DATA"] = os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\proj")
-    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\ssl\\cacert.pem")
-    os.environ["PROJ_LIB"] = os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\proj")
-    pyproj.datadir.set_data_dir(os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\proj"))
-    pyproj.network.set_ca_bundle_path(os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\ssl\\cacert.pem"))
+    library_folder = os.path.join(conda_fpath, "envs", "wisdm-1", "wisdm-conda-s3", "Library")
+    gdal_folder = os.path.join(library_folder, "share", "gdal")
+    proj_folder = os.path.join(library_folder, "share", "proj")
+    certifi_folder = os.path.join(library_folder, "ssl", "cacert.pem")
+    ps.environment.update_run_log("GDAL path: " + gdal_folder)
+    ps.environment.update_run_log("PROJ path: " + proj_folder)
+    os.environ['GDAL_DATA'] = gdal_folder
+    os.environ['GDAL_CURL_CA_BUNDLE'] = certifi_folder
+    os.environ["PROJ_DATA"] = proj_folder
+    os.environ['PROJ_CURL_CA_BUNDLE'] = certifi_folder
+    os.environ["PROJ_LIB"] = proj_folder
+    pyproj.datadir.set_data_dir(proj_folder)
+    pyproj.network.set_ca_bundle_path(certifi_folder)
+    ps.environment.update_run_log("pyproj data directory: " + pyproj.datadir.get_data_dir())     
 
 #%% Connect to SyncroSim library ------------------------------------------------
 
