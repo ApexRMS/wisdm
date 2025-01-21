@@ -43,6 +43,7 @@ mySession = ps.Session()
 
 result = mySession._Session__call_console(["--conda", "--config"])
 conda_fpath = result.stdout.decode('utf-8').strip().split("Conda path is currently: ")[1]
+conda_fpath = os.path.normpath(conda_fpath)
 if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
     library_folder = os.path.join(conda_fpath, "envs", "wisdm-1", "wisdm-conda-s3", "Library")
     gdal_folder = os.path.join(library_folder, "share", "gdal")

@@ -72,24 +72,23 @@ mySession = ps.Session()
 
 result = mySession._Session__call_console(["--conda", "--config"])
 conda_fpath = result.stdout.decode('utf-8').strip().split("Conda path is currently: ")[1]
+conda_fpath = os.path.normpath(conda_fpath)
 if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
-    ps.environment.update_run_log("GDAL path: " + os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\gdal"))
-    ps.environment.update_run_log("PROJ path: " + os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\proj"))
-    os.environ['GDAL_DATA'] = os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\gdal")
-    os.environ['GDAL_CURL_CA_BUNDLE'] = os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\ssl\\cacert.pem")
-    os.environ["PROJ_DATA"] = os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\proj")
-    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\ssl\\cacert.pem")
-    os.environ["PROJ_LIB"] = os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\proj")
-    pyproj.datadir.set_data_dir(os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\share\\proj"))
-    pyproj.network.set_ca_bundle_path(os.path.join(conda_fpath, "envs\\wisdm-1\\wisdm-conda-s3\\Library\\ssl\\cacert.pem"))
+    library_folder = os.path.join(conda_fpath, "envs", "wisdm-1", "wisdm-conda-s3", "Library")
+    gdal_folder = os.path.join(library_folder, "share", "gdal")
+    proj_folder = os.path.join(library_folder, "share", "proj")
+    certifi_folder = os.path.join(library_folder, "ssl", "cacert.pem")
+    ps.environment.update_run_log("GDAL path: " + gdal_folder)
+    ps.environment.update_run_log("PROJ path: " + proj_folder)
+    os.environ['GDAL_DATA'] = gdal_folder
+    os.environ['GDAL_CURL_CA_BUNDLE'] = certifi_folder
+    os.environ["PROJ_DATA"] = proj_folder
+    os.environ['PROJ_CURL_CA_BUNDLE'] = certifi_folder
+    os.environ["PROJ_LIB"] = proj_folder
+    pyproj.datadir.set_data_dir(proj_folder)
+    pyproj.network.set_ca_bundle_path(certifi_folder)
     ps.environment.update_run_log("pyproj data directory: " + pyproj.datadir.get_data_dir())    
-   
-# if myLibrary.datasheets("core_Options").UseConda.item() == "Yes":
-#    os.environ["PROJ_DATA"] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\proj")
-#    os.environ['PROJ_CURL_CA_BUNDLE'] = os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem")
-    # pyproj.datadir.set_data_dir(os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-conda-s3\\Library\\share\\proj"))
-    # pyproj.network.set_ca_bundle_path(os.path.join(mySession.conda_filepath, "envs\\wisdm\\wisdm-conda-s3\\Library\\ssl\\cacert.pem"))
-    
+       
 #%% Connect to SyncroSim library ------------------------------------------------
 
 # Load current scenario
@@ -216,14 +215,10 @@ else:
 
 # Convert shapely object to a geodataframe with a crs
 sites = gpd.GeoDataFrame(fieldDataSheet, geometry=siteCoords, crs=fieldDataCRS)
-sites.to_csv(os.path.join("C:/temp/sites_raw.csv"))
 
 # Reproject points if site crs differs from template crs
 if sites.crs != templateCRS:
     sites = sites.to_crs(templateCRS)
-sites.to_csv(os.path.join("C:/temp/sites_reprojected.csv"))
-ps.environment.update_run_log("Field data CRS: ", fieldDataCRS, " Template CRS: ", templateCRS)
-templatePolygons.to_csv(os.path.join("C:/temp/templatePolygons.csv"))
 
 # Clip sites to template extent
 if rasterio.dtypes.is_ndarray(templatePolygons):
