@@ -4,15 +4,6 @@ title: Getting Started
 permalink: /getting_started
 ---
 
----
-## ⚠️ **Notice to Users**
-
-The **Getting Started** documentation and associated **Tutorials** for this SyncroSim package currently reflects information for **SyncroSim version 2**. We are in the process of updating these pages to ensure compatibility with **SyncroSim version 3**.
-In the meantime, please note that some instructions, references, and/or images may not fully align with the latest version of SyncroSim. We appreciate your patience as we work to provide updated resources.
-
----
-<br>
-
 # Getting started with **WISDM**
 
 ### Here we provide a guided tutorial on **WISDM**, an open-source package for developing and applying species distribution models (SDMs) and visualizing their outputs.
@@ -26,7 +17,7 @@ In the meantime, please note that some instructions, references, and/or images m
 This quickstart tutorial will introduce you to the basics of working with **WISDM**. The steps include:
 
 1. <a href="#step1">Installing **WISDM**</a>
-2. <a href="#step2">Creating a new **WISDM** Library</a>
+2. <a href="#step2">Creating a new **WISDM** library</a>
 3. <a href="#step3">Viewing model inputs</a> 
 4. <a href="#step4">Running models</a>
 5. <a href="#step5">Viewing model outputs and results</a>
@@ -53,18 +44,18 @@ Having installed the **WISDM** package, you are now ready to create your SyncroS
 
 In this window:
 
-* Select the row for **wisdm - Workbench for Integrated Species Distribution Modeling**. Note that as you select a row, the list of *templates* available and suggested **File name** for that base package are updated.
+* Select the row for **wisdm - Workbench for Integrated Species Distribution Modeling**. Note that as you select a row, the list of *templates* available and suggested **File name** for that package are updated.
 * Select the **_WISDM Example_** template as shown above. 
 * Optionally type in a new *File name* for the library (or accept the default); you can also change the *Folder* containing the file using the *Browse…* button. <br>
-* When you are ready to create the library file, click **OK**. A new libraryl will be created and loaded into the SyncroSim Studio **Explorer**.
+* When you are ready to create the library file, click **OK**. A new library will be created and loaded into the SyncroSim Studio **Explorer**.
 
 <br>
 
 <p id="step3"> <h2>Step 3: Viewing model inputs</h2> </p>
 
-The contents of your newly created library are now displayed in the **Explorer**. The libraryl stores information on three levels: 1.) the library, 2.) the project, and 3.) the scenario(s). 
+The contents of your newly created library are now displayed in the **Explorer**. The library stores information on three levels: 1.) the library, 2.) the project, and 3.) the scenario(s). 
 
-Most model inputs in SyncroSim are organized into scenarios, where each scenarios consists of a suite of properties, one for each of the model’s required inputs. Because you chose the **_WISDM Example_** when you created your library, your library already contains a demonstration scenario with pre-configured model inputs and outputs. 
+Most model inputs in SyncroSim are organized into scenarios, where each scenario consists of a suite of properties, one for each of the model’s required inputs. Because you chose the **_WISDM Example_** when you created your library, your library already contains a demonstration scenario with pre-configured model inputs and outputs. 
 
 <img align="middle" style="padding: 3px" width="294" src="assets/images/scenario.png">
 
@@ -106,7 +97,7 @@ Note that all stages in this pipeline are dependent on the results of the previo
 
 Under the **WISDM > Data Preparation** node, you'll find the **Template Raster** datasheet. Here, you'll provide the system path to a *Raster file* with the desired extent, resolution, and coordinate reference system (CRS) for the analysis and outputs. This **Template Raster** is required for multiple stages in the pipeline, including the optional Prepare Multiprocessing stage. 
 
-If you are choosing to run with Spatial Multiprocessing, you can also specify the *Number of multiprocessing tiles (optional)* that you would like to use. If you don't specify a value, the package will select an appropriate value for you. 
+If you are choosing to run with Spatial Multiprocessing, you can also specify the *Number of multiprocessing tiles* that you would like to use. If you don't specify a value, the package will select an appropriate value for you. 
 
 If spatial multiprocessing is used, a tiling raster will be created and will appear in the **System > Spatial Multiprocessing** datasheet when the scenario has finished running. This tiling raster is used to clip other spatial layers into smaller rectangular blocks, effectively creating more manageable processing sizes.
 
@@ -152,7 +143,7 @@ Still under the **WISDM > Data Preparation** tab, you'll find the **Validation O
 
 ### Statistical models
 
-Under the **WISDM > Models** node, you'll find the **Generalized Linear Model**, **Random Forest**, and **Maodel Outputs** datasheets. Depending on which statistical models you included in your pipeline, you can access the corresponding model configuration datasheet here and customize your desired statistical analysis. If fields are left blank, default values will be used. 
+Under the **WISDM > Models** node, you'll find the **Generalized Linear Model**, **Random Forest**, and **Model Outputs** datasheets. Depending on which statistical models you included in your pipeline, you can access the corresponding model configuration datasheet here and customize your desired statistical analysis. If fields are left blank, default values will be used. 
 
 <img align="middle" style="padding: 3px" width="410" src="assets/images/GLM.png">
 
@@ -168,33 +159,33 @@ In the **WISDM > Output Options** datasheet, you can choose which output maps to
 
 <p id="step4"> <h2>Step 4: Running models</h2> </p>
 
-Right-click on the **_Brewer's Sparrow Scenario_** select **Run** from the context menu. If prompted to save your project, click **Yes**. 
+Right-click on the **_Brewer's Sparrow Scenario_** and select **Run** from the context menu. If prompted to save your library, click **Yes**. 
 
 During the model run, the **Covariate Correlation Viewer** window will open in your default browser, showing correlations between *Covariates*. Here, you can manually remove covariates from consideration based on user interpretation (e.g., if the correlation values are deemed unacceptable). To remove a *Covariate*, uncheck the box next to the variable name in the *Covariates to include* list. A default threshold correlation absolute value of 0.7 (highest of Spearman, Pearson, Kendall) is used to color code the correlation values. This value, and the number of plots shown, can be changed. To view  changes, simply select the *Update* button. Once you are satisfied with your list of covariates, select the *Save & Close* button. The window will close and the analysis will continue in Syncrosim.
 
-<img align="middle" style="padding: 3px" width="869" src="assets/images/correlation-viewer.png"> <!--update-->
+<img align="middle" style="padding: 3px" width="869" src="assets/images/correlation-viewer.png">
 
 The example model run should complete within a couple of minutes. If the run is successful, you will see a Status of **Done** in the **Run Monitor** window. If the run fails, you can click on the **Run Log** link to see a report of any problems that occurred.
 
-<img align="middle" style="padding: 3px" width="700" src="assets/images/run-monitor.png"> <!--update-->
+<img align="middle" style="padding: 3px" width="700" src="assets/images/run-monitor.png">
 
 <br>
 
 <p id="step5"> <h2>Step 5: Viewing model outputs and results</h2> </p>
 
-Once the run is complete, you can view the details of the *Result Scenario*:
+Once the run is complete, you can view the details of the *Results Scenario*:
 
-* Select **_Brewer's Sparrow Result Scenario_** from the *Results* folder nested under the **_Brewer's Sparrow Scenario_** in the **Library Explorer**.
+* Select **_Brewer's Sparrow Results Scenario_** from the *Results* folder nested under the **_Brewer's Sparrow Scenario_** in the **Library Explorer**.
 
 <img align="middle" style="padding: 3px" width="292" src="assets/images/result-scenario.png">
 
-* Right-click and choose **Properties** from the context menu to view the details of the result scenario.
+* Right-click and choose **Open** from the context menu to view the details of the results scenario.
 
 <img align="middle" style="padding: 3px" width="631" src="assets/images/result-scenario-properties.png">
 
-This opens the *Result Scenario Properties* window. The format of the *Result Scenario Properties* is similar to the *Scenario Properties* but contains read-only datasheets with updated information produced during the model run.
+This opens the *Results Scenario Properties* window. The format of the *Results Scenario Properties* is similar to the *Scenario Properties* but contains read-only datasheets with updated information produced during the model run.
 
-You can look through the result scenario to see the updated or newly populated datasheets. You should find that the **Field Data**, **Covariate Data**, **GLM**, and **Random Forest** datasheets have updated entries. Note that the model configuration options for **Random Forest** were left empty in the *Parent Scenario*. In this case, **WISDM** uses default settings during model fitting and reports the selections in the result scenario.
+You can look through the results scenario to see the updated or newly populated datasheets. You should find that the **Field Data**, **Covariate Data**, **GLM**, and **Random Forest** datasheets have updated entries. Note that the model configuration options for **Random Forest** were left empty in the *Parent Scenario*. In this case, **WISDM** uses default settings during model fitting and reports the selections in the results scenario.
 
 <img align="middle" style="padding: 3px" width="442" src="assets/images/random-forest-output.png">
 
@@ -236,7 +227,7 @@ The first two maps are *Probability* maps showing model-predicted habitat suitab
 
 ## Export data
 
-To export a map or model output created by the **WISDM** package, add the result scenario with the desired outputs to the results, then open the **Export** tab at the bottom of the screen. All available files for export will be listed. To export, simply double-click on the desired output and choose the directory in which to save the file in the pop-up window. Note that if multiple result scenarios are included in the active result scenarios, files for each of the selected scenarios will be exported. 
+To export a map or model output created by the **WISDM** package, add the results scenario with the desired outputs to the results, then open the **Export** tab at the bottom of the screen. All available files for export will be listed. To export, simply double-click on the desired output and choose the directory in which to save the file in the pop-up window. Note that if multiple results scenarios are included in the active results scenarios, files for each of the selected scenarios will be exported. 
 
 <img align="middle" style="padding: 3px" width="293" src="assets/images/export.png">
 
