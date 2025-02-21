@@ -113,7 +113,7 @@ Under the **Project Properties**, which you can view by double-clicking in the *
 
 <img align="middle" style="padding: 3px" width="657" src="assets/images/covariates.png">
 
-If you return to the scenario roperties, under the **WISDM > Data Preparation > Spatial Data** node, you'll also find a datasheet called **Covariate Data**. Here, you will identify system paths to the raster files (e.g., GEOTiffs) for each covariate listed in the aforementioned **Covariates** datasheet. The extent of each raster must be greater than or equal to the template raster extent.
+If you return to the scenario properties, under the **WISDM > Data Preparation > Spatial Data** node, you'll also find a datasheet called **Covariate Data**. Here, you will identify system paths to the raster files (e.g., GEOTiffs) for each covariate listed in the aforementioned **Covariates** datasheet. The extent of each raster must be greater than or equal to the template raster extent.
 
 <img align="middle" style="padding: 3px" width="582" src="assets/images/covariate-data.png">
 
@@ -222,6 +222,12 @@ To view spatial outputs, move to the results panel at the bottom left of the *Ex
 The first two maps are *Probability* maps showing model-predicted habitat suitability values in geographic space. Values in the legend on the left-hand side of the screen represent probabilities as percentages. The two maps represent outputs using *GLM* and *Random Forest* statistical analyses. One map will be visible for each modeling approach.
 
 <img align="middle" style="padding: 3px" width="939" src="assets/images/map-outputs.png">
+
+Under the **Images** tab, you will also find the **Images Outputs** tab. Outputs include *Response Curves*, *Standard Residuals*, *Residuals Smooth*, *Calibration*, *ROC/AUC*, *AUCPR*, *Confusion Matrix*, and *Variable Importance*. These outputs provide information on model performance and offer quick comparison of different statistical models.
+
+<img align="middle" style="padding: 3px" width="939" src="assets/images/library-explorer-images-plots.png">
+
+<img align="middle" style="padding: 3px" width="939" src="assets/images/library-explorer-images-plots.png">
 
 <br>
 
