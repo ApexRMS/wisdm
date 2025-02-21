@@ -15,6 +15,7 @@
 ## Modify os path if multiple GDAL installations ----
 def prep_spatial_data():
 
+    #%%
     import os
     import glob
     from win32api import GetFileVersionInfo, LOWORD, HIWORD
@@ -85,7 +86,7 @@ def prep_spatial_data():
     conda_fpath = result.stdout.decode('utf-8').strip().split("Conda path is currently: ")[1]
     conda_fpath = os.path.normpath(conda_fpath)
     if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
-        library_folder = os.path.join(conda_fpath, "envs", "wisdm-1", "wisdm-conda-s3", "Library")
+        library_folder = os.path.join(conda_fpath, "envs", "wisdm-2", "wisdm-conda-s3", "Library")
         gdal_folder = os.path.join(library_folder, "share", "gdal")
         proj_folder = os.path.join(library_folder, "share", "proj")
         certifi_folder = os.path.join(library_folder, "ssl", "cacert.pem")
