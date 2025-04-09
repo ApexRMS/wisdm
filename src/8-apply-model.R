@@ -114,8 +114,7 @@ if(name(myLibrary) == "Partial"){
 
 # prepare restriction layer ---------------------------------------------------- 
   
-# if(nrow((restrictionSheet))>0){
-if(!is.na(restrictionSheet$RasterFilePath)){
+if(nrow((restrictionSheet))>0){
   
    restrictRaster <- rast(restrictionSheet$RasterFilePath)
    
