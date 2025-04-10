@@ -220,6 +220,14 @@ sites = gpd.GeoDataFrame(fieldDataSheet, geometry=siteCoords, crs=fieldDataCRS)
 if sites.crs != templateCRS:
     sites = sites.to_crs(templateCRS)
 
+# Due to a bug in pyproj, the x and y coords may be infinite after the first reprojection.
+# If this is the case, then reproject again and it should be fixed
+# See bug report: https://github.com/geopandas/geopandas/issues/3433
+if np.isinf(sites.geometry.x).any() or np.isinf(sites.geometry.y).any():
+    sites = sites.to_crs(templateCRS)
+    if np.isinf(sites.geometry.x).any() or np.isinf(sites.geometry.y).any():
+        raise ValueError("Site coordinates are infinite after reprojection. Please check the input field data for errors.")
+
 # Clip sites to template extent
 if rasterio.dtypes.is_ndarray(templatePolygons):
     sites = gpd.clip(sites,templatePolygons)
