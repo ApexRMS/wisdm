@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.2.0" minSyncroSimVersion="3.1.0" url="https://apexrms.github.io/wisdm/">
 
+
 <!--Library Datasheets-->
 
 <dataSheet name="Network" dataScope="Library" isSingleRow="True">
