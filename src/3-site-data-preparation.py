@@ -236,7 +236,10 @@ if np.isinf(sites_reprojected.geometry.x).any() and np.isinf(sites_reprojected.g
             raise ValueError(msg)
         else:
             msg = "Some site coordinates are infinite after reprojection. "
-            msg += "Please check the Field Data input for errors. "
+            msg += "\r\nPlease check the following input datasheets for errors: "
+            msg += "\r\n - Field Data"
+            msg += "\r\n - Field Data Options"
+            msg += "\r\n - Template Raster"
             msg += "\r\nThe following sites were not reprojected properly: "
             msg += str(sites_reprojected[sites_reprojected.geometry.x.isin([np.inf])].SiteID.tolist())
             raise ValueError(msg)
