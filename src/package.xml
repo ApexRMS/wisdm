@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.2.0" minSyncroSimVersion="3.1.0" url="https://apexrms.github.io/wisdm/">
 
-
 <!--Library Datasheets-->
 
 <dataSheet name="Network" dataScope="Library" isSingleRow="True">
@@ -135,6 +134,31 @@
 	<column name="MaximumTrees" displayName="Maximum number of trees" dataType="Integer"/>
 </dataSheet>
 
+<!-- Sensitivity Analysis -->
+
+<dataSheet name="modelType" displayName="Model" isSingleRow="True">
+    <column name="modelType" displayName="Type" dataType="Integer" validationType="List" formula1="1:Random Forest|2:Boosted Regression Trees" />
+</dataSheet>
+
+<dataSheet name="brtParameters" displayName="Boosted Regression Trees" isSingleRow="True">
+    <column name="LearningRate" displayName="Learning rate" dataType="String" />
+    <column name="NumberOfTrees" displayName="Number of trees" dataType="String" />
+    <column name="BagFraction" displayName="Bag fraction" dataType="String" />
+    <column name="MaximumTrees" displayName="Maximum number of trees" dataType="String" /> 
+</dataSheet>
+
+<dataSheet name="rtParameters" displayName="Random Forest" isSingleRow="True">
+    <column name="EvaluateCovariateImportance" displayName="Evaluate covariate importance" dataType="String" />
+    <column name="CalculateCasewiseImportance" displayName="Calculate casewise importance" dataType="String" />
+    <column name="NumberOfVariablesSampled" displayName="Number of variables sampled at split" dataType="String" />
+    <column name="MaximumNodes" displayName="Maximum number of nodes" dataType="String" /> 
+    <column name="NumberOfTrees" displayName="Number of trees" dataType="String" />
+    <column name="NodeSize" displayName="Node size" dataType="String" /> 
+    <column name="NormalizeVotes" displayName="Normalize votes" dataType="String" />
+    <column name="CalculateProximity" displayName="Calculate proximity" dataType="String" />
+    <column name="SampleWithReplacement" displayName="Sample with replacement" dataType="String" /> 
+</dataSheet>
+
 <!-- Spatial Output Options-->
 
 <dataSheet name="OutputOptions" displayName="Output Options" isSingleRow="True">
@@ -195,6 +219,18 @@
 	<column name="BinaryRasterMean" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
 	<column name="BinaryRasterSum" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
 	<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
+</dataSheet>
+
+<dataSheet name="OutputSensitivity" displayName="Output" >
+	<column name="EvaluateCovariateImportance" displayName="Evaluate covariate importance" dataType="Boolean"/>
+	<column name="CalculateCasewiseImportance" displayName="Calculate casewise importance" dataType="Boolean"/>
+	<column name="NumberOfVariablesSampled" displayName="Number of variables sampled at split" dataType="Double"/>
+	<column name="MaximumNodes" displayName="Maximum number of nodes" dataType="Integer"/>
+	<column name="NumberOfTrees" displayName="Number of trees" dataType="Integer"/>
+	<column name="NodeSize" displayName="Node size" dataType="Integer"/>
+	<column name="NormalizeVotes" displayName="Normalize votes" dataType="Boolean"/>
+	<column name="CalculateProximity" displayName="Calculate proximity" dataType="Boolean"/>
+	<column name="SampleWithReplacement" displayName="Sample with replacement" dataType="Boolean"/>
 </dataSheet>
 
 <!--Prepare Multiprocessing Transformer-->
@@ -282,7 +318,7 @@
 <!--GLM Transformer-->
 <transformer
 	name="GLM"
-	displayName ="7 - Generalized Linear Model"
+	displayName ="8 - Generalized Linear Model"
 	programArguments="7-fit-glm.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
@@ -298,7 +334,7 @@
 <!--Random Forest Transformer-->
 <transformer
 	name="RandomForest"
-	displayName ="7 - Random Forest"
+	displayName ="8 - Random Forest"
 	programArguments="7-fit-random-forest.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
@@ -314,7 +350,7 @@
 <!--Maxent Transformer-->
 <transformer
 	name="Maxent"
-	displayName ="7 - Maxent"
+	displayName ="8 - Maxent"
 	programArguments="7-fit-maxent.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
@@ -331,7 +367,7 @@
 <!--BRT Transformer-->
 <transformer
 	name="BRT"
-	displayName ="7 - Boosted Regression Tree"
+	displayName ="8 - Boosted Regression Tree"
 	programArguments="7-fit-brt.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
@@ -348,7 +384,7 @@
 <!--Apply Model Transformer-->
 <transformer
 	name="ApplyModel"
-	displayName ="8 - Apply Model"
+	displayName ="9 - Apply Model"
 	programArguments="8-apply-model.R"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="3">
@@ -364,7 +400,7 @@
 <!--Ensemble Model Transformer-->
 <transformer
 	name="EnsembleModel"
-	displayName="9 - Ensemble Model"
+	displayName="10 - Ensemble Model"
 	programArguments="9-ensemble-model.py"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
@@ -374,6 +410,20 @@
 		<dataSheet name="EnsembleOptions" type="Input"/>
 		<dataSheet name="OutputSpatial" type="Input"/>
 		<dataSheet name="OutputEnsemble" type="Output"/>
+</transformer>
+
+<!--Sensitivity Analysis Transformer-->
+<transformer 
+  name="sensitivityAnalysis" 
+  displayName="7 - Sensitivity Analysis"
+  programArguments="sensitivityAnalysis.R"
+  isMultiprocessing="False"
+  condaEnv="wisdm-conda-s3.yml"
+  condaEnvVersion="2">
+    <dataSheet name="modelType" type="Input" />
+    <dataSheet name="brtParameters" type="Input" />
+    <dataSheet name="rtParameters" type="Input" />
+	<dataSheet name="OutputSensitivity" type="Output" />
 </transformer>
 
  <!--Export Transformers-->
@@ -477,6 +527,14 @@
 		<item name="RF" displayName="Random Forest"/>
 		<item name="OutputModel"/>
 	</group>
+	<group name="SensitivityAnalysis" displayName="Sensitivity Analysis">
+		<item name="modelType" /> 
+		<group name="Parameters" displayName="Parameters">
+			<item name="rtParameters" />
+			<item name="brtParameters" />
+		</group>   
+		<item name="OutputSensitivity" showIf="isResult" />
+  	</group>
 	<group name="OutputOptions" displayName="Output Options">
 	  	<item name="OutputOptions"/>
 		<item name="EnsembleOptions"/>
