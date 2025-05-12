@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.2.0" minSyncroSimVersion="3.1.0" url="https://apexrms.github.io/wisdm/">
+<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.3.0" minSyncroSimVersion="3.1.0" url="https://apexrms.github.io/wisdm/">
 
 <!--Library Datasheets-->
 
@@ -99,11 +99,27 @@
 
 <!--Model Options-->
 
+<dataSheet  name="BRT" displayName="Boosted Regression Tree" isSingleRow="True">
+	<column name="FittingMethod" displayName="Fitting method" dataType="Integer" validationType="List" formula1="0:Use defaults and tuning|1:Use values provided below"/>
+	<column name="LearningRate" displayName="Learning rate" dataType="Double"/>
+	<column name="NumberOfTrees" displayName="Number of trees added per stage" dataType="Integer"/>
+	<column name="BagFraction" displayName="Bag fraction" dataType="Double"/>
+	<column name="MaximumTrees" displayName="Maximum number of trees" dataType="Integer"/>
+</dataSheet>
+
 <dataSheet name="GLM" displayName="Generalized Linear Model" isSingleRow="True">
 	<column name="SelectBestPredictors" displayName="Select best predictors" dataType="Boolean"/>
 	<column name="SimplificationMethod" displayName="Simplification method" dataType="Integer" validationType="List" formula1="0:AIC|1:BIC"/>
 	<column name="ConsiderSquaredTerms" displayName="Consider squared terms" dataType="Boolean"/>
 	<column name="ConsiderInteractions" displayName="Consider interactions" dataType="Boolean"/>
+</dataSheet>
+
+<dataSheet name="Maxent" isSingleRow="True">
+	<column name="MemoryLimit" displayName="Memory allocation (MB)" dataType="Integer"/>
+	<column name="MaximumBackgroundPoints" displayName="Maximum number of background points" dataType="Integer"/>
+	<column name="MultiprocessingThreads" displayName="Number of processing threads" dataType="Integer"/>
+	<column name="VisibleInterface" displayName="View maxent user interface during run" dataType="Boolean"/>
+	<column name="SaveMaxentFiles" displayName="Save maxent formatted input/output files" dataType="Boolean"/>
 </dataSheet>
 
 <dataSheet name="RF" displayName="Random Forest" isSingleRow="True">
@@ -118,45 +134,28 @@
 	<column name="SampleWithReplacement" displayName="Sample with replacement" dataType="Boolean"/>
 </dataSheet>
 
-<dataSheet name="Maxent" isSingleRow="True">
-	<column name="MemoryLimit" displayName="Memory allocation (MB)" dataType="Integer"/>
-	<column name="MaximumBackgroundPoints" displayName="Maximum number of background points" dataType="Integer"/>
-	<column name="MultiprocessingThreads" displayName="Number of processing threads" dataType="Integer"/>
-	<column name="VisibleInterface" displayName="View maxent user interface during run" dataType="Boolean"/>
-	<column name="SaveMaxentFiles" displayName="Save maxent formatted input/output files" dataType="Boolean"/>
+<!-- Parameter Tuning -->
+
+<dataSheet name="TuningModel" displayName="Model" isSingleRow="True">
+    <column name="Model" dataType="Integer" validationType="List" formula1="1:Boosted Regression Trees|2:Random Forest" />
 </dataSheet>
 
-<dataSheet  name="BRT" displayName="Boosted Regression Tree" isSingleRow="True">
-	<column name="FittingMethod" displayName="Fitting method" dataType="Integer" validationType="List" formula1="0:Use defaults and tuning|1:Use values provided below"/>
-	<column name="LearningRate" displayName="Learning rate" dataType="Double"/>
-	<column name="NumberOfTrees" displayName="Number of trees added per stage" dataType="Integer"/>
-	<column name="BagFraction" displayName="Bag fraction" dataType="Double"/>
-	<column name="MaximumTrees" displayName="Maximum number of trees" dataType="Integer"/>
+<dataSheet name="brtTuning" displayName="Boosted Regression Trees" isSingleRow="True">
+	<column name="Parameter1" displayName="Parameter 1" dataType="Integer" validationType="List"
+	formula1="1:Learning rate|2:Number of trees added per stage|3:Bag fraction|4:Maximum number of trees"/>
+	<column name="Parameter1Values" displayName="Tuning values for parameter 1" dataType="String" />
+	<column name="Parameter2" displayName="Parameter 2" dataType="Integer" validationType="List"
+	formula1="1:Learning rate|2:Number of trees added per stage|3:Bag fraction|4:Maximum number of trees"/>
+	<column name="Parameter2Values" displayName="Tuning values for parameter 2" dataType="String" /> 
 </dataSheet>
 
-<!-- Sensitivity Analysis -->
-
-<dataSheet name="modelType" displayName="Model" isSingleRow="True">
-    <column name="modelType" displayName="Type" dataType="Integer" validationType="List" formula1="1:Random Forest|2:Boosted Regression Trees" />
-</dataSheet>
-
-<dataSheet name="brtParameters" displayName="Boosted Regression Trees" isSingleRow="True">
-    <column name="LearningRate" displayName="Learning rate" dataType="String" />
-    <column name="NumberOfTrees" displayName="Number of trees" dataType="String" />
-    <column name="BagFraction" displayName="Bag fraction" dataType="String" />
-    <column name="MaximumTrees" displayName="Maximum number of trees" dataType="String" /> 
-</dataSheet>
-
-<dataSheet name="rtParameters" displayName="Random Forest" isSingleRow="True">
-    <column name="EvaluateCovariateImportance" displayName="Evaluate covariate importance" dataType="String" />
-    <column name="CalculateCasewiseImportance" displayName="Calculate casewise importance" dataType="String" />
-    <column name="NumberOfVariablesSampled" displayName="Number of variables sampled at split" dataType="String" />
-    <column name="MaximumNodes" displayName="Maximum number of nodes" dataType="String" /> 
-    <column name="NumberOfTrees" displayName="Number of trees" dataType="String" />
-    <column name="NodeSize" displayName="Node size" dataType="String" /> 
-    <column name="NormalizeVotes" displayName="Normalize votes" dataType="String" />
-    <column name="CalculateProximity" displayName="Calculate proximity" dataType="String" />
-    <column name="SampleWithReplacement" displayName="Sample with replacement" dataType="String" /> 
+<dataSheet name="rfTuning" displayName="Random Forest" isSingleRow="True">
+    <column name="Parameter1" displayName="Parameter 1" dataType="Integer" validationType="List" 
+	formula1="1:Number of variables sampled at split|2:Maximum number of nodes|3:Number of trees|4:Node size"/>
+	<column name="Parameter1Values" displayName="Tuning values for parameter 1" dataType="String" />
+    <column name="Parameter2" displayName="Parameter 2" dataType="Integer" validationType="List" 
+	formula1="1:Number of variables sampled at split|2:Maximum number of nodes|3:Number of trees|4:Node size"/>
+	<column name="Parameter2Values" displayName="Tuning values for parameter 2" dataType="String" />
 </dataSheet>
 
 <!-- Spatial Output Options-->
@@ -221,22 +220,24 @@
 	<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
 </dataSheet>
 
-<dataSheet name="OutputSensitivity" displayName="Output" >
-	<column name="EvaluateCovariateImportance" displayName="Evaluate covariate importance" dataType="Boolean"/>
-	<column name="CalculateCasewiseImportance" displayName="Calculate casewise importance" dataType="Boolean"/>
-	<column name="NumberOfVariablesSampled" displayName="Number of variables sampled at split" dataType="Double"/>
-	<column name="MaximumNodes" displayName="Maximum number of nodes" dataType="Integer"/>
-	<column name="NumberOfTrees" displayName="Number of trees" dataType="Integer"/>
-	<column name="NodeSize" displayName="Node size" dataType="Integer"/>
-	<column name="NormalizeVotes" displayName="Normalize votes" dataType="Boolean"/>
-	<column name="CalculateProximity" displayName="Calculate proximity" dataType="Boolean"/>
-	<column name="SampleWithReplacement" displayName="Sample with replacement" dataType="Boolean"/>
+<dataSheet name="OutputParameterTuning">
+	<column name="ModelsID" dataType="Integer" validationType="Datasheet" formula1="Models" isVisible="False"/>						
+	<column name="ResponseCurves" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+	<column name="ResidualsPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+	<column name="ResidualSmoothPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+	<column name="ResidualSmoothRDS" dataType="String" isExternalFile="True" isVisible="False"/>
+	<column name="TextOutput" dataType="String" isExternalFile="True" isVisible="False"/>
+	<column name="CalibrationPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+	<column name="ROCAUCPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+	<column name="AUCPRPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+	<column name="ConfusionMatrix" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+	<column name="VariableImportancePlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
 </dataSheet>
 
 <!--Prepare Multiprocessing Transformer-->
 <transformer
   name="PrepMultiprocessing"
-  displayName ="1 - Prepare Multiprocessing"
+  displayName="1 - Prepare Multiprocessing"
   programArguments="1-prep-multiprocessing.py"
   condaEnv="wisdm-conda-s3.yml"
   condaEnvVersion="3">
@@ -247,7 +248,7 @@
 <!--Spatial Data Preparation Transformer-->
 <transformer
   name="SpatialDataPreparation"
-  displayName ="2 - Spatial Data Preparation"
+  displayName="2 - Spatial Data Preparation"
   programArguments="2-spatial-data-preparation.py"
   isMultiprocessing="False"
   condaEnv="wisdm-conda-s3.yml"
@@ -260,7 +261,7 @@
 <!--Site Data Preparation Transformer-->
 <transformer
 	name="SiteDataPreparation"
-	displayName ="3 - Site Data Preparation"
+	displayName="3 - Site Data Preparation"
 	programArguments="3-site-data-preparation.py"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
@@ -275,7 +276,7 @@
 <!--Background Data Preparation Transformer-->
 <transformer
 	name="BackgroundDataGeneration"
-	displayName ="4 - Background Data Generation"
+	displayName="4 - Background Data Generation"
 	programArguments="4-background-data-generation.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
@@ -290,7 +291,7 @@
 <!--Split Data for Training/Testing Transformer-->
 <transformer
 	name="FieldDataPreparation"
-	displayName ="5 - Prepare Training/Testing Data"
+	displayName="5 - Prepare Training/Testing Data"
 	programArguments="5-prepare-training-testing-data.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
@@ -314,11 +315,32 @@
 		<dataSheet name="RetainedCovariates" type="Both"/>
 		<dataSheet name="OutputCovariateCorrelationMatrix" type="Output"/>
 </transformer>
-			
+
+<!--Parameter Tuning Transformer-->
+<transformer 
+  name="ParameterTuning" 
+  displayName="7 - Parameter Tuning"
+  programArguments="7-parameter-tuning.R"
+  isMultiprocessing="False"
+  condaEnv="wisdm-conda-s3.yml"
+  condaEnvVersion="3">
+	<dataSheet name="FieldData" type="Input"/>
+	<dataSheet name="ValidationOptions" type="Input"/>
+	<dataSheet name="RetainedCovariates" type="Input"/>
+	<dataSheet name="SiteData" type="Input"/>
+	 <dataSheet name="TuningModel" type="Input" />
+    <dataSheet name="brtTuning" type="Input" />
+    <dataSheet name="rfTuning" type="Input" />
+	<dataSheet name="RF" type="Input"/>
+	<dataSheet name="BRT" type="Input"/>
+	<dataSheet name="OutputModel" type="Output"/>
+	<dataSheet name="OutputParameterTuning" type="Output"/>
+</transformer>
+
 <!--GLM Transformer-->
 <transformer
 	name="GLM"
-	displayName ="8 - Generalized Linear Model"
+	displayName="8 - Generalized Linear Model"
 	programArguments="7-fit-glm.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
@@ -334,7 +356,7 @@
 <!--Random Forest Transformer-->
 <transformer
 	name="RandomForest"
-	displayName ="8 - Random Forest"
+	displayName="8 - Random Forest"
 	programArguments="7-fit-random-forest.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
@@ -350,7 +372,7 @@
 <!--Maxent Transformer-->
 <transformer
 	name="Maxent"
-	displayName ="8 - Maxent"
+	displayName="8 - Maxent"
 	programArguments="7-fit-maxent.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
@@ -367,7 +389,7 @@
 <!--BRT Transformer-->
 <transformer
 	name="BRT"
-	displayName ="8 - Boosted Regression Tree"
+	displayName="8 - Boosted Regression Tree"
 	programArguments="7-fit-brt.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
@@ -384,7 +406,7 @@
 <!--Apply Model Transformer-->
 <transformer
 	name="ApplyModel"
-	displayName ="9 - Apply Model"
+	displayName="9 - Apply Model"
 	programArguments="8-apply-model.R"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="3">
@@ -410,20 +432,6 @@
 		<dataSheet name="EnsembleOptions" type="Input"/>
 		<dataSheet name="OutputSpatial" type="Input"/>
 		<dataSheet name="OutputEnsemble" type="Output"/>
-</transformer>
-
-<!--Sensitivity Analysis Transformer-->
-<transformer 
-  name="sensitivityAnalysis" 
-  displayName="7 - Sensitivity Analysis"
-  programArguments="sensitivityAnalysis.R"
-  isMultiprocessing="False"
-  condaEnv="wisdm-conda-s3.yml"
-  condaEnvVersion="2">
-    <dataSheet name="modelType" type="Input" />
-    <dataSheet name="brtParameters" type="Input" />
-    <dataSheet name="rtParameters" type="Input" />
-	<dataSheet name="OutputSensitivity" type="Output" />
 </transformer>
 
  <!--Export Transformers-->
@@ -527,13 +535,13 @@
 		<item name="RF" displayName="Random Forest"/>
 		<item name="OutputModel"/>
 	</group>
-	<group name="SensitivityAnalysis" displayName="Sensitivity Analysis">
-		<item name="modelType" /> 
-		<group name="Parameters" displayName="Parameters">
-			<item name="rtParameters" />
-			<item name="brtParameters" />
+	<group name="ParameterTuning" displayName="Parameter Tuning">
+		<item name="TuningModel" /> 
+		<group name="Tuning">
+			<item name="rfTuning" />
+			<item name="brtTuning" />
 		</group>   
-		<item name="OutputSensitivity" showIf="isResult" />
+		<item name="OutputParameterTuning" showIf="isResult" />
   	</group>
 	<group name="OutputOptions" displayName="Output Options">
 	  	<item name="OutputOptions"/>

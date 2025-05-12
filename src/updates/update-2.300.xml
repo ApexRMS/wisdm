@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<update comment="Adding Parameter Tuning">
+  <action code="Exec" condition="TableNotExists" criteria="wisdm_TuningModel|wisdm_rfTuning|wisdm_brtTuning|wisdm_OutputParameterTuning">
+    <item>CREATE TABLE wisdm_TuningModel(TuningModelID INTEGER, ScenarioID INTEGER, Model TEXT, PRIMARY KEY (TuningModelID))</item>
+    <item>CREATE TABLE wisdm_brtTuning(brtTuningID INTEGER, ScenarioID INTEGER, Parameter1 TEXT, Parameter1Values TEXT, Parameter2 TEXT, Parameter2Values TEXT, PRIMARY KEY (brtTuningID))</item>
+    <item>CREATE TABLE wisdm_rfTuning(rfTuningID INTEGER, ScenarioID INTEGER, Parameter1 TEXT, Parameter1Values TEXT, Parameter2 TEXT, Parameter2Values TEXT, PRIMARY KEY (rfTuningID))</item>
+    <item>CREATE TABLE wisdm_OutputParameterTuning(OutputParameterTuningID INTEGER, ScenarioID INTEGER, ModelsID TEXT, ResponseCurves TEXT, ResidualsPlot TEXT, ResidualSmoothPlot TEXT, ResidualSmoothRDS TEXT, TextOutput TEXT, CalibrationPlot TEXT, ROCAUCPlot TEXT, AUCPRPlot TEXT, ConfusionMatrix TEXT, VariableImportancePlot TEXT, PRIMARY KEY (OutputParameterTuningID))</item>
+  </action>
+</update>
+
