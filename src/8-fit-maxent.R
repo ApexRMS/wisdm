@@ -16,7 +16,7 @@ library(zip) # install.packages("zip")
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "00-helper-functions.R"))
-source(file.path(packageDir, "07-fit-model-functions.R"))
+source(file.path(packageDir, "08-fit-model-functions.R"))
 
 # disable scientific notation 
 options(scipen = 999)
@@ -24,7 +24,7 @@ options(scipen = 999)
 # Set progress bar -------------------------------------------------------------
 
 steps <- 11
-updateRunLog('7 - Maxent => Begin')
+updateRunLog('8 - Maxent => Begin')
 progressBar(type = "begin", totalSteps = steps)
 
 # Connect to library -----------------------------------------------------------

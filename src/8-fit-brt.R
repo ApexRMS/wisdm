@@ -16,12 +16,12 @@
   
   packageDir <- Sys.getenv("ssim_package_directory")
   source(file.path(packageDir, "00-helper-functions.R"))
-  source(file.path(packageDir, "07-fit-model-functions.R"))
+  source(file.path(packageDir, "08-fit-model-functions.R"))
 
 # Set progress bar -------------------------------------------------------------
 
 steps <- 11
-updateRunLog('7 - Boosted Regression Trees => Begin')
+updateRunLog('8 - Boosted Regression Trees => Begin')
 progressBar(type = "begin", totalSteps = steps)
   
 # Connect to library -----------------------------------------------------------

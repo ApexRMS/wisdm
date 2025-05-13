@@ -341,7 +341,7 @@
 <transformer
 	name="GLM"
 	displayName="8 - Generalized Linear Model"
-	programArguments="7-fit-glm.R"
+	programArguments="8-fit-glm.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="3">
@@ -357,7 +357,7 @@
 <transformer
 	name="RandomForest"
 	displayName="8 - Random Forest"
-	programArguments="7-fit-random-forest.R"
+	programArguments="8-fit-random-forest.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="3">
@@ -373,7 +373,7 @@
 <transformer
 	name="Maxent"
 	displayName="8 - Maxent"
-	programArguments="7-fit-maxent.R"
+	programArguments="8-fit-maxent.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="3">
@@ -390,7 +390,7 @@
 <transformer
 	name="BRT"
 	displayName="8 - Boosted Regression Tree"
-	programArguments="7-fit-brt.R"
+	programArguments="8-fit-brt.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="3">
@@ -407,7 +407,7 @@
 <transformer
 	name="ApplyModel"
 	displayName="9 - Apply Model"
-	programArguments="8-apply-model.R"
+	programArguments="9-apply-model.R"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="3">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
@@ -423,7 +423,7 @@
 <transformer
 	name="EnsembleModel"
 	displayName="10 - Ensemble Model"
-	programArguments="9-ensemble-model.py"
+	programArguments="10-ensemble-model.py"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda-s3.yml"
 	condaEnvVersion="3">
