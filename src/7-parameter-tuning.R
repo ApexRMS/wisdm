@@ -20,8 +20,9 @@
 
   packageDir <- Sys.getenv("ssim_package_directory")
   source(file.path(packageDir, "00-helper-functions.R"))
-  source(file.path(packageDir, "07-fit-model-functions.R"))
   source(file.path(packageDir, "07-parameter-tuning-functions.R"))
+  source(file.path(packageDir, "08-fit-model-functions.R"))
+  
 
 # set progress bar -------------------------------------------------------------
 
