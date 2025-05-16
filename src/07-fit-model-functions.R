@@ -1398,7 +1398,7 @@ VariableImportance <- function(out,  # out list
   rownames(cor.mat) <- out$inputVars
   
   # TO DO: writing output should be formalized more if it is kept
-  variable.importance.csv <- file.path(ssimTempDir, paste0(out$modType,"_VariableImportance.csv"))  
+  variable.importance.csv <- file.path(out$tempDir, paste0(out$modType,"_VariableImportance.csv"))  
   write.table(cbind(predictor=out$inputVars,cor.mat),
               file = variable.importance.csv,
               row.names=FALSE,col.names=TRUE,quote=FALSE,sep=",")
