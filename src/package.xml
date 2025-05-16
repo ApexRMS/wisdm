@@ -225,8 +225,6 @@
 	<column name="ResponseCurves" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
 	<column name="ResidualsPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
 	<column name="ResidualSmoothPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="ResidualSmoothRDS" dataType="String" isExternalFile="True" isVisible="False"/>
-	<column name="TextOutput" dataType="String" isExternalFile="True" isVisible="False"/>
 	<column name="CalibrationPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
 	<column name="ROCAUCPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
 	<column name="AUCPRPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
@@ -331,8 +329,8 @@
 	 <dataSheet name="TuningModel" type="Input" />
     <dataSheet name="brtTuning" type="Input" />
     <dataSheet name="rfTuning" type="Input" />
-	<dataSheet name="RF" type="Input"/>
-	<dataSheet name="BRT" type="Input"/>
+	<dataSheet name="RF" type="Both"/>
+	<dataSheet name="BRT" type="Both"/>
 	<dataSheet name="OutputModel" type="Output"/>
 	<dataSheet name="OutputParameterTuning" type="Output"/>
 </transformer>

@@ -311,6 +311,7 @@ dependencies:
   - r-lattice=0.22_6=r41h6d2157b_0
   - r-lifecycle=1.0.3=r41hc72bb7e_1
   - r-lubridate=1.9.3=r41h6d2157b_0
+  - r-magick=2.8.6=r43h9f0104f_0
   - r-magrittr=2.0.3=r41h6d2157b_2
   - r-mass=7.3_58.3=r41h6d2157b_0
   - r-matrix=1.6_5=r41hb9981e2_0
