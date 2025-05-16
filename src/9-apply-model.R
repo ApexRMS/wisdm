@@ -22,9 +22,9 @@ library(dplyr)
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "00-helper-functions.R"))
-source(file.path(packageDir, "08-apply-model-functions.R"))
+source(file.path(packageDir, "09-apply-model-functions.R"))
 
-updateRunLog('8 - Apply Model => Begin')
+updateRunLog('9 - Apply Model => Begin')
 
 # Connect to library -----------------------------------------------------------
 

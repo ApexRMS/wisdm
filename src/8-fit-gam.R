@@ -16,12 +16,12 @@
 
   packageDir <- Sys.getenv("ssim_package_directory")
   source(file.path(packageDir, "00-helper-functions.R"))
-  source(file.path(packageDir, "07-fit-model-functions.R"))
+  source(file.path(packageDir, "08-fit-model-functions.R"))
 
 # set progress bar -------------------------------------------------------------
 
 steps <- 11
-updateRunLog('7 - Generalized Additive Model => Begin')
+updateRunLog('8 - Generalized Additive Model => Begin')
 progressBar(type = "begin", totalSteps = steps)
 
 # Connect to library -----------------------------------------------------------

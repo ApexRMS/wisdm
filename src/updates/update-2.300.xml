@@ -1,5 +1,41 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <update comment="Adding Parameter Tuning">
+  <action 
+    code="RenameTransformer" 
+    oldTransformerName="wisdm_RandomForest" 
+    newTransformerName="wisdm_RandomForest" 
+    newTransformerDisplayName="8 - Random Forest">
+  </action>
+  <action 
+    code="RenameTransformer" 
+    oldTransformerName="wisdm_BRT" 
+    newTransformerName="wisdm_BRT" 
+    newTransformerDisplayName="8 - Boosted Regression Trees">
+  </action>
+  <action 
+    code="RenameTransformer" 
+    oldTransformerName="wisdm_GLM" 
+    newTransformerName="wisdm_GLM" 
+    newTransformerDisplayName="8 - Generalized Linear Model">
+  </action>
+  <action 
+    code="RenameTransformer" 
+    oldTransformerName="wisdm_Maxent" 
+    newTransformerName="wisdm_Maxent" 
+    newTransformerDisplayName="8 - Maxent">
+  </action>
+  <action 
+    code="RenameTransformer" 
+    oldTransformerName="wisdm_ApplyModel" 
+    newTransformerName="wisdm_ApplyModel" 
+    newTransformerDisplayName="9 - Apply Model">
+  </action>
+  <action 
+    code="RenameTransformer" 
+    oldTransformerName="wisdm_EnsembleModel" 
+    newTransformerName="wisdm_EnsembleModel" 
+    newTransformerDisplayName="10 - Ensemble Model">
+  </action>
   <action code="Exec" condition="TableNotExists" criteria="wisdm_TuningModel|wisdm_rfTuning|wisdm_brtTuning|wisdm_OutputParameterTuning">
     <item>CREATE TABLE wisdm_TuningModel(TuningModelID INTEGER, ScenarioID INTEGER, Model TEXT, PRIMARY KEY (TuningModelID))</item>
     <item>CREATE TABLE wisdm_brtTuning(brtTuningID INTEGER, ScenarioID INTEGER, Parameter1 TEXT, Parameter1Values TEXT, Parameter2 TEXT, Parameter2Values TEXT, PRIMARY KEY (brtTuningID))</item>
