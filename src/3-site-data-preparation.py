@@ -220,33 +220,33 @@ sites = gpd.GeoDataFrame(fieldDataSheet, geometry=siteCoords, crs=fieldDataCRS)
 if sites.crs != templateCRS:
     sites_reprojected = sites.to_crs(templateCRS)
 
-# Due to a bug in pyproj, the x and y coords may be infinite after the first reprojection.
-# If this is the case, then reproject again and it should be fixed
-# See bug report: https://github.com/geopandas/geopandas/issues/3433
-if np.isinf(sites_reprojected.geometry.x).any() and np.isinf(sites_reprojected.geometry.y).any():
-    sites_reprojected = sites.to_crs(templateCRS)
-    if np.isinf(sites_reprojected.geometry.x).all() and np.isinf(sites_reprojected.geometry.y).all():
-        raise ValueError("Site coordinates are infinite after reprojection. Please check the input field data for errors.")
+    # Due to a bug in pyproj, the x and y coords may be infinite after the first reprojection.
+    # If this is the case, then reproject again and it should be fixed
+    # See bug report: https://github.com/geopandas/geopandas/issues/3433
     if np.isinf(sites_reprojected.geometry.x).any() and np.isinf(sites_reprojected.geometry.y).any():
+        sites_reprojected = sites.to_crs(templateCRS)
         if np.isinf(sites_reprojected.geometry.x).all() and np.isinf(sites_reprojected.geometry.y).all():
-            msg = "All site coordinates are infinite after reprojection. "
-            msg += "This could be due to restrictive firewall settings or an error in the input data. "
-            msg += "\r\nPlease check the following input datasheets for errors: "
-            msg += "\r\n - Field Data"
-            msg += "\r\n - Field Data Options"
-            msg += "\r\n - Template Raster"
-            raise ValueError(msg)
-        else:
-            msg = "Some site coordinates are infinite after reprojection. "
-            msg += "\r\nPlease check the following input datasheets for errors: "
-            msg += "\r\n - Field Data"
-            msg += "\r\n - Field Data Options"
-            msg += "\r\n - Template Raster"
-            msg += "\r\nThe following sites were not reprojected properly: "
-            msg += str(sites_reprojected[sites_reprojected.geometry.x.isin([np.inf])].SiteID.tolist())
-            raise ValueError(msg)
-    
-sites = sites_reprojected
+            raise ValueError("Site coordinates are infinite after reprojection. Please check the input field data for errors.")
+        if np.isinf(sites_reprojected.geometry.x).any() and np.isinf(sites_reprojected.geometry.y).any():
+            if np.isinf(sites_reprojected.geometry.x).all() and np.isinf(sites_reprojected.geometry.y).all():
+                msg = "All site coordinates are infinite after reprojection. "
+                msg += "This could be due to restrictive firewall settings or an error in the input data. "
+                msg += "\r\nPlease check the following input datasheets for errors: "
+                msg += "\r\n - Field Data"
+                msg += "\r\n - Field Data Options"
+                msg += "\r\n - Template Raster"
+                raise ValueError(msg)
+            else:
+                msg = "Some site coordinates are infinite after reprojection. "
+                msg += "\r\nPlease check the following input datasheets for errors: "
+                msg += "\r\n - Field Data"
+                msg += "\r\n - Field Data Options"
+                msg += "\r\n - Template Raster"
+                msg += "\r\nThe following sites were not reprojected properly: "
+                msg += str(sites_reprojected[sites_reprojected.geometry.x.isin([np.inf])].SiteID.tolist())
+                raise ValueError(msg)
+        
+    sites = sites_reprojected
 
 # Clip sites to template extent
 if rasterio.dtypes.is_ndarray(templatePolygons):
