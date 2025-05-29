@@ -406,10 +406,10 @@ def prep_spatial_data():
         except AttributeError:
             pass
             
-        # Add covariate data to output dataframe
+        # Update restriction raster in output dataframe
         restrictionRasterSheet.RasterFilePath = outputRestrictionPath
 
-        # Save updated covariate data to scenario 
+        # Save updated datasheet to scenario 
         myScenario.save_datasheet(name="wisdm_RestrictionRaster", data=restrictionRasterSheet)    
 
     # update progress bar
