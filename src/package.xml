@@ -252,7 +252,7 @@
   condaEnv="wisdm-conda-s3.yml"
   condaEnvVersion="3">
 	<dataSheet name="TemplateRaster" type="Input"/>
-	<dataSheet name="RestrictionRaster" type="Output"/>
+	<dataSheet name="RestrictionRaster" type="Both"/>
 	<dataSheet name="CovariateData" type="Both"/>
 </transformer>
 
