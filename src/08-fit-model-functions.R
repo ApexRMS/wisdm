@@ -430,7 +430,7 @@ fitModel <- function(dat,           # df of training data
       if(out$modOptions$ConsiderLinearTerms){ # creates formula with smooth and linear terms
         startModel = as.formula(paste("Response","~",paste(paste(sanitizedVarNames, collapse=" + "), 
                                                            paste0("s(", sanitizedVarNames, ", bs='ts')",collapse=" + "), sep = " + ")))
-        } else { # creates formula with smooth terms oly
+        } else { # creates formula with smooth terms only
           startModel = as.formula(paste("Response","~", paste0("s(", sanitizedVarNames, ", bs='ts')",collapse=" + "), sep = ""))
         }
       
