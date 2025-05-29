@@ -217,11 +217,7 @@ progressBar(type = "begin", totalSteps = steps)
   ## path to temp ssim storage 
   out$tempDir <- ssimTempDir
   
-# Create output text file ------------------------------------------------------
 
-  capture.output(cat(as.character(tuningModelSheet$Model), "Results"), file=file.path(ssimTempDir,paste0(modType, "_output.txt"))) 
-  on.exit(capture.output(cat("Model Failed\n\n"),file=file.path(ssimTempDir,paste0(modType, "_output.txt")),append=TRUE))  
-  
 # Review model data ------------------------------------------------------------
 
   if(nrow(trainingData)/(length(out$inputVars)-1)<10){
@@ -235,6 +231,7 @@ progressBar(type = "begin", totalSteps = steps)
   
   outBase <- out
   outAll <- list()
+  comboDirs <- list()
   
   comboImgs <- combos
   comboImgs[,names(modelOutputsSheet)] <- NA
@@ -260,7 +257,7 @@ progressBar(type = "begin", totalSteps = steps)
     
     # create temp folder
     dir.create(file.path(ssimTempDir, r))
-    out$tempDir <- file.path(ssimTempDir, r)
+    out$tempDir <- comboDirs[r] <- file.path(ssimTempDir, r)
     
     if(modType == "rf"){ 
     if(!is.na(modelSheet$NumberOfVariablesSampled)){
@@ -269,6 +266,10 @@ progressBar(type = "begin", totalSteps = steps)
                     nrow(retainedCovariatesSheet),")."))}}
     }
     # if(modType == "brt"){}
+    
+    # Create output text file
+    capture.output(cat(as.character(tuningModelSheet$Model), "Results [", comboImgs$displayName[r], "]"), file=file.path(out$tempDir,paste0(modType, "_output.txt"))) 
+    on.exit(capture.output(cat("Model Failed\n\n"),file=file.path(out$tempDir,paste0(modType, "_output.txt")),append=TRUE))  
     
     # fit model 
     finalMod <- fitModel(dat = trainingData, 
@@ -293,8 +294,19 @@ progressBar(type = "begin", totalSteps = steps)
         out$finalVars <- out$inputVars # random forest doesn't drop variables
         out$nVarsFinal <- length(out$finalVars)
         
+        txt0 <- paste("\n\n","Settings:",
+                      # "\n\trandom seed used                       : ",out$input$seed,
+                      "\n\tn covariates considered at each split  : ", RFSheet$NumberOfVariablesSampled,
+                      if(out$pseudoAbs==TRUE) "\n\t   (averaged over each used available split)\n",
+                      "\n\tn trees                                : ",RFSheet$NumberOfTrees,
+                      if(out$pseudoAbs==TRUE) "\n\t   (for each used available split)\n",
+                      sep="")
+        txt1 <- "\n\nRelative performance of predictors in final model:\n\n"
+        
         modelSummary <- finalMod$importance
         modelSummary <- modelSummary[order(modelSummary[,3],decreasing=T),]
+        
+        capture.output(cat(txt0),cat(txt1),print(round(modelSummary,4)),file=file.path(out$tempDir, paste0(modType, "_output.txt")),append=TRUE) 
         
         updateRunLog("\nSummary of Model:\n")
         coeftbl <- modelSummary
@@ -310,9 +322,24 @@ progressBar(type = "begin", totalSteps = steps)
         out$finalVars <- finalMod$contributions$var # brt doesn't drop variables
         out$nVarsFinal <- length(out$finalVars)
         
+        txt0 <- paste("\n\n","Settings:\n",
+                      # if(out$pseudoAbs) "(Averaged across available splits)\n", 
+                      # "\n\trandom seed used             : ",out$input$seed,
+                      "\n\ttree complexity              : ",finalMod$interaction.depth,
+                      "\n\tlearning rate                : ",finalMod$shrinkage,
+                      "\n\tn(trees)                     : ",finalMod$n.trees,
+                      # "\n\tmodel simplification         : ",simp.method,
+                      "\n\tn folds                      : ",finalMod$gbm.call$cv.folds,
+                      "\n\tn covariates in final model  : ",paste(out$finalVars, collapse = ", "),
+                      sep="")
+        
+        txt1 <- "\nRelative influence of predictors in final model:\n\n"
+        
         modelSummary <- finalMod$contributions
         modelSummary <- modelSummary[order(modelSummary[,2],decreasing=T),]
         row.names(modelSummary) <- NULL
+        
+        capture.output(cat(txt0),cat(txt1),print(modelSummary),file=file.path(out$tempDir, paste0(modType, "_output.txt")),append=TRUE) 
         
         updateRunLog("\nSummary of Model:\n")
         coeftbl <- modelSummary
@@ -417,6 +444,13 @@ progressBar(type = "begin", totalSteps = steps)
                       parameters = parameterNames,
                       outputPath = ssimTempDir)
   progressBar()
+  
+# Build single output text file ------------------------------------------------
+  
+  
+  txtFilePaths <- file.path(comboDirs, paste0(modType, "_output.txt"))
+  
+  combineTxtFiles(filePaths = txtFilePaths, outputPath = file.path(ssimTempDir, "OutputSummary.txt"))
   
 # Shiny App --------------------------------------------------------------------
   

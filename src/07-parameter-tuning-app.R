@@ -44,6 +44,7 @@ ui <- fluidPage(
                 tabPanel("AUCPR", imageOutput(outputId = "image4", height = "auto", width = "auto")),
                 tabPanel("Confusion Matrix", imageOutput(outputId = "image5", height = "auto", width = "auto")),
                 tabPanel("Variable Importance", imageOutput(outputId = "image6", height = "auto", width = "auto")),
+                tabPanel("Text Summary",verbatimTextOutput("text1"))
                 ) 
               )
     )
@@ -84,6 +85,10 @@ server <- function(input, output, session) { #
     list(src = file.path(ssimTempDir, "VariableImportancePlotMatrix.png"), width = "100%")
   }, deleteFile = FALSE)
   
+  output$text1 <- renderText({
+    paste(readLines(file.path(ssimTempDir, "OutputSummary.txt")), collapse = "\n")
+  })
+
   observeEvent(input$close, {
     comboOut <<- input$selectedCombo 
     session$sendCustomMessage(type = "closeWindow", list(message ="window.close()"))

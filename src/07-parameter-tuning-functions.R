@@ -245,3 +245,19 @@ buildTuningMatrices <- function(modType,
     }
   }
 } # end function
+
+## Combine text files function ----
+
+  combineTxtFiles <- function(filePaths,  # list of file paths for .txt files to be combined  
+                              outputPath  # file path for .txt output
+  ){
+    # Read and combine all files
+    combined_text <- sapply(filePaths, function(x) paste(readLines(x), collapse = "\n"))
+    
+    # Combine all into one big string
+    final_text <- paste(combined_text, collapse = "\n\n============================================================\n\n")
+    
+    # Write to a new file
+    writeLines(final_text, outputPath)
+    
+    } # end function 
