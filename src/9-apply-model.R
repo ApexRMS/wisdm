@@ -38,8 +38,8 @@ ssimTempDir <- ssimEnvironment()$TransferDirectory
 resultScenario <- ssimEnvironment()$ScenarioId
 
 # Read in datasheets
-covariatesSheet <- datasheet(myScenario, "wisdm_Covariates", optional = T, includeKey = T)
-modelsSheet <- datasheet(myScenario, "wisdm_Models", includeKey = T)
+covariatesSheet <- datasheet(myScenario, "wisdm_Covariates", optional = T)
+modelsSheet <- datasheet(myScenario, "wisdm_Models") 
 multiprocessingSheet <- datasheet(myScenario, "core_Multiprocessing")
 spatialMulitprocessingSheet <- datasheet(myScenario, "core_SpatialMultiprocessing")
 covariateDataSheet <- datasheet(myScenario, "wisdm_CovariateData", optional = T, lookupsAsFactors = F)
@@ -48,7 +48,7 @@ restrictionSheet <- datasheet(myScenario, "wisdm_RestrictionRaster")
 modelOutputsSheet <- datasheet(myScenario, "wisdm_OutputModel", optional = T, returnInvisible = T, lookupsAsFactors = F)
 outputOptionsSheet <- datasheet(myScenario, "wisdm_OutputOptions", optional = T)
 
-spatialOutputsSheet <- datasheet(myScenario, "wisdm_OutputSpatial", optional = T, lookupsAsFactors = T) %>% drop_na()
+spatialOutputsSheet <- datasheet(myScenario, "wisdm_OutputSpatial", optional = T, lookupsAsFactors = T)
 # spatialOutputsSheet$ModelsID <- as.numeric(spatialOutputsSheet$ModelsID)
 
 # Set progress bar -------------------------------------------------------------
@@ -430,7 +430,7 @@ for (i in 1:nrow(modelOutputsSheet)){
     
     # add model Outputs to datasheet
     spatialOutputsSheet <- addRow(spatialOutputsSheet, 
-                                  list( # Iteration = 1, Timestep = 0, ModelsID = modelsSheet$ModelsID[modelsSheet$ModelType == modType]))
+                                  list( # Iteration = 1, Timestep = 0, 
                                     ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType]))
   
     outputRow <- which(spatialOutputsSheet$ModelsID == modelsSheet$ModelName[modelsSheet$ModelType == modType])
