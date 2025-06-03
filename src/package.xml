@@ -134,7 +134,7 @@
 	<column name="SampleWithReplacement" displayName="Sample with replacement" dataType="Boolean"/>
 </dataSheet>
 
-<!-- Parameter Tuning -->
+<!-- Hyperparameter Tuning -->
 
 <dataSheet name="TuningModel" displayName="Model" isSingleRow="True">
     <column name="Model" dataType="Integer" validationType="List" formula1="1:Boosted Regression Trees|2:Random Forest" />
@@ -237,7 +237,7 @@
   name="PrepMultiprocessing"
   displayName="1 - Prepare Multiprocessing"
   programArguments="1-prep-multiprocessing.py"
-  condaEnv="wisdm-conda-s3.yml"
+  condaEnv="wisdm-conda.yml"
   condaEnvVersion="3">
 	<dataSheet name="TemplateRaster" type="Input"/>
 	<dataSheet name="core_SpatialMultiprocessing" type="Output"/>		
@@ -249,7 +249,7 @@
   displayName="2 - Spatial Data Preparation"
   programArguments="2-spatial-data-preparation.py"
   isMultiprocessing="False"
-  condaEnv="wisdm-conda-s3.yml"
+  condaEnv="wisdm-conda.yml"
   condaEnvVersion="3">
 	<dataSheet name="TemplateRaster" type="Input"/>
 	<dataSheet name="RestrictionRaster" type="Both"/>
@@ -262,7 +262,7 @@
 	displayName="3 - Site Data Preparation"
 	programArguments="3-site-data-preparation.py"
 	isMultiprocessing="False"
-	condaEnv="wisdm-conda-s3.yml"
+	condaEnv="wisdm-conda.yml"
   	condaEnvVersion="3">
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="FieldDataOptions" type="Input"/>
@@ -277,7 +277,7 @@
 	displayName="4 - Background Data Generation"
 	programArguments="4-background-data-generation.R"
 	isMultiprocessing="False"
-	condaEnv="wisdm-conda-s3.yml"
+	condaEnv="wisdm-conda.yml"
   	condaEnvVersion="3">
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="FieldData" type="Both"/>
@@ -292,7 +292,7 @@
 	displayName="5 - Prepare Training/Testing Data"
 	programArguments="5-prepare-training-testing-data.R"
 	isMultiprocessing="False"
-	condaEnv="wisdm-conda-s3.yml"
+	condaEnv="wisdm-conda.yml"
   	condaEnvVersion="3">
 		<dataSheet name="FieldData" type="Both"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
@@ -305,7 +305,7 @@
 	displayName ="6 - Variable Reduction"
 	programArguments="6-variable-reduction.R"
 	isMultiprocessing="False"
-	condaEnv="wisdm-conda-s3.yml"	
+	condaEnv="wisdm-conda.yml"	
   	condaEnvVersion="3">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
@@ -314,13 +314,13 @@
 		<dataSheet name="OutputCovariateCorrelationMatrix" type="Output"/>
 </transformer>
 
-<!--Parameter Tuning Transformer-->
+<!--Hyperparameter Tuning Transformer-->
 <transformer 
   name="ParameterTuning" 
-  displayName="7 - Parameter Tuning"
-  programArguments="7-parameter-tuning.R"
+  displayName="7 - Hyperparameter Tuning"
+  programArguments="7-hyperparameter-tuning.R"
   isMultiprocessing="False"
-  condaEnv="wisdm-conda-s3.yml"
+  condaEnv="wisdm-conda.yml"
   condaEnvVersion="3">
 	<dataSheet name="FieldData" type="Input"/>
 	<dataSheet name="ValidationOptions" type="Input"/>
@@ -341,7 +341,7 @@
 	displayName="8 - Generalized Linear Model"
 	programArguments="8-fit-glm.R"
 	isMultiprocessing="False"
-	condaEnv="wisdm-conda-s3.yml"
+	condaEnv="wisdm-conda.yml"
 	condaEnvVersion="3">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
@@ -355,9 +355,9 @@
 <transformer
 	name="RandomForest"
 	displayName="8 - Random Forest"
-	programArguments="8-fit-random-forest.R"
+	programArguments="8-fit-rf.R"
 	isMultiprocessing="False"
-	condaEnv="wisdm-conda-s3.yml"
+	condaEnv="wisdm-conda.yml"
 	condaEnvVersion="3">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
@@ -373,7 +373,7 @@
 	displayName="8 - Maxent"
 	programArguments="8-fit-maxent.R"
 	isMultiprocessing="False"
-	condaEnv="wisdm-conda-s3.yml"
+	condaEnv="wisdm-conda.yml"
 	condaEnvVersion="3">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
@@ -390,7 +390,7 @@
 	displayName="8 - Boosted Regression Tree"
 	programArguments="8-fit-brt.R"
 	isMultiprocessing="False"
-	condaEnv="wisdm-conda-s3.yml"
+	condaEnv="wisdm-conda.yml"
 	condaEnvVersion="3">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
@@ -406,7 +406,7 @@
 	name="ApplyModel"
 	displayName="9 - Apply Model"
 	programArguments="9-apply-model.R"
-	condaEnv="wisdm-conda-s3.yml"
+	condaEnv="wisdm-conda.yml"
 	condaEnvVersion="3">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
 		<dataSheet name="TemplateRaster" type="Input"/>
@@ -423,7 +423,7 @@
 	displayName="10 - Ensemble Model"
 	programArguments="10-ensemble-model.py"
 	isMultiprocessing="False"
-	condaEnv="wisdm-conda-s3.yml"
+	condaEnv="wisdm-conda.yml"
 	condaEnvVersion="3">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
 		<dataSheet name="TemplateRaster" type="Input"/>
