@@ -186,6 +186,7 @@ buildTuningMatrices <- function(modType,
         imageList[i] <- image_append(c(whiteRow, imageList[i]), stack = TRUE)
       }
       
+      
       # Annotate images in first row with column names
       imageList[1:numberOfColumns] <- imageList[1:numberOfColumns] %>% 
         image_annotate(text = columnNames,
@@ -195,8 +196,8 @@ buildTuningMatrices <- function(modType,
       
       # Define matrix tiles
       if(length(parameters) > 1){
-        maxtrixTiles <- numberOfRows %>% as.character() %>% 
-          str_c("x", numberOfColumns %>% as.character())
+        maxtrixTiles <- numberOfColumns %>% as.character() %>% 
+          str_c("x", numberOfRows %>% as.character())
       } else {
         maxtrixTiles <- numberOfColumns %>% as.character() %>% 
           str_c("x1")
@@ -207,19 +208,30 @@ buildTuningMatrices <- function(modType,
         str_c((imageWidth/numberOfColumns) %>% as.character(),
               "+0+0")
       
-      if(length(parameters) > 1){
+      # Create the montage
+      montage_image <- imageList %>%
+        image_montage(geometry = matrixGeometry, tile = maxtrixTiles)
+      montage_image_info <- image_info(montage_image)
+      
+      if(length(parameters) > 1){ 
+        
+        # Create a blank image with extra space 
+        blank_image <- image_blank(width = montage_image_info$width+50, height = montage_image_info$height+50, color = "white")
+        
         # Create matrix
-        outputMatrix <- imageList %>% 
-          image_montage(geometry = matrixGeometry, tile = maxtrixTiles) %>% 
+        outputMatrix <- blank_image %>%
+          image_composite(montage_image, offset = "+50+50") %>% 
+        # outputMatrix <- imageList %>% 
+        #   image_montage(geometry = matrixGeometry, tile = maxtrixTiles) %>% 
           image_annotate(
             text = parameterCW %>% filter(Name == parameters[2]) %>% pull(CleanName),
             gravity = "North",
-            location = "+0+20",
+            location = "+0+25",
             size = matrixFontSize)%>% 
           image_annotate(
             text = parameterCW %>% filter(Name == parameters[1]) %>% pull(CleanName),
             gravity = "West",
-            location = "+45+150",
+            location = "+25+200",
             degrees = 270,
             size = matrixFontSize)
       } else {
@@ -229,7 +241,7 @@ buildTuningMatrices <- function(modType,
           image_annotate(
             text = parameterCW %>% filter(Name == parameters[1]) %>% pull(CleanName),
             gravity = "North",
-            location = "+0+20",
+            location = "+0+0",
             size = matrixFontSize)
       }
       

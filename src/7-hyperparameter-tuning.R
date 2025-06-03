@@ -20,7 +20,7 @@
 
   packageDir <- Sys.getenv("ssim_package_directory")
   source(file.path(packageDir, "00-helper-functions.R"))
-  source(file.path(packageDir, "07-parameter-tuning-functions.R"))
+  source(file.path(packageDir, "07-hyperparameter-tuning-functions.R"))
   source(file.path(packageDir, "08-fit-model-functions.R"))
   
 
@@ -269,6 +269,7 @@ progressBar(type = "begin", totalSteps = steps)
     
     # Create output text file
     capture.output(cat(as.character(tuningModelSheet$Model), "Results [", comboImgs$displayName[r], "]"), file=file.path(out$tempDir,paste0(modType, "_output.txt"))) 
+    capture.output("\n\n============================================================\n\n", file=file.path(out$tempDir,paste0(modType, "_output.txt")))
     on.exit(capture.output(cat("Model Failed\n\n"),file=file.path(out$tempDir,paste0(modType, "_output.txt")),append=TRUE))  
     
     # fit model 
@@ -296,9 +297,9 @@ progressBar(type = "begin", totalSteps = steps)
         
         txt0 <- paste("\n\n","Settings:",
                       # "\n\trandom seed used                       : ",out$input$seed,
-                      "\n\tn covariates considered at each split  : ", RFSheet$NumberOfVariablesSampled,
+                      "\n\tn covariates considered at each split  : ", modelSheet$NumberOfVariablesSampled,
                       if(out$pseudoAbs==TRUE) "\n\t   (averaged over each used available split)\n",
-                      "\n\tn trees                                : ",RFSheet$NumberOfTrees,
+                      "\n\tn trees                                : ",modelSheet$NumberOfTrees,
                       if(out$pseudoAbs==TRUE) "\n\t   (for each used available split)\n",
                       sep="")
         txt1 <- "\n\nRelative performance of predictors in final model:\n\n"
@@ -467,10 +468,10 @@ progressBar(type = "begin", totalSteps = steps)
   }
   
   if(is.null(browser.path)){
-    runApp(appDir = file.path(packageDir, "07-parameter-tuning-app.R"),
+    runApp(appDir = file.path(packageDir, "07-hyperparameter-tuning-app.R"),
            launch.browser = TRUE)  
   } else {
-    runApp(appDir = file.path(packageDir, "07-parameter-tuning-app.R"),
+    runApp(appDir = file.path(packageDir, "07-hyperparameter-tuning-app.R"),
            launch.browser = function(shinyurl) {
              system(paste0("\"", browser.path, "\" --app=", shinyurl, " -incognito"), wait = F)
            })
