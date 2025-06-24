@@ -1,9 +1,9 @@
 ## -------------------------
 ## wisdm - background data generation
-## ApexRMS, April 2024
+## ApexRMS, June 2025
 ## -------------------------
 
-# built under R version 4.1.3 & SyncroSim version 3.0.0
+# built under R version 4.1.3, SyncroSim 3.1.10 & rsyncrosim 2.1.3
 # Script generates background data (pseudo-absences) based on the defined
 #  background data options and outputs updated field data and site data sheets
 

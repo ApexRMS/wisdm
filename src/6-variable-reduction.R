@@ -1,9 +1,9 @@
 ## ---------------------------
 ## wisdm - variable reduction
-## ApexRMS, March 2024
+## ApexRMS, June 2025
 ## ---------------------------
 
-# built under R version 4.1.3 & SyncroSim version 3.0.0
+# built under R version 4.1.3, SyncroSim 3.1.10 & rsyncrosim 2.1.3
 # Script pulls in site-specific covariate data; runs automated variable reduction
 # using USDM-VIF (vif-cor) or calls shiny widget to display interactive correlation
 # tool; saves reduced dataset of auto/user selected covariates

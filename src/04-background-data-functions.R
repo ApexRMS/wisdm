@@ -3,8 +3,6 @@
 ## ApexRMS, February 2023
 ## -------------------------
 
-## UNDER DEVELOPMENT -- below code if for KDE method - MCP needs to be added ##
-
 # Background surface generation function ---------------------------------------
 
 # library(sp)

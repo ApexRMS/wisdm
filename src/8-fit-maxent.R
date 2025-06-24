@@ -3,16 +3,16 @@
 ## ApexRMS, April 2024
 ## --------------------
 
-# built under R version 4.1.3 & SyncroSim version 3.0.0
+# built under R version 4.1.3, SyncroSim 3.1.10 & rsyncrosim 2.1.3
 # script pulls in pre-processed field, site and covariate data; 
 # fits maxent model; builds model diagnostic and validation plots 
 
 # source dependencies ----------------------------------------------------------
 
-library(rsyncrosim) # install.packages("C:/GitHub/rsyncrosim", type="source", repos=NULL) 
+library(rsyncrosim) 
 library(tidyverse)
-library(zip) # install.packages("zip")
-# library(splines)
+library(zip) 
+
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "00-helper-functions.R"))
@@ -111,9 +111,6 @@ if(compCases/allCases < 0.9){updateRunLog(paste("\nWarning: ", round((1-compCase
 
 # set site weights to default of 1 if not already supplied
 if(all(is.na(siteDataWide$Weight))){siteDataWide$Weight <- 1}
-
-# ignore repeat records data if present
-# siteDataWide <- siteDataWide[!siteDataWide$Response == -9999,]
 
 # set pseudo absences to zero 
 if(any(siteDataWide$Response == -9998)){pseudoAbs <- TRUE} else {pseudoAbs <- FALSE}

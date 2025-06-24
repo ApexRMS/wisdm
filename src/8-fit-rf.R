@@ -3,7 +3,7 @@
 ## ApexRMS, March 2024
 ## --------------------
 
-# built under R version 4.1.3 & SyncroSim version 3.0.0
+# built under R version 4.1.3, SyncroSim 3.1.10 & rsyncrosim 2.1.3
 # script pulls in pre-processed field, site and covariate data; fits random 
 # forest (rf) model; builds model diagnostic and validation plots 
 
@@ -121,9 +121,6 @@ progressBar(type = "begin", totalSteps = steps)
   # set site weights to default of 1 if not already supplied
   if(all(is.na(siteDataWide$Weight))){siteDataWide$Weight <- 1}
   
-  # ignore background data if present
-  # siteDataWide <- siteDataWide[!siteDataWide$Response == -9999,]
-  
   # set pseudo absences to zero 
   if(any(siteDataWide$Response == -9998)){pseudoAbs <- TRUE} else {pseudoAbs <- FALSE}
   siteDataWide$Response[siteDataWide$Response == -9998] <- 0
@@ -205,8 +202,8 @@ progressBar(type = "begin", totalSteps = steps)
   
   finalMod$trainingData <- trainingData
   
-  # save model to temp storage
-  # saveRDS(finalMod, file = file.path(ssimTempDir, paste0(modType, "_model.rds"))
+  num_nodes <- sapply(1:finalMod$ntree, function(i) { nrow(getTree(finalMod, k = i)) })
+  out$modOptions$MaximumNodes <- max(num_nodes)
   
   # save output model options
   RFSheet$NumberOfVariablesSampled <- finalMod$mtry

@@ -3,7 +3,7 @@
 ## ApexRMS, March 2024
 ## --------------------
 
-# built under R version 4.1.3 & SyncroSim version 3.0.0
+# built under R version 4.1.3, SyncroSim 3.1.10 & rsyncrosim 2.1.3
 # script pulls in pre-processed field, site and covariate data; fits glm; builds
 # model diagnostic and validation plots 
 
@@ -12,6 +12,7 @@
   library(rsyncrosim)
   library(tidyr)
   library(dplyr)
+  # library(glmnet)
 
   packageDir <- Sys.getenv("ssim_package_directory")
   source(file.path(packageDir, "00-helper-functions.R"))
@@ -95,9 +96,6 @@ progressBar(type = "begin", totalSteps = steps)
   
   # set site weights to default of 1 if not already supplied
   if(all(is.na(siteDataWide$Weight))){siteDataWide$Weight <- 1}
-  
-  # ignore background data if present
-  # siteDataWide <- siteDataWide[!siteDataWide$Response == -9999,]
   
   # set pseudo absences to zero 
   if(any(siteDataWide$Response == -9998)){pseudoAbs <- TRUE} else {pseudoAbs <- FALSE}
