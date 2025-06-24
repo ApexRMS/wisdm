@@ -3,7 +3,7 @@
 ## ApexRMS, May 2025
 ## --------------------
 
-# built under R version 4.1.3, SyncroSim 3.1.10 & rsyncrosim 2.1.2
+# built under R version 4.1.3, SyncroSim 3.1.10 & rsyncrosim 2.1.3
 # script pulls in pre-processed field, site and covariate data; fits multiple models 
 # using defaults (or defined inputs) and provided tuning parameters; model diagnostics
 # and validation plots are built for each parameter tuning combination and are displayed
@@ -60,8 +60,8 @@ progressBar(type = "begin", totalSteps = steps)
   }
   
   # output datasheets
-  modelOutputsSheet <- datasheet(myScenario, "wisdm_OutputModel", optional = T, returnInvisible = T, empty = T, lookupsAsFactors = F)
-  modelOutputParameterSheet <- datasheet(myScenario, "wisdm_OutputParameterTuning", optional = T, returnInvisible = T, empty = T, lookupsAsFactors = F)
+  outputModelSheet <- datasheet(myScenario, "wisdm_OutputModel", optional = T, returnInvisible = T, empty = T, lookupsAsFactors = F)
+  outputHyperparameterTuningSheet <- datasheet(myScenario, "wisdm_OutputHyperparameterTuning", optional = T, returnInvisible = T, empty = T, lookupsAsFactors = F)
   
   progressBar()
 
@@ -162,9 +162,6 @@ progressBar(type = "begin", totalSteps = steps)
   # set site weights to default of 1 if not already supplied
   if(all(is.na(siteDataWide$Weight))){siteDataWide$Weight <- 1}
   
-  # ignore background data if present
-  # siteDataWide <- siteDataWide[!siteDataWide$Response == -9999,]
-  
   # set pseudo absences to zero 
   if(any(siteDataWide$Response == -9998)){pseudoAbs <- TRUE} else {pseudoAbs <- FALSE}
   siteDataWide$Response[siteDataWide$Response == -9998] <- 0
@@ -234,7 +231,7 @@ progressBar(type = "begin", totalSteps = steps)
   comboDirs <- list()
   
   comboImgs <- combos
-  comboImgs[,names(modelOutputsSheet)] <- NA
+  comboImgs[,names(outputModelSheet)] <- NA
   
   p1Name <- paste0(modelArgs[parameterNames[1]], ": ", comboImgs[[parameterNames[1]]])
   if(length(parameterNames)>1){
@@ -268,8 +265,8 @@ progressBar(type = "begin", totalSteps = steps)
     # if(modType == "brt"){}
     
     # Create output text file
-    capture.output(cat(as.character(tuningModelSheet$Model), "Results [", comboImgs$displayName[r], "]"), file=file.path(out$tempDir,paste0(modType, "_output.txt"))) 
-    capture.output("\n\n============================================================\n\n", file=file.path(out$tempDir,paste0(modType, "_output.txt")))
+    capture.output(cat(as.character(tuningModelSheet$Model), " Results [", comboImgs$displayName[r], "]"), file=file.path(out$tempDir,paste0(modType, "_output.txt"))) 
+    capture.output(cat("\n\n============================================================\n\n"), file=file.path(out$tempDir,paste0(modType, "_output.txt")),append=TRUE)
     on.exit(capture.output(cat("Model Failed\n\n"),file=file.path(out$tempDir,paste0(modType, "_output.txt")),append=TRUE))  
     
     # fit model 
@@ -290,6 +287,9 @@ progressBar(type = "begin", totalSteps = steps)
       out$finalMod <- finalMod
       
       if(modType == "rf"){
+        
+        num_nodes <- sapply(1:finalMod$ntree, function(i) { nrow(getTree(finalMod, k = i)) })
+        out$modOptions$MaximumNodes <- max(num_nodes)
         
         out$modOptions$NumberOfVariablesSampled <- finalMod$mtry 
         out$finalVars <- out$inputVars # random forest doesn't drop variables
@@ -490,26 +490,29 @@ progressBar(type = "begin", totalSteps = steps)
   if(modType == "brt"){ saveDatasheet(myScenario, modelSheet, "wisdm_BRT")}
 
   # save model outputs for selected model
-  saveDatasheet(myScenario, selectedComboOutputs[,names(modelOutputsSheet)], "wisdm_OutputModel", append = T)
+  saveDatasheet(myScenario, selectedComboOutputs[,names(outputModelSheet)], "wisdm_OutputModel", append = T)
   
   # save tuning matrix outputs
-  modelOutputParameterSheet <- addRow(modelOutputParameterSheet, 
+  outputHyperparameterTuningSheet <- addRow(outputHyperparameterTuningSheet, 
                                       list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
                                            ResponseCurves = file.path(ssimTempDir, "ResponseCurvesMatrix.png"),
                                            ResidualSmoothPlot = file.path(ssimTempDir, "ResidualSmoothPlotMatrix.png")))
   
   
   if(out$modelFamily != "poisson"){
-    if("StandardResidualPlotsMatrix.png" %in% tempFiles){ modelOutputParameterSheet$ResidualsPlot <- file.path(ssimTempDir, "StandardResidualPlotsMatrix.png") }
-    modelOutputParameterSheet$ConfusionMatrix <- file.path(ssimTempDir, "ConfusionMatrixMatrix.png")
-    modelOutputParameterSheet$VariableImportancePlot <- file.path(ssimTempDir, "VariableImportanceMatrix.png")
-    modelOutputParameterSheet$ROCAUCPlot <- file.path(ssimTempDir, "ROCAUCPlotMatrix.png")
-    modelOutputParameterSheet$CalibrationPlot <- file.path(ssimTempDir, "CalibrationPlotMatrix.png")
+    if("StandardResidualPlotsMatrix.png" %in% tempFiles){ outputHyperparameterTuningSheet$ResidualsPlot <- file.path(ssimTempDir, "StandardResidualPlotsMatrix.png") }
+    outputHyperparameterTuningSheet$ConfusionMatrix <- file.path(ssimTempDir, "ConfusionMatrixMatrix.png")
+    outputHyperparameterTuningSheet$VariableImportancePlot <- file.path(ssimTempDir, "VariableImportancePlotMatrix.png")
+    outputHyperparameterTuningSheet$ROCAUCPlot <- file.path(ssimTempDir, "ROCAUCPlotMatrix.png")
+    outputHyperparameterTuningSheet$CalibrationPlot <- file.path(ssimTempDir, "CalibrationPlotMatrix.png")
   } else {
-    modelOutputParameterSheet$ResidualsPlot <- file.path(ssimTempDir, "PoissonResidualPlotsMatrix.png")
+    outputHyperparameterTuningSheet$ResidualsPlot <- file.path(ssimTempDir, "PoissonResidualPlotsMatrix.png")
   }
   
-  if("AUCPRPlotMatrix.png" %in% tempFiles){ modelOutputParameterSheet$AUCPRPlot <- file.path(ssimTempDir, "AUCPRPlotMatrix.png") } 
+  if("AUCPRPlotMatrix.png" %in% tempFiles){ outputHyperparameterTuningSheet$AUCPRPlot <- file.path(ssimTempDir, "AUCPRPlotMatrix.png") } 
+  
+  # save tuning outputs 
+  saveDatasheet(myScenario, outputHyperparameterTuningSheet, "wisdm_OutputHyperparameterTuning", append = T)
   
   
   progressBar(type = "end")

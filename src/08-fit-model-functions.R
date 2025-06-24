@@ -86,7 +86,6 @@ fitModel <- function(dat,           # df of training data
     return(modelGLMStep)
   }
 
-
   #================================================================
   #                        RF
   #=================================================================
@@ -135,35 +134,44 @@ fitModel <- function(dat,           # df of training data
     }
     
     cat("\nnow fitting full random forest model using mtry=",mtry,"\n")
-    modelRF <- randomForest(
-      x = x,
-      y = y,
-      xtest = xtest,
-      ytest = ytest,
-      importance = importance,
-      ntree = n.trees,
-      mtry = mtry,
-      replace = samp.replace,
-      sampsize = ifelse(is.null(sampsize),
-                        rep(min(ceiling(table(y) * 0.632)), 2), # balanced downsample based on smallest class
-                        sampsize),
-      nodesize = nodesize,
-      # ifelse(is.null(nodesize),(if (!is.null(y) && !is.factor(y)) 5 else 1),nodesize),
-      maxnodes = maxnodes,
-      localImp = localImp,
-      nPerm = nPerm,
-      keep.forest = ifelse(
-        is.null(keep.forest),
-        !is.null(y) && is.null(xtest),
-        keep.forest
-      ),
-      corr.bias = corr.bias,
-      keep.inbag = keep.inbag
+    modelRF <- tryCatch(
+      {
+        randomForest(
+          x = x,
+          y = y,
+          xtest = xtest,
+          ytest = ytest,
+          importance = importance,
+          ntree = n.trees,
+          mtry = mtry,
+          replace = samp.replace,
+          sampsize = ifelse(is.null(sampsize),
+                            rep(min(ceiling(table(y) * 0.632)), 2), # balanced downsample based on smallest class
+                            sampsize),
+          nodesize = nodesize,
+          # ifelse(is.null(nodesize),(if (!is.null(y) && !is.factor(y)) 5 else 1),nodesize),
+          maxnodes = maxnodes,
+          localImp = localImp,
+          nPerm = nPerm,
+          keep.forest = ifelse(
+            is.null(keep.forest),
+            !is.null(y) && is.null(xtest),
+            keep.forest
+          ),
+          corr.bias = corr.bias,
+          keep.inbag = keep.inbag
+        )
+      },
+      error = function(err) {
+        message("randomForest() failed: ", err$message)
+        NULL
+      }
     )
-  return(modelRF)
+    
+    # Returns either the fitted model or NULL
+    return(modelRF)
   }
-
-
+  
   #================================================================
   #                        MAXENT
   #=================================================================
@@ -251,6 +259,7 @@ fitModel <- function(dat,           # df of training data
     }
     return(modelMaxent)
   }
+  
   #================================================================
   #                        BRT
   #=================================================================

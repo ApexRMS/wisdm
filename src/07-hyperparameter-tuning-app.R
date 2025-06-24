@@ -43,7 +43,8 @@ ui <- fluidPage(
                 tabPanel("ROCAUC", imageOutput(outputId = "image3", height = "auto", width = "auto")),
                 tabPanel("AUCPR", imageOutput(outputId = "image4", height = "auto", width = "auto")),
                 tabPanel("Confusion Matrix", imageOutput(outputId = "image5", height = "auto", width = "auto")),
-                tabPanel("Variable Importance", imageOutput(outputId = "image6", height = "auto", width = "auto")),
+                tabPanel("Residual Smooth", imageOutput(outputId = "image6", height = "auto", width = "auto")),
+                tabPanel("Variable Importance", imageOutput(outputId = "image7", height = "auto", width = "auto")),
                 tabPanel("Text Summary",verbatimTextOutput("text1"))
                 ) 
               )
@@ -82,6 +83,10 @@ server <- function(input, output, session) { #
   }, deleteFile = FALSE)
   
   output$image6 <- renderImage({
+    list(src = file.path(ssimTempDir, "ResidualSmoothPlotMatrix.png"), width = "100%")
+  }, deleteFile = FALSE) 
+  
+  output$image7 <- renderImage({
     list(src = file.path(ssimTempDir, "VariableImportancePlotMatrix.png"), width = "100%")
   }, deleteFile = FALSE)
   
