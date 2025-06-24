@@ -123,8 +123,10 @@ else:
     num_threads = 1
 
 # Note: Follow link in output to view progress
-dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space')})
-client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
+dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space'),
+                   'distributed.scheduler.worker-ttl': None},
+                   scheduler='threads', serializers=['dask'], deserializers=['dask'])
+# client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
 # client
 
 
@@ -166,7 +168,8 @@ templateMask = templateRaster.to_masked_array().mask[0]
 
 # Get information about template
 templateCRS = templateRaster.rio.crs
-if templateCRS.is_valid == False:
+try: templateCRS.to_wkt()
+except ValueError:
     raise ValueError("Template has an invalid CRS (authority code). See {documention} for a list of accepted authority codes.")
 # templateResolution = templateRaster.rio.resolution()
 templateExtent = list(templateRaster.rio.bounds())
@@ -216,7 +219,7 @@ else:
 # Convert shapely object to a geodataframe with a crs
 sites = gpd.GeoDataFrame(fieldDataSheet, geometry=siteCoords, crs=fieldDataCRS)
 
-# Reproject points if site crs differs from template crs
+#%% Reproject points if site crs differs from template crs
 if sites.crs != templateCRS:
     sites_reprojected = sites.to_crs(templateCRS)
 
@@ -248,7 +251,7 @@ if sites.crs != templateCRS:
         
     sites = sites_reprojected
 
-# Clip sites to template extent
+#%% Clip sites to template extent
 if rasterio.dtypes.is_ndarray(templatePolygons):
     sites = gpd.clip(sites,templatePolygons)
 else:
@@ -354,7 +357,7 @@ yLoc = xarray.DataArray(sites.RasterRow, dims =["loc"])
 xLoc = xarray.DataArray(sites.RasterCol, dims =["loc"])
 sitesOut = sites[["SiteID"]] #, "RasterCellID"
 
-# Extract covariate values for each site
+#%% Extract covariate values for each site
 for i in range(len(covariateDataSheet.CovariatesID)):
     # Load processed covariate rasters and extract site values
     outputCovariatePath = covariateDataSheet.RasterFilePath[i]
@@ -371,7 +374,7 @@ for i in range(len(covariateDataSheet.CovariatesID)):
     sitesOut.loc[:,covariateDataSheet.CovariatesID[i]] = covariateRaster[0].isel(x=xLoc,y=yLoc).values.tolist() 
 
     # Replace no data values with -9999
-    sitesOut.loc[sitesOut[covariateDataSheet.CovariatesID[i]] == covariateRaster.rio.nodata, covariateDataSheet.CovariatesID[i]] = -9999
+    sitesOut.loc[sitesOut[covariateDataSheet.CovariatesID[i]] == covariateRaster.rio.nodata, covariateDataSheet.CovariatesID[i]] = None #-9999
 
     # update progress bar
     ps.environment.progress_bar()
