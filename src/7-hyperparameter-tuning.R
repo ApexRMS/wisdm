@@ -297,9 +297,9 @@ progressBar(type = "begin", totalSteps = steps)
         
         txt0 <- paste("\n\n","Settings:",
                       # "\n\trandom seed used                       : ",out$input$seed,
-                      "\n\tn covariates considered at each split  : ", modelSheet$NumberOfVariablesSampled,
+                      "\n\tn covariates considered at each split  : ", out$modOptions$NumberOfVariablesSampled,
                       if(out$pseudoAbs==TRUE) "\n\t   (averaged over each used available split)\n",
-                      "\n\tn trees                                : ",modelSheet$NumberOfTrees,
+                      "\n\tn trees                                : ",out$modOptions$NumberOfTrees,
                       if(out$pseudoAbs==TRUE) "\n\t   (for each used available split)\n",
                       sep="")
         txt1 <- "\n\nRelative performance of predictors in final model:\n\n"

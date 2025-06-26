@@ -85,7 +85,7 @@ buildTuningMatrices <- function(modType,
       names_to = "ModelOutput", values_to = "ImageFile"
     ) %>%
     right_join(tibble(ModelOutput = modelOutputs), by = "ModelOutput")
-  
+
   # iterate each output type
   for (modelOutput in modelOutputs) {
     subsetDF <- filter(modelOutputsTable, ModelOutput == modelOutput)
@@ -95,25 +95,29 @@ buildTuningMatrices <- function(modType,
       message(modelOutput, " not available; skipping.")
       next
     }
-    
+  
     # dimensions
     if (length(parameters)>1) {
       ncol <- n_distinct(subsetDF[[parameters[2]]])
       nrow <- n_distinct(subsetDF[[parameters[1]]])
       colNames <- unique(as.character(subsetDF[[parameters[2]]]))
       rowNames <- unique(as.character(subsetDF[[parameters[1]]]))
+      colTitle <- parameterCW$CleanName[parameterCW$Name == parameters[2]]
+      rowTitle <- parameterCW$CleanName[parameterCW$Name == parameters[1]]
     } else {
       ncol <- n_distinct(subsetDF[[parameters[1]]])
       nrow <- 1
       colNames <- unique(as.character(subsetDF[[parameters[1]]]))
       rowNames <- NULL
+      colTitle <- parameterCW$CleanName[parameterCW$Name == parameters[1]]
+      rowTitle <- NULL
     }
-    
+  
     # read PNG files into raster grobs
     img_grobs <- lapply(subsetDF$ImageFile, function(f) {
       rasterGrob(readPNG(f), interpolate = FALSE)
     })
-    
+
     # build list: corner + column labels + row labels (if any) + panels
     g_list <- list(nullGrob())
     # column labels
@@ -122,23 +126,28 @@ buildTuningMatrices <- function(modType,
     }
     # row labels
     if (!is.null(rowNames)) {
-      for (lbl in rev(rowNames)) {
+      for (lbl in rowNames) {
         g_list <- c(g_list, list(textGrob(lbl, rot = 90, gp = gpar(fontsize = 14))))
       }
     }
     # panel images
     g_list <- c(g_list, img_grobs)
-    
+
     # calculate index offsets
     cornerIdx   <- 1
     colLblStart <- cornerIdx + 1
-    rowLblStart <- cornerIdx + ncol + 1
-    imgStart    <- rowLblStart + nrow
-    
+    if (!is.null(rowNames)) {
+      rowLblStart <- cornerIdx + ncol + 1
+      imgStart <- rowLblStart + nrow
+    } else {
+      imgStart <- cornerIdx + ncol + 1
+      }
+
     # layout matrix dimensions
     total_rows <- nrow + 1
     total_cols <- ncol + 1
     
+
     # initialize layout matrix
     layout_mat <- matrix(NA, nrow = total_rows, ncol = total_cols)
     # corner
@@ -157,11 +166,11 @@ buildTuningMatrices <- function(modType,
         layout_mat[r, c] <- imgStart + (r - 2) * ncol + (c - 2)
       }
     }
-    
+
     # fixed widths/heights for grid
     widths  <- unit.c(unit(0.8, "cm"), rep(unit(1, "null"), ncol))
     heights <- unit.c(unit(0.6, "cm"), rep(unit(1, "null"), nrow))
-    
+
     # assemble matrix with padding
     matrix_grob <- arrangeGrob(
       grobs = g_list,
@@ -171,26 +180,26 @@ buildTuningMatrices <- function(modType,
       respect = TRUE,
       padding = unit(4, "pt")
     )
-    
+
     # overall axis titles
     col_title <- textGrob(
-      parameterCW$CleanName[parameterCW$Name == parameters[2]],
+      colTitle,
       gp = gpar(fontsize = 16)
     )
     row_title <- if (!is.null(rowNames)) {
       textGrob(
-        parameterCW$CleanName[parameterCW$Name == parameters[1]],
+        rowTitle,
         gp = gpar(fontsize = 16),
         rot = 90
       )
     } else {
       NULL
     }
-    
+
     # wrap with axis titles
     title_widths  <- unit.c(unit(0.8, "cm"), unit(1, "null"))
     title_heights <- unit.c(unit(0.6, "cm"), unit(1, "null"))
-    
+
     if (!is.null(rowNames)) {
       top_row <- arrangeGrob(
         nullGrob(), col_title,
@@ -210,7 +219,7 @@ buildTuningMatrices <- function(modType,
         ncol = 1, heights = title_heights
       )
     }
-    
+
     # save to high-res PNG
     outfile <- file.path(outputPath, paste0(modelOutput, "Matrix.png"))
     png(
