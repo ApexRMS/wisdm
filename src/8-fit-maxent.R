@@ -13,7 +13,6 @@ library(rsyncrosim)
 library(tidyverse)
 library(zip) 
 
-
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "00-helper-functions.R"))
 source(file.path(packageDir, "08-fit-model-functions.R"))
@@ -82,12 +81,12 @@ if(is.na(maxentSheet$MaximumBackgroundPoints)){maxentSheet$MaximumBackgroundPoin
 if(is.na(maxentSheet$VisibleInterface)){maxentSheet$VisibleInterface <- FALSE}
 if(is.na(maxentSheet$SaveMaxentFiles)){maxentSheet$SaveMaxentFiles <- FALSE}
 
-if(mulitprocessingSheet$EnableMultiprocessing){
-  if(is.na(maxentSheet$MultiprocessingThreads)){
-    maxentSheet$MultiprocessingThreads <- mulitprocessingSheet$MaximumJobs
-    }
-} else {
+if(is.na(mulitprocessingSheet$EnableMultiprocessing) | mulitprocessingSheet$EnableMultiprocessing == FALSE){
   maxentSheet$MultiprocessingThreads <- 1
+  } else {
+    if(is.na(maxentSheet$MultiprocessingThreads)){
+      maxentSheet$MultiprocessingThreads <- mulitprocessingSheet$MaximumJobs
+    }
   }
  
 saveDatasheet(myScenario, maxentSheet, "wisdm_Maxent")   
@@ -96,12 +95,14 @@ progressBar()
 # Prep data for model fitting --------------------------------------------------
 
 siteDataWide <- spread(siteDataSheet, key = CovariatesID, value = "Value")
+rm(siteDataSheet); gc()
 
 # remove variables dropped due to correlation
 siteDataWide <- siteDataWide[,c('SiteID', retainedCovariatesSheet$CovariatesID)]
 
 # merge field and site data
 siteDataWide <- merge(fieldDataSheet, siteDataWide, by = "SiteID")
+rm(fieldDataSheet); gc()
 
 # remove sites with incomplete data 
 allCases <- nrow(siteDataWide)
@@ -126,11 +127,12 @@ if(length(factorInputVars)>0){
 
 # identify training and testing sites 
 trainTestDatasets <- split(siteDataWide, f = siteDataWide[,"UseInModelEvaluation"], drop = T)
+rm(siteDataWide); gc()
 trainingData <- trainTestDatasets$`FALSE`
-if(!validationDataSheet$CrossValidate){ trainingData$ModelSelectionSplit <- FALSE }
-
+if(!validationDataSheet$CrossValidate){trainingData$ModelSelectionSplit <- FALSE}
 testingData <- trainTestDatasets$`TRUE`
-if(!is.null(testingData)){ testingData$ModelSelectionSplit <- FALSE }
+rm(trainTestDatasets); gc()
+if(!is.null(testingData)){testingData$ModelSelectionSplit <- FALSE}
 progressBar()
 
 # Model definitions ------------------------------------------------------------
@@ -146,11 +148,7 @@ out$modOptions <- maxentSheet
 out$modOptions$thresholdOptimization <- "Sens=Spec"	# To Do: link to defined Threshold Optimization Method in UI - currently set to default: sensitivity=specificity 
 
 ## Model family 
-if(max(fieldDataSheet$Response)>1){
-  stop("Maxent is a presence-background method; please select a method suitable for count data before continuing.")
-  } else if(any(fieldDataSheet$Response==0)){
-    stop("Maxent is a presence-background method; please select a method suitable for presence-absense data before continuing.")
-    } else { out$modelFamily <- "binomial" }
+out$modelFamily <- "binomial"
 
 ## Candidate variables 
 out$inputVars <- retainedCovariatesSheet$CovariatesID
@@ -208,7 +206,7 @@ if(!is.null(testingData)){
     write.csv(testDataPath, row.names = F)
   
   out$data$test <- testingData
-  
+  rm(testingData); gc()
   }
 
 out$batchPath <- file.path(ssimTempDir, "Inputs", "runMaxent.bat", fsep = "\\")
@@ -273,6 +271,7 @@ predAbs <- out$data$train[out$data$train$Response == 0 , "predicted"]
 evalOut <- modelEvaluation(predOcc = predOcc, predAbs = predAbs)
 
 finalMod$binThresholds <- thresholds <- evalOut@thresholds
+rm(predOcc, predAbs, evalOut); gc()
 
 names(thresholds) <- c("Max kappa", "Max sensitivity and specificity", "No omission", 
                        "Prevalence", "Sensitivity equals specificity")
@@ -284,7 +283,7 @@ updateRunLog(pander::pandoc.table.return(tbl, style = "simple", split.tables = 1
 # save model info to temp storage
 finalMod$trainingData <- trainingData
 saveRDS(finalMod, file = file.path(ssimTempDir, paste0(modType, "_model.rds")))
-finalMod$trainingData <- NULL
+rm(finalMod); gc()
 
 # Run Cross Validation (if specified) ------------------------------------------
 if(validationDataSheet$CrossValidate){
@@ -333,10 +332,11 @@ if(maxentSheet$SaveMaxentFiles){
   setwd(out$tempDir)
   
   # create zip file of all maxent specific inputs/outputs
-  zip(zipfile = paste0("Maxent-",ssimEnvironment()$ScenarioId, ".zip"), files = c("Inputs", "Outputs"))
+  zipName <-  paste0("Maxent-",ssimEnvironment()$ScenarioId, ".zip")
+  zip(zipfile = zipName, files = c("Inputs", "Outputs"))
   
   # save zip to model outputs
-  modelOutputsSheet$MaxentFiles <- filepath(ssimTempDir, paste0("Maxent-",ssimEnvironment()$ScenarioId, ".zip"))
+  modelOutputsSheet$MaxentFiles <- file.path(ssimTempDir, zipName)
 }
 
 # save outputs datasheet
