@@ -1,6 +1,6 @@
 ## -------------------------
 ## wisdm - background (pseudo-absence) data functions
-## ApexRMS, February 2023
+## ApexRMS, July 2025
 ## -------------------------
 
 # Background surface generation function ---------------------------------------
@@ -29,7 +29,7 @@ backgroundSurfaceGeneration <- function(sp,         # species
         kde_bg_out <- gsub('/', '\\\\', paste0(outputDir, '/', sp, '_kde_bg_surface.tif'))
         kde.mat <- matrix(m, nrow = length(unique(ud@coords[, 1])))
       
-        t <- terra::rast(as.matrix(ud))
+        t <- terra::rast(ud)
         ext(t) <- ext(ud)
         crs(t) <- crs(template)
         t <- t / max(kde.mat) * 100 # normalize from 0-100
