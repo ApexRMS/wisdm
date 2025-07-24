@@ -1,7 +1,6 @@
 name: wisdm-conda
 channels:
   - conda-forge
-  - defaults
 dependencies:
   - r-base=4.1.3
   - r-adehabitathr=0.4.21
