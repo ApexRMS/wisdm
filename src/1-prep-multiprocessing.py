@@ -8,7 +8,6 @@
 # template raster -- here specificaly set up to generaet smp grids 
 # for conus map zones
 
-#%%
 ## Source dependencies --------------------------------------------------------
 
 # Set up environment and load helper functions
@@ -28,13 +27,13 @@ import pyproj
 import dask
 from dask.distributed import Client
 
-#%% Set progress bar ---------------------------------------------------------
+# Set progress bar ---------------------------------------------------------
 
 steps = 6
 ps.environment.update_run_log('1 - Prepare Multiprocessing => Begin')
 ps.environment.progress_bar(report_type = "begin", total_steps = steps)
 
-#%% Connect to SyncroSim library --------------------------------------------
+# Connect to SyncroSim library --------------------------------------------
 
 # Load current scenario
 myScenario = ps.Scenario()  
@@ -74,7 +73,7 @@ spatialMultiprocessingSheet = myScenario.datasheets("core_SpatialMultiprocessing
 # update progress bar
 ps.environment.progress_bar()
 
-#%% Set up dask client ------------------------------------------------------
+# Set up dask client ------------------------------------------------------
 if multiprocessingSheet.EnableMultiprocessing.item() == "Yes":
     num_threads = multiprocessingSheet.MaximumJobs.item()
 else:
@@ -85,7 +84,6 @@ dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker
 client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
 # client
 
-#%%
 ## Functions -----------------------------------------------------------------
 # Resample a raster
 def resample_grid(input_grid_filepath, template_grid_filepath, output_filename, output_directory):
@@ -115,28 +113,35 @@ def resample_grid(input_grid_filepath, template_grid_filepath, output_filename, 
       
       return resampled_grid_filepath
 
-#%% Load data ---------------------------------------------------------------
+# Load data ---------------------------------------------------------------
 
 # Load template raster
 templatePath = templateRasterSheet.RasterFilePath.item()
 templateRaster = rioxarray.open_rasterio(templatePath)
 
+
 # Set desired number of cells per tile
 if templateRasterSheet.TileCount.isnull().item():
     if templateRaster.size <= 10000:
         raise ValueError("Template raster has only " + str(templateRaster.size) + " pixels. Multiprocessing is not required.")
-    elif templateRaster.size > 10000 & templateRaster.size <= 1e5:
+    elif templateRaster.size > 10000 and templateRaster.size <= 1e5:
         numTiles = templateRaster.size/10000
-    elif templateRaster.size > 1e5 & templateRaster.size <= 1e6:
+    elif templateRaster.size > 1e5 and templateRaster.size <= 1e6:
         numTiles = templateRaster.size/1e5
-    elif templateRaster.size > 1e6 & templateRaster.size <= 1e7:
+    elif templateRaster.size > 1e6 and templateRaster.size <= 1e7:
         numTiles = templateRaster.size/1e6
-    elif templateRaster.size > 1e7 & templateRaster.size <= 1e8:
+    elif templateRaster.size > 1e7 and templateRaster.size <= 1e8:
         numTiles = templateRaster.size/1e7
-    elif templateRaster.size > 1e8 & templateRaster.size <= 1e9:
+    elif templateRaster.size > 1e8 and templateRaster.size <= 1e9:
         numTiles = templateRaster.size/1e7
         if numTiles > 20:
             numTiles = templateRaster.size/5e7
+    elif templateRaster.size > 1e9:
+        numTiles = templateRaster.size/1e8
+        if numTiles > 50:
+            numTiles = templateRaster.size/5e8
+    # round up to nearest integer
+    numTiles = math.ceil(numTiles)
 else:
     numTiles = templateRasterSheet.TileCount.item()   
     
@@ -148,7 +153,7 @@ tile_size = templateRaster.size/numTiles # 7500000
 # update progress bar
 ps.environment.progress_bar()
 
-#%% Build tiling grid --------------------------------------------------------
+# Build tiling grid --------------------------------------------------------
 
 # Calculate ncol and nrow for one tile 
 tile_dimension = math.ceil(math.sqrt((templateRaster.size / tile_size)))
@@ -164,7 +169,7 @@ y_coords = np.linspace(y_left, y_right, num = tile_dimension)
 
 coords = {'band': [1], 'x': x_coords, 'y': y_coords}
 
-#%% Create smp grid ----------------------------------------------------------
+# Create smp grid ----------------------------------------------------------
 small_grid = xarray.DataArray(
     data = np.linspace(1, pow(tile_dimension, 2), num = pow(tile_dimension, 2)).reshape(1, tile_dimension, tile_dimension),
     dims = templateRaster.dims,
@@ -203,7 +208,7 @@ resample_grid(grid_filepath, templatePath, "smp-grid.tif", ssimTempDir)
 # update progress bar
 ps.environment.progress_bar()
 
-#%% Mask to analysis area ----------------------------------------------------
+# Mask to analysis area ----------------------------------------------------
 
 mask = templateRaster
 nodata_value = templateRaster.rio.nodata
@@ -228,7 +233,7 @@ myScenario.save_datasheet(name="wisdm_TemplateRaster", data=templateRasterSheet)
 # update progress bar
 ps.environment.progress_bar()
 
-#%%  Reclassify tiles --------------------------------------------------------
+# Reclassify tiles --------------------------------------------------------
 
 newVals = list(range(0,num_tiles+1))
 
@@ -245,7 +250,7 @@ smp_grid[smp_grid == 0] = -9999
 # Convert to int
 smp_grid = smp_grid.astype(np.int16)
 
-#%% Save sampling grid -------------------------------------------------------
+# Save sampling grid -------------------------------------------------------
 
 with rasterio.open(os.path.join(ssimTempDir, "smp-grid.tif")) as src:
     out_meta = src.meta    
@@ -259,4 +264,4 @@ myScenario.save_datasheet(name="core_SpatialMultiprocessing", data=spatialMultip
 
 # update progress bar
 ps.environment.progress_bar(report_type = "end")
-# %%
+
