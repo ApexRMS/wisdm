@@ -119,29 +119,21 @@ def resample_grid(input_grid_filepath, template_grid_filepath, output_filename, 
 templatePath = templateRasterSheet.RasterFilePath.item()
 templateRaster = rioxarray.open_rasterio(templatePath)
 
-
-# Set desired number of cells per tile
+# Set desired number of cells per tile 
+# # Note: max cell count is 100 million cells per tile
+# This is approximate, the actual number of cells per tile may vary
 if templateRasterSheet.TileCount.isnull().item():
-    if templateRaster.size <= 10000:
+    if templateRaster.size <= 1e4:
         raise ValueError("Template raster has only " + str(templateRaster.size) + " pixels. Multiprocessing is not required.")
-    elif templateRaster.size > 10000 and templateRaster.size <= 1e5:
-        numTiles = templateRaster.size/10000
-    elif templateRaster.size > 1e5 and templateRaster.size <= 1e6:
-        numTiles = templateRaster.size/1e5
-    elif templateRaster.size > 1e6 and templateRaster.size <= 1e7:
-        numTiles = templateRaster.size/1e6
-    elif templateRaster.size > 1e7 and templateRaster.size <= 1e8:
-        numTiles = templateRaster.size/1e7
-    elif templateRaster.size > 1e8 and templateRaster.size <= 1e9:
-        numTiles = templateRaster.size/1e7
-        if numTiles > 20:
-            numTiles = templateRaster.size/5e7
-    elif templateRaster.size > 1e9:
-        numTiles = templateRaster.size/1e8
-        if numTiles > 50:
-            numTiles = templateRaster.size/5e8
-    # round up to nearest integer
-    numTiles = math.ceil(numTiles)
+    elif templateRaster.size > 1e4:
+        # Compute number of tiles based on max tile size
+        for maxTileSize in [1e4, 1e5, 5e5, 1e6, 2.5e6, 5e6, 7.5e6, 1e7, 2e7, 3e7, 4e7, 5e7, 6e7, 7e7, 8e7, 9e7, 1e8]:
+            if templateRaster.size >= maxTileSize:
+                numTiles = math.ceil(templateRaster.size/ maxTileSize)
+                if numTiles < 100:
+                    break
+        if numTiles == 1:
+            raise ValueError("Template raster has only " + str(templateRaster.size) + " pixels. Multiprocessing is not required.")
 else:
     numTiles = templateRasterSheet.TileCount.item()   
     
