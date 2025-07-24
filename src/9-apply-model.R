@@ -49,7 +49,6 @@ modelOutputsSheet <- datasheet(myScenario, "wisdm_OutputModel", optional = T, re
 outputOptionsSheet <- datasheet(myScenario, "wisdm_OutputOptions", optional = T)
 
 spatialOutputsSheet <- datasheet(myScenario, "wisdm_OutputSpatial", optional = T, lookupsAsFactors = T)
-# spatialOutputsSheet$ModelsID <- as.numeric(spatialOutputsSheet$ModelsID)
 
 # Set progress bar -------------------------------------------------------------
 
@@ -135,48 +134,42 @@ for (i in 1:nrow(modelOutputsSheet)){
   modType <- modelsSheet$ModelType[modelsSheet$ModelName == modelOutputsSheet$ModelsID[i]]
   
   mod <- readRDS(modelOutputsSheet$ModelRDS[i])
+  modFamily <- "binomial" 
   
   if(modType == "glm"){
     modVars <- attr(terms(formula(mod)),"term.labels")
     # have to remove all the junk with powers and interactions for mess map production to work
     modVars <- unique(unlist(strsplit(gsub("I\\(","",gsub("\\^2)","",modVars)),":")))
     trainingData <-  mod$data
-    if(max(trainingData$Response)>1){ modFamily <-"poisson" 
-    } else { modFamily <- "binomial" }
   }
   if(modType == "rf"){
     modVars <- rownames(mod$importance)
     trainingData <-  mod$trainingData
-    if(max(trainingData$Response)>1){ modFamily <-"poisson" 
-    } else { modFamily <- "binomial" }
   }
   if(modType == "maxent"){
     modVars <- mod$Raw.coef$V1
     trainingData <-  mod$trainingData
     mod$trainingData <- NULL
-    modFamily <- "binomial"
   }
   if(modType == "brt"){
     modVars <- mod$contributions$var
     trainingData <-  mod$trainingData
     # mod$trainingData <- NULL
-    # modFamily <- "binomial"
   }
   if(modType == "gam"){
     modVars <- attr(mod$terms, "term.labels")
     trainingData <-  mod$trainingData
     # mod$trainingData <- NULL
-    # modFamily <- "binomial"
   }
+  
   # identify factor variables
   factorVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T)]
   factorVars <- factorVars[factorVars %in% modVars]
   if(length(factorVars)==0){ factorVars <- NULL }
   
-  
   # Prepare inputs ---------------------------------------------------------------
   
-  # get the paths off the raster files
+  # get the paths of the raster files
   paths <- covariateDataSheet$RasterFilePath[which(covariateDataSheet$CovariatesID %in% modVars)]
   covData <- covariateDataSheet[which(covariateDataSheet$CovariatesID %in% modVars),]
   covData <- covData[!duplicated(covData),]
@@ -210,11 +203,7 @@ for (i in 1:nrow(modelOutputsSheet)){
   if(modType == "gam"){
     predictFct = gam.predict
   }
-  # if(modType == "mars") {
-  #   predictFct = mars.predict
-  #   library(mda)
-  # }
-  
+
   # prep prediction data ---------------------------------------------------------
   
   # TO Do: Update scalability
@@ -249,11 +238,13 @@ for (i in 1:nrow(modelOutputsSheet)){
       }
       
       names(temp) <- covData$CovariatesID
-      remove(rast_k)
+      rm(rast_k); gc()
     }
   
   # Set predictor values to NA where ever the mask is NA
   temp[is.na(templateValues),] <- NA 
+  rm(templateValues); gc()
+  
   # replace missing values with NA
   for(m in covData$CovariatesID){ temp[is.nan(temp[,m]),m] <- NA }
   
@@ -281,12 +272,11 @@ for (i in 1:nrow(modelOutputsSheet)){
       preds <- preds*resVals
     }
     preds <- round((preds*100), 0)
-    # preds[is.na(preds)] <- -9999  # typeof(preds)
     
     probRaster <- rast(templateRaster, vals = preds) 
     
     if(!is.null(maskValues)){probRaster <- extend(probRaster, maskExt)}
-    # is.int(probRaster) 
+    
     writeRaster(x = probRaster, 
                 filename = file.path(ssimTempDir, paste0(modType,"_prob_map.tif")), 
                 datatype = "INT4S",
@@ -296,103 +286,9 @@ for (i in 1:nrow(modelOutputsSheet)){
     updateRunLog("Finished Probability Map in ", updateBreakpoint())
   }
   
-  # create binary map ---------------------------------------------------------- 
-  
-  if(outputOptionsSheet$MakeBinaryMap){
-    
-    if(!outputOptionsSheet$MakeProbabilityMap){
-      updateRunLog("\nWarning: Binary map cannot be generated without generating the Probability map.\n")
-    } else {
-      
-      thresholds <- mod$binThresholds
-      names(thresholds) <- c("Max kappa", "Max sensitivity and specificity", "No omission", 
-                           "Prevalence", "Sensitivity equals specificity")
-      
-      binThreshold <- as.numeric(thresholds[outputOptionsSheet$ThresholdOptimization])
-      
-      probVals <- preds/100
-      probVals <- ifelse(probVals >= binThreshold, 1, 0)
-      # probVals[is.na(probVals)] <- -9999
-      binRaster <- rast(templateRaster, vals = probVals)
-      
-      if(!is.null(maskValues)){binRaster <- extend(binRaster, maskExt)}
-      writeRaster(x = binRaster, 
-                  filename = file.path(ssimTempDir, paste0(modType,"_bin_map.tif")), 
-                  datatype = "INT4S", 
-                  NAflag = -9999,
-                  overwrite = TRUE) 
-      progressBar()
-      updateRunLog("Finished Binary Map in ", updateBreakpoint())
-    
-    }
-  }
-  
-    
-  # create MESS and MoD maps ---------------------------------------------------  
-    
-  if(outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap){
-    
-    if(!is.null(factorVars)){ updateRunLog("\nWarning: MESS and MoD maps cannot be generated for models with categorical variables.\n")
-      } else {
-        
-        # order the training data so that we can consider the first and last row only in mess calculations
-        train.dat <- select(trainingData, all_of(modVars))
-        for(k in covData$CovariatesID){ train.dat[ ,k] <- sort(train.dat[ ,k]) } 
-        ids <- NULL
-        trainNames <- names(train.dat)
-        for(n in trainNames){ ids[n] <- covariatesSheet$ID[covariatesSheet$CovariateName == n]}
-        names(train.dat) <- ids
-        
-        pred.rng <- rep(NA, nrow(temp))
-        names(pred.rng) <- NA
-          
-        if(any(complete.cases(temp))){
-            rast <- data.frame(temp[complete.cases(temp),]) %>% select(trainNames)
-            MessVals <- CalcMESS(rast = rast, train.dat = train.dat)
-            pred.rng[complete.cases(temp)] <- MessVals[ ,2]
-            names(pred.rng)[complete.cases(temp)] <- MessVals[ ,1]
-        }
-        pred.rng <- round(pred.rng,0)
-        pred.rng[is.na(pred.rng)] <- -9999  # typeof(pred.rng)
-        
-        if(outputOptionsSheet$MakeMessMap){ 
-          messRaster <- rast(templateRaster, vals = pred.rng)
-          NAflag(messRaster) <- -9999
-          if(!is.null(maskValues)){messRaster <- extend(messRaster, maskExt)}
-          writeRaster(x = messRaster, 
-                      filename = file.path(ssimTempDir, paste0(modType,"_mess_map.tif")), 
-                      datatype = "INT4S",
-                      NAflag = -9999,
-                      overwrite = TRUE)  # is.int(messRaster) 
-          
-          remove(messRaster)
-          progressBar()
-          updateRunLog("Finished MESS Map in ", updateBreakpoint())
-        }
-        if(outputOptionsSheet$MakeModMap){ 
-          
-          if(is.null(names(pred.rng))){ names(pred.rng) <- NA }
-          vals <- as.integer(names(pred.rng))
-          vals[is.na(vals)] <- -9999  # typeof(vals)
-          
-          modRaster <- rast(templateRaster, vals = vals)
-          if(!is.null(maskValues)){modRaster <- extend(modRaster, maskExt)}
-          writeRaster(x = modRaster, 
-                      filename = file.path(ssimTempDir, paste0(modType,"_mod_map.tif")), 
-                      datatype = "INT4S", # "INT1U"
-                      NAflag = -9999,
-                      overwrite = TRUE)  # is.int(modRaster) 
-          
-          remove(modRaster)
-          progressBar()
-          updateRunLog("Finished MoD Map in ", updateBreakpoint())
-        }
-    }
-  }
-  
-    
   # create residuals map ---------------------------------------------------------
-    if(outputOptionsSheet$MakeResidualsMap){
+  
+  if(outputOptionsSheet$MakeResidualsMap){
       
       if(!outputOptionsSheet$MakeProbabilityMap){
         updateRunLog("\nWarning: Residuals map cannot be generated without generating the Probability map.\n")
@@ -403,6 +299,7 @@ for (i in 1:nrow(modelOutputsSheet)){
         predrast <- rast(probRaster)
         if(!is.null(maskValues)){ predrast <- crop(predrast, maskFile)}
         ablock <- 1:(ncol(probRaster) * nrow(probRaster))
+        rm(probRaster); gc()
         
         p <- xyFromCell(predrast, ablock) 
         p <- na.omit(p)
@@ -423,15 +320,112 @@ for (i in 1:nrow(modelOutputsSheet)){
                     overwrite = TRUE) 
         progressBar()
         updateRunLog("Finished Residuals Map in ", updateBreakpoint())
+        rm(predrast, p, blockvals, predv, residRaster); gc()
       }
   }  
+  
+  # create binary map ---------------------------------------------------------- 
+  
+  if(outputOptionsSheet$MakeBinaryMap){
+    
+    if(!outputOptionsSheet$MakeProbabilityMap){
+      updateRunLog("\nWarning: Binary map cannot be generated without generating the Probability map.\n")
+    } else {
+      
+      thresholds <- mod$binThresholds
+      names(thresholds) <- c("Max kappa", "Max sensitivity and specificity", "No omission", 
+                           "Prevalence", "Sensitivity equals specificity")
+      
+      binThreshold <- as.numeric(thresholds[outputOptionsSheet$ThresholdOptimization])
+      
+      probVals <- preds/100
+      probVals <- ifelse(probVals >= binThreshold, 1, 0)
+      
+      binRaster <- rast(templateRaster, vals = probVals)
+      
+      if(!is.null(maskValues)){binRaster <- extend(binRaster, maskExt)}
+      writeRaster(x = binRaster, 
+                  filename = file.path(ssimTempDir, paste0(modType,"_bin_map.tif")), 
+                  datatype = "INT4S", 
+                  NAflag = -9999,
+                  overwrite = TRUE) 
+      progressBar()
+      updateRunLog("Finished Binary Map in ", updateBreakpoint())
+      rm(preds, probVals, binRaster); gc()
+    }
+  }
+  
+  
+  # create MESS and MoD maps ---------------------------------------------------  
+    
+  if(outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap){
+    
+    if(!is.null(factorVars)){ updateRunLog("\nWarning: MESS and MoD maps cannot be generated for models with categorical variables.\n")
+      } else {
+        
+        # order the training data so that we can consider the first and last row only in mess calculations
+        train.dat <- select(trainingData, all_of(modVars))
+        for(k in covData$CovariatesID){ train.dat[ ,k] <- sort(train.dat[ ,k]) } 
+        ids <- NULL
+        trainNames <- names(train.dat)
+        for(n in trainNames){ ids[n] <- covariatesSheet$ID[covariatesSheet$CovariateName == n]}
+        names(train.dat) <- ids
+        
+        pred.rng <- rep(NA, nrow(temp))
+        names(pred.rng) <- NA
+          
+        if(any(complete.cases(temp))){
+            rast <- data.frame(temp[complete.cases(temp),]) %>% select(all_of(trainNames))
+            messVals <- CalcMESS(rast = rast, train.dat = train.dat)
+            pred.rng[complete.cases(temp)] <- messVals[ ,2]
+            names(pred.rng)[complete.cases(temp)] <- messVals[ ,1]
+        }
+        pred.rng <- round(pred.rng,0)
+        pred.rng[is.na(pred.rng)] <- -9999  # typeof(pred.rng)
+        
+        if(outputOptionsSheet$MakeMessMap){ 
+          messRaster <- rast(templateRaster, vals = pred.rng)
+          NAflag(messRaster) <- -9999
+          if(!is.null(maskValues)){messRaster <- extend(messRaster, maskExt)}
+          writeRaster(x = messRaster, 
+                      filename = file.path(ssimTempDir, paste0(modType,"_mess_map.tif")), 
+                      datatype = "INT4S",
+                      NAflag = -9999,
+                      overwrite = TRUE)  # is.int(messRaster) 
+          
+          progressBar()
+          updateRunLog("Finished MESS Map in ", updateBreakpoint())
+          rm(rast, messVals, messRaster); gc()
+        }
+        if(outputOptionsSheet$MakeModMap){ 
+          
+          if(is.null(names(pred.rng))){ names(pred.rng) <- NA }
+          vals <- as.integer(names(pred.rng))
+          vals[is.na(vals)] <- -9999  # typeof(vals)
+          
+          modRaster <- rast(templateRaster, vals = vals)
+          if(!is.null(maskValues)){modRaster <- extend(modRaster, maskExt)}
+          writeRaster(x = modRaster, 
+                      filename = file.path(ssimTempDir, paste0(modType,"_mod_map.tif")), 
+                      datatype = "INT4S", # "INT1U"
+                      NAflag = -9999,
+                      overwrite = TRUE)  # is.int(modRaster) 
+          
+          progressBar()
+          updateRunLog("Finished MoD Map in ", updateBreakpoint())
+          rm(pred.rng, vals, templateRaster, modRaster); gc()
+        }
+    }
+  }
+  
+    
+
   
   # Save output maps -------------------------------------------------------------
     
     # add model Outputs to datasheet
     spatialOutputsSheet <- addRow(spatialOutputsSheet, 
-                                  list( # Iteration = 1, Timestep = 0, 
-                                    ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType]))
+                                  list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType]))
   
     outputRow <- which(spatialOutputsSheet$ModelsID == modelsSheet$ModelName[modelsSheet$ModelType == modType])
                               

@@ -53,6 +53,9 @@ fieldDataSheet <- fieldDataSheet[!fieldDataSheet$Response == -9999,]
 bgSiteIds <- fieldDataSheet$SiteID[fieldDataSheet$Response == -9998]
 fieldDataSheet$Response[fieldDataSheet$Response == -9998] <- 0
 
+# preserve field data column names
+fieldDataColNames <- names(fieldDataSheet)
+
 #  Set defaults ----------------------------------------------------------------  
 
 ## Validation Sheet
@@ -82,8 +85,8 @@ progressBar()
 # Split data for testing/training and validation -------------------------------
 
 siteDataWide <- spread(data = siteDataSheet, key = CovariatesID, value = Value)
-
 inputData <- left_join(fieldDataSheet, siteDataWide) # select(siteDataWide,-PixelID))
+rm(siteDataSheet, fieldDataSheet, siteDataWide); gc()
 
 # Define Train/Test Split (if specified) 
 if(validationDataSheet$SplitData){
@@ -131,7 +134,9 @@ if(validationDataSheet$SplitData == F & validationDataSheet$CrossValidate == F){
 
 
 # revert response for background sites
-updateFieldData <- dplyr::select(inputData, names(fieldDataSheet))
+updateFieldData <- dplyr::select(inputData, all_of(fieldDataColNames))
+rm(inputData); gc()
+
 if(length(bgSiteIds) > 0){
   updateFieldData$Response[which(updateFieldData$SiteID %in% bgSiteIds)] <- -9998
 }
@@ -140,3 +145,4 @@ updateFieldData$SiteID <- format(updateFieldData$SiteID, scientific = F)
 # save updated field data to scenario
 saveDatasheet(myScenario, updateFieldData, "wisdm_FieldData", append = F)
 progressBar(type = "end")
+

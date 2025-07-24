@@ -6,9 +6,9 @@
 # built under Python version 3.11.0 & SyncroSim version 3.0.0
 # Script pulls in covariate rasters and processes field data to ensure sites 
 # are in the template CRS and extent; aggregates or weights sites by spatial distribution;
-# extracts site-specific covaraite data and generates datasheet of covariate site data.
+# extracts site-specific covariate data and generates datasheet of covariate site data.
 
-#%% Source dependencies ----------------------------------------------------------
+# Source dependencies ----------------------------------------------------------
 
 ## Modify os path if multiple GDAL installations ----
 import os
@@ -23,7 +23,7 @@ if "PATH" in os.environ:
 
 if len(gdal_installations) > 1:
     for folder in gdal_installations:
-        filenames = [f for f in os.listdir(folder) if f.startswith("gdal") & f.endswith(".dll")]
+        filenames = [f for f in os.listdir(folder) if f.startswith("gdal") and f.endswith(".dll")]
 
         for filename in filenames:
             filename = os.path.join(folder, filename)
@@ -89,7 +89,7 @@ if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
     pyproj.network.set_ca_bundle_path(certifi_folder)
     ps.environment.update_run_log("pyproj data directory: " + pyproj.datadir.get_data_dir())    
        
-#%% Connect to SyncroSim library ------------------------------------------------
+# Connect to SyncroSim library ------------------------------------------------
 
 # Load current scenario
 myScenario = ps.Scenario()  
@@ -110,12 +110,12 @@ multiprocessingSheet = myScenario.datasheets("core_Multiprocessing")
 # outputs
 # outputCovariateSheet = myScenario.datasheets("CovariateData", empty = True)
 
-#%% Set progress bar ---------------------------------------------------------
+# Set progress bar ---------------------------------------------------------
 
 steps = 5 + len(covariateDataSheet.CovariatesID)
 ps.environment.progress_bar(report_type = "begin", total_steps = steps)
 
-#%% Set up dask client -------------------------------------------------------
+# Set up dask client -------------------------------------------------------
 
 if multiprocessingSheet.EnableMultiprocessing.item() == "Yes":
     num_threads = multiprocessingSheet.MaximumJobs.item()
@@ -130,7 +130,7 @@ dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker
 # client
 
 
-#%% Check inputs and set defaults ---------------------------------------------
+# Check inputs and set defaults ---------------------------------------------
 
 # Set PROJ network connection
 if networkSheet.NetworkEnabled.item() == "No":
@@ -147,6 +147,11 @@ if len(fieldDataSheet) == 0:
     # raise warning if field data was not provided
     raise ValueError("Field data was not provided. Please provide field data before continuing.")
 
+# check that field data is between 0 and 1
+if any(fieldDataSheet.Response)>1:
+   # raise warning if field data includes counts
+   raise ValueError("Field data contains counts in 'Response' column when occurrence data is expected. Please provide presence-(pseudo)absence data before continuing.")
+
 # check if site ids were provided
 if any(pd.isna(fieldDataSheet.SiteID)):
     fieldDataSheet.SiteID= range(1,len(fieldDataSheet)+1)
@@ -157,7 +162,7 @@ if len(fieldDataOptions) == 0:
                                  ignore_index=True)
 
  
-#%% Load template raster ----------------------------------------------------------------
+# Load template raster ----------------------------------------------------------------
 
 # set defualt chunk dimensions
 chunkDims = 4096 #1024
@@ -196,13 +201,14 @@ else:
     ps.environment.update_run_log('The template raster does not include a "No Data" mask. ', 
     'All output covariate and site data will be clipped', 
     ' to the full extent of the template raster.')
-    templateMask = np.ones(templateRaster.shape, dtype=bool)
+    # templateMask = np.ones(templateRaster.shape, dtype=bool)
     templatePolygons = []
 
 # update progress bar
 ps.environment.progress_bar()
+del templateMask
 
-#%% Prepare site data -------------------------------------------------------
+# Prepare site data -------------------------------------------------------
 
 nInitial = len(fieldDataSheet.SiteID)
 
@@ -218,8 +224,9 @@ else:
 
 # Convert shapely object to a geodataframe with a crs
 sites = gpd.GeoDataFrame(fieldDataSheet, geometry=siteCoords, crs=fieldDataCRS)
+del fieldDataSheet, siteCoords
 
-#%% Reproject points if site crs differs from template crs
+# Reproject points if site crs differs from template crs
 if sites.crs != templateCRS:
     sites_reprojected = sites.to_crs(templateCRS)
 
@@ -251,7 +258,7 @@ if sites.crs != templateCRS:
         
     sites = sites_reprojected
 
-#%% Clip sites to template extent
+# Clip sites to template extent
 if rasterio.dtypes.is_ndarray(templatePolygons):
     sites = gpd.clip(sites,templatePolygons)
 else:
@@ -286,6 +293,7 @@ sites["RasterCellID"] = rasterCellIDs
     
 # update progress bar
 ps.environment.progress_bar()
+del rasterRows, rasterCols, rasterCellIDs
 
 # If there are multiple points per cell - Aggregate or Weight sites
 if fieldDataOptions.AggregateAndWeight[0] != "None":
@@ -336,13 +344,14 @@ if fieldDataOptions.AggregateAndWeight[0] != "None":
     else: 
         ps.environment.update_run_log("Only one field data observation present per pixel; no aggregation or weighting required.")
 
-#%% Save updated field data to scenario 
+# Save updated field data to scenario 
 outputFieldDataSheet = sites.iloc[:,0:7]
 outputFieldDataSheet.SiteID = outputFieldDataSheet.SiteID.astype(int) # ensure SiteID is type integer
 myScenario.save_datasheet(name="wisdm_FieldData", data=outputFieldDataSheet) 
   
 # update progress bar
 ps.environment.progress_bar()
+del outputFieldDataSheet
 
 # Drop sites with repeat cell repeats  
 dropInd = sites.index[sites.Response == -9999].tolist()
@@ -357,7 +366,7 @@ yLoc = xarray.DataArray(sites.RasterRow, dims =["loc"])
 xLoc = xarray.DataArray(sites.RasterCol, dims =["loc"])
 sitesOut = sites[["SiteID"]] #, "RasterCellID"
 
-#%% Extract covariate values for each site
+# Extract covariate values for each site
 for i in range(len(covariateDataSheet.CovariatesID)):
     # Load processed covariate rasters and extract site values
     outputCovariatePath = covariateDataSheet.RasterFilePath[i]
@@ -388,4 +397,4 @@ myScenario.save_datasheet(name="wisdm_SiteData", data=siteData)
 
 # update progress bar
 ps.environment.progress_bar(report_type = "end")
-# %%
+

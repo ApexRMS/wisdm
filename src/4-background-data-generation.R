@@ -98,6 +98,7 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
                               dat = fieldDataSheet)
   
   progressBar()
+  rm(templateVector); gc()
   
   # generate background (psuedo-absence) points
   backgroundPointGeneration(sp = "species",
@@ -125,15 +126,14 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
   # rasterize points data
   r <- rast(ext(templateRaster), resolution = res(templateRaster), crs = crs(templateRaster))
   pts <- vect(fieldData, geom = c("X", "Y"), crs = crs(templateRaster))
-  rastPts <- rasterize(pts, r)
-  matPts <- as.matrix(rastPts, wide=T)
-  keep <- which(!is.na(matPts))
+  rm(templateRaster, fieldData); gc()
   
   rIDs <- rast(r, vals = 1:(dim(r)[1]*dim(r)[2]))
   cellPerPt <- terra::extract(rIDs, pts)
   cellPerPt$SiteID <- pts$SiteID
   names(cellPerPt)[2] <- "PixelID"
   pts <- merge(pts, cellPerPt[,c("PixelID", "SiteID")])
+  rm(rIDs, cellPerPt); gc()
   
   # check for duplicate pixel ids
   if(any(duplicated(pts$PixelID))){
@@ -144,6 +144,7 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
   
   bgPts <- pts[pts$Response == -9998]
   bgPts$PixelID <- NULL
+  rm(pts, dups, dropSites); gc()
   
   # remove extra bg sites
   if(nrow(bgPts)>backgroundDataOptionsSheet$BackgroundSiteCount){
@@ -163,18 +164,20 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
   rastPts <- rasterize(bgPts, r)
   matPts <- as.matrix(rastPts, wide=T)
   keep <- which(!is.na(matPts))
+  rm(rastPts); gc()
   
   rIDs <- rast(r, vals = 1:(dim(r)[1]*dim(r)[2]))
   cellPerPt <- terra::extract(rIDs, bgPts)
   cellPerPt$SiteID <- bgPts$SiteID
   names(cellPerPt)[2] <- "PixelID"
   bgPts <- merge(bgPts, cellPerPt[,c("PixelID", "SiteID")])
+  rm(rIDs); gc()
   
   rPixels <- rasterize(bgPts, r, field = "PixelID")
   matPixs <- as.matrix(rPixels, wide=T)
   PixelIDs <- matPixs[keep]
-  
   PixelData <- data.frame(PixelID = PixelIDs)
+  rm(rPixels, matPixs, PixelIDs); gc()
   
   for(i in 1:nrow(covariateDataSheet)){
     ri <- rast(covariateDataSheet$RasterFilePath[i])
@@ -182,8 +185,11 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
     
     outMat <- mi*matPts
     vals <- outMat[keep]
+    rm(ri, mi, outMat); gc()
+    
     PixelData[covariateDataSheet$CovariatesID[i]] <- vals
     progressBar()
+    
   }
   
   # convert background site data to long format and add to existing site datasheet
@@ -194,9 +200,11 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
   siteDataSheet <- rbind(siteDataSheet, bgSiteData)
   siteDataSheet$SiteID <- format(siteDataSheet$SiteID, scientific = F)
   siteDataSheet <- siteDataSheet %>% distinct(SiteID, CovariatesID, .keep_all = T)
+  rm(bgSiteData); gc()
   
   # save site data to scenario
   saveDatasheet(myScenario, siteDataSheet, "wisdm_SiteData")
+  rm(siteDataSheet); gc()
   
   # update field data
   bgData <- bgData[which(bgData$SiteID %in% bgPts$SiteID),]
@@ -204,6 +212,7 @@ if(backgroundDataOptionsSheet$GenerateBackgroundSites){
 
   fieldDataSheet <- rbind(fieldDataSheet, bgData)
   fieldDataSheet$SiteID <- format(fieldDataSheet$SiteID, scientific = F)
+  rm(bgData, bgPts); gc()
   
   # save updated field data to scenario
   saveDatasheet(myScenario, fieldDataSheet, "wisdm_FieldData", append = F)

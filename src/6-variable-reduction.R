@@ -64,6 +64,7 @@ if(any(is.na(retainedCovariatesSheet$CovariatesID))){
 siteDataWide <- spread(siteDataSheet, key = CovariatesID, value = "Value")
 siteDataWide <- merge(fieldDataSheet, siteDataWide, by = "SiteID")
 siteData <- select(siteDataWide, -c(SiteID, X, Y, UseInModelEvaluation, ModelSelectionSplit, Weight)) # 
+rm(siteDataSheet, fieldDataSheet, siteDataWide); gc()
 
 # identify categorical covariates and drop any with a single level
 if(sum(covariatesSheet$IsCategorical, na.rm = T)>0){
@@ -88,12 +89,8 @@ if(sum(covariatesSheet$IsCategorical, na.rm = T)>0){
   badFactors <- NULL
   }
 
-
 # model family 
-# if response column contains only 1's and 0's response = presAbs
-if(max(fieldDataSheet$Response)>1){
-  modelFamily <-"poisson" 
-} else { modelFamily <- "binomial" }
+modelFamily <- "binomial"
 
 # Ignore background data if present
 siteData <- siteData[!siteData$Response == -9999,]

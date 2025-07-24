@@ -108,9 +108,13 @@ progressBar(type = "begin", totalSteps = steps)
  
   # identify training and testing sites 
   trainTestDatasets <- split(siteDataWide, f = siteDataWide[,"UseInModelEvaluation"], drop = T)
+  rm(siteDataWide); gc()
   trainingData <- trainTestDatasets$`FALSE`
   if(!validationDataSheet$CrossValidate){trainingData$ModelSelectionSplit <- FALSE}
+  
   testingData <- trainTestDatasets$`TRUE`
+  rm(trainTestDatasets); gc()
+  if(!is.null(testingData)){testingData$ModelSelectionSplit <- FALSE}
   progressBar()
 
  # Model definitions ------------------------------------------------------------
@@ -126,10 +130,7 @@ progressBar(type = "begin", totalSteps = steps)
   out$modOptions$thresholdOptimization <- "Sens=Spec"	# To Do: link to defined Threshold Optimization Method in UI - currently set to default: sensitivity=specificity 
   
   ## Model family 
-  # if response column contains only 1's and 0's response = presAbs
-  if(max(fieldDataSheet$Response)>1){
-     out$modelFamily <-"poisson" 
-  } else { out$modelFamily <- "binomial" }
+  out$modelFamily <- "binomial"
   
   ## Candidate variables 
   out$inputVars <- reducedCovariatesSheet$CovariatesID
@@ -139,9 +140,6 @@ progressBar(type = "begin", totalSteps = steps)
   out$data$train <- trainingData
   
   ## testing data
-  if(!is.null(testingData)){
-    testingData$ModelSelectionSplit <- FALSE
-  }
   out$data$test <- testingData
   
   ## pseudo absence  
