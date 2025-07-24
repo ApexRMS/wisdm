@@ -9,13 +9,11 @@
 # are in the template CRS and extent; aggregates or weights sites by spatial distribution;
 # extracts site-specific covaraite data and generates datasheet of covariate site data.
 
-#def prep_spatial_data():
-    #%% Source dependencies ----------------------------------------------------------
+# Source dependencies ----------------------------------------------------------
 
-## Modify os path if multiple GDAL installations ----
+# Modify os path if multiple GDAL installations ----
 def prep_spatial_data():
 
-    #%%
     import os
     import glob
     from win32api import GetFileVersionInfo, LOWORD, HIWORD
@@ -50,7 +48,7 @@ def prep_spatial_data():
                     os.environ['PATH'] = os.pathsep.join(
                         [p for p in os.environ['PATH'].split(os.pathsep) if folder not in p])
 
-    ## dependencies
+    # dependencies
     # from osgeo import gdal
     import rasterio
     import pysyncrosim as ps     
@@ -101,13 +99,13 @@ def prep_spatial_data():
         pyproj.network.set_ca_bundle_path(certifi_folder)
         ps.environment.update_run_log("pyproj data directory: " + pyproj.datadir.get_data_dir())    
 
-    #%% Connect to SyncroSim library ------------------------------------------------
+    
+    # Connect to SyncroSim library ------------------------------------------------
 
     # Load current scenario
     myScenario = ps.Scenario()  
 
     # Create a temporary folder for storing rasters
-    # ssimTempDir = myLibrary.info["Value"][myLibrary.info.Property == "Temporary files:"].item() # ps.runtime_temp_folder("DataTransfer")
     ssimTempDir = ps.runtime_temp_folder(os.path.join("DataTransfer", "Scenario-" + str(myScenario.sid)))
 
     # Load datasheets
@@ -122,12 +120,12 @@ def prep_spatial_data():
     # outputs
     outputCovariateSheet = myScenario.datasheets("wisdm_CovariateData", empty = True)
 
-    #%% Set progress bar ---------------------------------------------------------
+    # Set progress bar ---------------------------------------------------------
 
     steps = 3 + len(covariateDataSheet.CovariatesID)
     ps.environment.progress_bar(report_type = "begin", total_steps = steps)
 
-    #%% Set up dask client -------------------------------------------------------
+    # Set up dask client -------------------------------------------------------
     if multiprocessingSheet.EnableMultiprocessing.item() == "Yes":
         num_threads = multiprocessingSheet.MaximumJobs.item()
     else:
@@ -140,7 +138,7 @@ def prep_spatial_data():
     # client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
     # client.dashboard_link
 
-    #%% Check inputs and set defaults ---------------------------------------------
+    # Check inputs and set defaults ---------------------------------------------
 
     # Set PROJ network connection
     if networkSheet.NetworkEnabled.item() == "No":
@@ -185,13 +183,7 @@ def prep_spatial_data():
     covariateDataSheet["rioResample"] = covariateDataSheet.ResampleMethod.replace(resampleAggregateMethodName, resampleAggregateMethodCodes)
     covariateDataSheet["rioAggregate"] = covariateDataSheet.AggregationMethod.replace(resampleAggregateMethodName, resampleAggregateMethodCodes)
 
-    # check if field data was provided
-    # if len(fieldDataSheet) == 0:
-    #     # raise warning if field data was not provided
-    #     ps.environment.update_run_log("Field data was not provided. Site data was not prepared, only the covaraite layers were prepared.")
-        
-
-    #%% Load template raster ----------------------------------------------------------------
+    # Load template raster ----------------------------------------------------------------
 
     # set defualt chunk dimensions and no data value
     warpMemoryLimit = 8192 #MB
@@ -216,7 +208,7 @@ def prep_spatial_data():
 
     # Loop through and "PARC" covariate rasters -------------------------------------------
 
-    # %%First check that all rasters have a valid crs and have valid dimensions
+    # First check that all rasters have a valid crs and have valid dimensions
     invalidCRS = []
     for i in range(len(covariateDataSheet.CovariatesID)):
         # Load covariate rasters
@@ -236,7 +228,7 @@ def prep_spatial_data():
         ps.environment.update_run_log(msg, type = "status")
         raise ValueError("Covariate rasters have invalid CRS.")     
 
-    #%% Prep covariate rasters
+    # Prep covariate rasters
 
     # Define masking function
     def mask(block, input_nodata, template_nodata):
@@ -261,8 +253,21 @@ def prep_spatial_data():
         covariatePath = covariateDataSheet.RasterFilePath[i]
         outputCovariatePath = os.path.join(ssimTempDir, "processed_" + os.path.basename(covariatePath))
 
-        # Decide which resample method to use based on pixel size
+        
         with rioxarray.open_rasterio(covariatePath, chunks = chunkDims) as covariateRaster:
+           
+            # check raster data type and set to signed type if necessary
+            if np.issubdtype(covariateRaster.dtype, np.unsignedinteger):
+                src_dtype = covariateRaster.dtype
+                bitdepth = src_dtype.itemsize * 8                
+                if bitdepth <= 16:
+                    signed_dtype = 'int16'
+                else:
+                    signed_dtype = 'int32'
+            else:
+                signed_dtype = covariateRaster.dtype
+
+            # Decide which resample method to use based on pixel size 
             covPixelSize = np.abs(covariateRaster.rio.resolution()).prod()
 
             # if covariate resolution is finer then template use aggregate method (if coarser use resample method) 
@@ -302,17 +307,18 @@ def prep_spatial_data():
             # Restart client to avoid lock conflicts
             with Client(threads_per_worker = num_threads, n_workers = 1, processes=False) as client:
 
-                # Open template within clien
+                # Open template within client
                 with rioxarray.open_rasterio(templatePath, chunks={'x': chunkDims, 'y': chunkDims}, lock = False) as templateRaster:
 
                     with rioxarray.open_rasterio(unmaskedTempPath, chunks={'x': chunkDims, 'y': chunkDims}, lock = False) as covariateRaster:
                         # Mask and set no data value
                         maskStack = xr.concat([covariateRaster, templateRaster], dim = "band", join="override").chunk({'band':-1, 'x':chunkDims, 'y':chunkDims})
                         maskedCovariateRaster = maskStack.map_blocks(mask, kwargs=dict(input_nodata=covariateRaster.rio.nodata, template_nodata=templateRaster.rio.nodata), template = covariateRaster)
+                        maskedCovariateRaster = maskedCovariateRaster.astype(signed_dtype)
                         maskedCovariateRaster.rio.write_nodata(nodata_value, encoded=True, inplace=True)
 
                         # Write to disk
-                        maskedCovariateRaster.rio.to_raster(outputCovariatePath, tiled = True, lock = SerializableLock(), windowed=True, overwrite = True, compress = 'lzw')
+                        maskedCovariateRaster.rio.to_raster(outputCovariatePath, dtype=signed_dtype, nodata=nodata_value, tiled = True, lock = SerializableLock(), windowed=True, overwrite = True, compress = 'lzw')
     
         # Tornado's ioloop.py occassionally throws an attribute error looking for an f_code attribute, but the output is still produced correctly      
         except Exception as e:
@@ -329,13 +335,13 @@ def prep_spatial_data():
         # update progress bar
         ps.environment.progress_bar()
 
-    #%% Save updated covariate data to scenario 
+    # Save updated covariate data to scenario 
 
     ps.environment.progress_bar("message", message = "Saving covariate datasheet at " + datetime.now().strftime("%H:%M:%S"))
     ps.environment.update_run_log("Saving covariate datasheet at " + datetime.now().strftime("%H:%M:%S"))
     myScenario.save_datasheet(name="wisdm_CovariateData", data=outputCovariateSheet) 
 
-    #%% Prepare restriction raster --------------------------------------------------
+    # Prepare restriction raster --------------------------------------------------
 
     # check if restriction raster was provided
     if len(restrictionRasterSheet.RasterFilePath) > 0:
@@ -353,6 +359,17 @@ def prep_spatial_data():
             elif restrictionRaster.rio.crs.is_valid == False:
                 raise ValueError(print("The restriction rasters has an invalid or unknown CRS. Ensure that the raster has a valid CRS before continuing."))  
             
+            # check raster data type and set to signed type if necessary
+            if np.issubdtype(restrictionRaster.dtype, np.unsignedinteger):
+                src_dtype = restrictionRaster.dtype
+                bitdepth = src_dtype.itemsize * 8
+                if bitdepth <= 16:
+                    signed_dtype = 'int16'
+                else:
+                    signed_dtype = 'int32'
+            else:
+                signed_dtype = restrictionRaster.dtype
+
             # Decide which resample method to use based on pixel size
             resPixelSize = np.abs(restrictionRaster.rio.resolution()).prod()
 
@@ -398,9 +415,10 @@ def prep_spatial_data():
                             # Mask and set no data value
                             maskedRestrictionRaster = xr.concat([restrictionRaster, templateRaster], "band").chunk({'band':-1, 'x':chunkDims, 'y':chunkDims}).map_blocks(mask, kwargs=dict(input_nodata=restrictionRaster.rio.nodata, template_nodata=templateRaster.rio.nodata), template = restrictionRaster)
                             maskedRestrictionRaster.rio.write_nodata(nodata_value, encoded=True, inplace=True)
+                            maskedRestrictionRaster = maskedRestrictionRaster.astype(signed_dtype)
 
                                 # Write to disk
-                            maskedRestrictionRaster.rio.to_raster(outputRestrictionPath, tiled = True, lock = SerializableLock(), windowed=True, overwrite = True, compress = 'lzw')
+                            maskedRestrictionRaster.rio.to_raster(outputRestrictionPath, dtype=signed_dtype, nodata=nodata_value, tiled = True, lock = SerializableLock(), windowed=True, overwrite = True, compress = 'lzw')
 
         # Tornado's ioloop.py occassionally throws an attribute error looking for an f_code attribute, but the output is still produced correctly
         except AttributeError:
@@ -416,11 +434,7 @@ def prep_spatial_data():
     ps.environment.progress_bar(report_type="end")
     ps.environment.progress_bar("message", message = "Done at " + datetime.now().strftime("%H:%M:%S"))
     ps.environment.update_run_log("Done at " + datetime.now().strftime("%H:%M:%S"))
-    #%%
-    # if __name__ == "__main__":
-    #     prep_spatial_data()
-    #%%
 
 if __name__ == "__main__":
     prep_spatial_data()
-    # prep_s
+    
