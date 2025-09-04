@@ -98,7 +98,7 @@ rf.predict <- function(model, x){
   # retrieve key items from the global environment #
   # make predictions from complete data only #
   y <- rep(NA,nrow(x))
-  y[complete.cases(x)] <- try(as.vector(predict(mod, newdata=x[complete.cases(x),], type="vote")[,2]), silent=TRUE)
+  y[complete.cases(x)] <- try(as.vector(predict(model, newdata=x[complete.cases(x),], type="vote")[,2]), silent=TRUE)
   
   # return predictions.
   return(y)
