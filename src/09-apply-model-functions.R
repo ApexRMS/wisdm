@@ -139,7 +139,8 @@ setup_session <- function(
 
   # Residuals block size ---
   if (is.null(block_rows)) {
-    block_rows <- if (memmax_gb <= 1.0) 256L else if (memmax_gb <= 2.0) 384L else 512L
+    block_rows <- ifelse(memmax_gb <= 1, 256L, 
+                         ifelse(memmax_gb <= 2, 384L, 512L))
   }
   block_rows <- max(64L, as.integer(block_rows))
 

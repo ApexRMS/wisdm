@@ -77,7 +77,8 @@ updateRunLog("check 5" )
 
 ## Output options sheet
 if(nrow(outputOptionsSheet)<1){
-  outputOptionsSheet <- addRow(outputOptionsSheet, list(T))
+  updateRunLog("check 5.5" )
+  outputOptionsSheet[1,] <- rbind(outputOptionsSheet, list(T, T, NA, T, T, T))
 }
 updateRunLog("check 6" )
 if(is.na(outputOptionsSheet$MakeProbabilityMap)){ outputOptionsSheet$MakeProbabilityMap <- F }
