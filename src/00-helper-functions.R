@@ -51,16 +51,14 @@ pred.fct <- function(mod,      # mod = the model fit object
   
   y <- rep(NA,nrow(x))
   
-  if(modType %in% c("glm","mars")){
-   y <- try(as.vector(predict(mod, x, type="response")), silent=TRUE) 
+  if(modType == "glm"){
+   y <- try(glm.predict(mod, x), silent=TRUE) 
   }
-   
   if(modType == "rf"){
-    # make predictions from complete data only #
-    y[complete.cases(x)] <- try(as.vector(predict(mod, newdata=x[complete.cases(x),], type="vote")[,2]), silent=TRUE)
+    y[complete.cases(x)] <- try(rf.predict(mod, x[complete.cases(x),]), silent=TRUE)
   }
   if(modType == "maxent"){
-    y[complete.cases(x)]<-try(maxent.predict(mod, x[complete.cases(x),]), silent=TRUE)
+    y[complete.cases(x)] <- try(maxent.predict(mod, x[complete.cases(x),]), silent=TRUE)
   }
   if(modType == "brt"){
     y[complete.cases(x)] <- try(brt.predict(mod, x[complete.cases(x),]), silent=TRUE)
@@ -98,7 +96,7 @@ rf.predict <- function(model, x){
   # retrieve key items from the global environment #
   # make predictions from complete data only #
   y <- rep(NA,nrow(x))
-  y[complete.cases(x)] <- try(as.vector(predict(mod, newdata=x[complete.cases(x),], type="vote")[,2]), silent=TRUE)
+  y[complete.cases(x)] <- try(as.vector(predict(model, newdata=x[complete.cases(x),], type="vote")[,2]), silent=TRUE)
   
   # return predictions.
   return(y)
@@ -172,8 +170,7 @@ maxent.predict <- function(model,x){
 
 brt.predict <- function(model,x) {
   
-  y <- rep(NA,nrow(x))
-  y[complete.cases(x)] <- gbm::predict.gbm(model, x[complete.cases(x),], model$gbm.call$best.trees, type="response")
+  y <- gbm::predict.gbm(model, x, model$gbm.call$best.trees, type="response")
 
   # # make predictions from full data #
   # y <- predict.gbm(model, x, model$target.trees, type="response")

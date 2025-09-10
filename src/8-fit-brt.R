@@ -91,12 +91,14 @@ progressBar(type = "begin", totalSteps = steps)
 # Prep data for model fitting --------------------------------------------------
 
   siteDataWide <- spread(siteDataSheet, key = CovariatesID, value = "Value")
+  rm(siteDataSheet); gc()
   
   # remove variables dropped due to correlation
   siteDataWide <- siteDataWide[,c('SiteID', retainedCovariatesSheet$CovariatesID)]
   
   # merge field and site data
   siteDataWide <- merge(fieldDataSheet, siteDataWide, by = "SiteID")
+  rm(fieldDataSheet); gc()
   
   # remove sites with incomplete data 
   allCases <- nrow(siteDataWide)
@@ -106,9 +108,6 @@ progressBar(type = "begin", totalSteps = steps)
   
   # set site weights to default of 1 if not already supplied
   if(all(is.na(siteDataWide$Weight))){siteDataWide$Weight <- 1}
-  
-  # ignore background data if present
-  # siteDataWide <- siteDataWide[!siteDataWide$Response == -9999,]
   
   # set pseudo absences to zero 
   if(any(siteDataWide$Response == -9998)){pseudoAbs <- TRUE} else {pseudoAbs <- FALSE}
@@ -124,10 +123,14 @@ progressBar(type = "begin", totalSteps = steps)
  
   # identify training and testing sites 
   trainTestDatasets <- split(siteDataWide, f = siteDataWide[,"UseInModelEvaluation"], drop = T)
+  rm(siteDataWide); gc()
   trainingData <- trainTestDatasets$`FALSE`
   if(!validationDataSheet$CrossValidate){trainingData$ModelSelectionSplit <- FALSE}
   testingData <- trainTestDatasets$`TRUE`
+  rm(trainTestDatasets); gc()
+  if(!is.null(testingData)){testingData$ModelSelectionSplit <- FALSE}
   progressBar()
+  
 
 # Model definitions ------------------------------------------------------------
 
@@ -143,11 +146,7 @@ progressBar(type = "begin", totalSteps = steps)
   out$modOptions$thresholdOptimization <- "Sens=Spec"	# To Do: link to defined Threshold Optimization Method in UI - currently set to default: sensitivity=specificity 
   
   ## Model family 
-  # if response column contains only 1's and 0's response = presAbs
-  if(max(fieldDataSheet$Response)>1){
-     # stop("Random Forest not implemented for count data")
-    out$modelFamily <-"poisson" 
-  } else { out$modelFamily <- "bernoulli"} # "binomial"
+  out$modelFamily <- "bernoulli" # "binomial"
   
   ## Candidate variables 
   out$inputVars <- retainedCovariatesSheet$CovariatesID
@@ -157,9 +156,6 @@ progressBar(type = "begin", totalSteps = steps)
   out$data$train <- trainingData
  
   ## testing data
-  if(!is.null(testingData)){
-    testingData$ModelSelectionSplit <- FALSE
-  }
   out$data$test <- testingData
   
   ## pseudo absence  
@@ -235,7 +231,7 @@ progressBar(type = "begin", totalSteps = steps)
   #   saveDatasheet(myScenario, BRTSheet, "wisdm_BRT")
   # }
   
-  finalMod$trainingData <- trainingData
+  # finalMod$trainingData <- trainingData
   
   # add relevant model details to out 
   out$finalMod <- finalMod
