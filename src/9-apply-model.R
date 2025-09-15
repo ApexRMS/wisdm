@@ -1,3 +1,4 @@
+
 ## ---------------------
 ## wisdm - apply model
 ## ApexRMS, August 2025
@@ -33,32 +34,27 @@ updateRunLog('9 - Apply Model => Begin')
 myLibrary <- ssimLibrary()
 myScenario <- scenario()
 # datasheet(myScenario)
-updateRunLog("check 0" )
 
 # path to ssim directories
 ssimTempDir <- ssimEnvironment()$TransferDirectory 
 resultScenario <- ssimEnvironment()$ScenarioId
-updateRunLog("check 0.5" )
 
 # Read in datasheets
 covariatesSheet <- datasheet(myScenario, "wisdm_Covariates", optional = T)
 modelsSheet <- datasheet(myScenario, "wisdm_Models") 
-updateRunLog("check 1" )
 spatialMultiprocessingSheet <- datasheet(myScenario, "core_SpatialMultiprocessing")
-updateRunLog("check 2" )
 covariateDataSheet <- datasheet(myScenario, "wisdm_CovariateData", optional = T, lookupsAsFactors = F)
-templateSheet <- datasheet(myScenario, "wisdm_TemplateRaster")
 restrictionSheet <- datasheet(myScenario, "wisdm_RestrictionRaster")
 modelOutputsSheet <- datasheet(myScenario, "wisdm_OutputModel", optional = T, returnInvisible = T, lookupsAsFactors = F)
 outputOptionsSheet <- datasheet(myScenario, "wisdm_OutputOptions", optional = T)
 
 spatialOutputsSheet <- datasheet(myScenario, "wisdm_OutputSpatial", optional = T, lookupsAsFactors = T)
-updateRunLog("check 3" )
+
 # Set progress bar -------------------------------------------------------------
 
 steps <- (nrow(modelOutputsSheet) * sum(outputOptionsSheet == T, na.rm = T))+4
+if(name(myLibrary) == "Partial"){ steps <- steps + 2 } # extra steps for partial library setup
 progressBar(type = "begin", totalSteps = steps)
-updateRunLog("check 4" )
 
 # Set defaults -----------------------------------------------------------------
 
@@ -73,14 +69,11 @@ if(any(is.na(covariatesSheet$ID))){
   }
   saveDatasheet(myScenario, covariatesSheet,  "wisdm_Covariates")  
 }
-updateRunLog("check 5" )
 
 ## Output options sheet
 if(nrow(outputOptionsSheet)<1){
-  updateRunLog("check 5.5" )
   outputOptionsSheet[1,] <- rbind(outputOptionsSheet, list(T, T, NA, T, T, T))
 }
-updateRunLog("check 6" )
 if(is.na(outputOptionsSheet$MakeProbabilityMap)){ outputOptionsSheet$MakeProbabilityMap <- F }
 if(is.na(outputOptionsSheet$MakeBinaryMap)){ outputOptionsSheet$MakeBinaryMap <- F }
 if(outputOptionsSheet$MakeBinaryMap){
@@ -88,60 +81,63 @@ if(outputOptionsSheet$MakeBinaryMap){
     outputOptionsSheet$ThresholdOptimization <- "Sensitivity equals specificity"
   }
 }
-updateRunLog("check 7" )
 if(is.na(outputOptionsSheet$MakeResidualsMap)){ outputOptionsSheet$MakeResidualsMap <- F }
 if(is.na(outputOptionsSheet$MakeMessMap)){ outputOptionsSheet$MakeMessMap <- F }
 if(is.na(outputOptionsSheet$MakeModMap)){ outputOptionsSheet$MakeModMap <- F }
-updateRunLog("check 8" )
 saveDatasheet(myScenario, outputOptionsSheet,  "wisdm_OutputOptions") 
 
 updateRunLog("Finished loading inputs in ", updateBreakpoint())
 
 # terra output options
 wopt_int <- list(datatype = "INT4S", NAflag = -9999, gdal = c("COMPRESS=LZW", "PREDICTOR=2"))
+wopt_flt <- list(datatype = "FLT4S", NAflag = -9999, gdal = c("COMPRESS=LZW"))
 
 # Set up spatial multiprocessing -----------------------------------------------
 
 maskValues <- NULL
-maskExt    <- NULL
-maskFile   <- NULL
+fullExt    <- NULL
+fullMaskFile   <- NULL
 
 if (name(myLibrary) == "Partial") {
   
-  # read the job.xml to get max jobs
+  # read the job.xml to get max jobs and total jobs (i.e., tile ids)
   jobXML <- file.path(dirname(ssimEnvironment()$LibraryFilePath), "Jobs.xml")
   jobInfo <- xml2::read_xml(jobXML)
   maxJobs <- as.numeric(xml2::xml_text(xml2::xml_find_first(jobInfo, "//LibraryMPJobsConfig")))
+  allJobs <- as.numeric(xml2::xml_text(xml2::xml_find_all(jobInfo, "//JobId")))
 
   # Set terra tempdir + memory  
   totalMem <- detect_system_memory()$total_gb
   sessionDetails <- setup_session(ssim_temp_dir = ssimTempDir, concurrent_sessions = maxJobs, total_ram_gb = totalMem)
-  updateRunLog("check 1")
+  progressBar()
 
   # load multiprocessing raster
-  maskFile <- rast(datasheet(myScenario, "core_SpatialMultiprocessing")$MaskFileName)
-  maskExt  <- ext(maskFile)
+  fullMaskFile <- rast(spatialMultiprocessingSheet$MaskFileName)
+  fullExt  <- ext(fullMaskFile)
 
   # identify multiprocessing tile
   tileID <- as.numeric(strsplit(strsplit(basename(ssimEnvironment()$LibraryFilePath), "-")[[1]][2], "\\.")[[1]][1])
 
   # define masking values
-  maskValues <- unique(maskFile)[,1]
+  maskValues <- allJobs
   if (length(maskValues) > 1){
     maskValues <- maskValues[maskValues != tileID]
     } else { maskValues <- NULL }
 
   # trim tiling raster to extent of single tile
-  temp_mask <- file.path(ssimTempDir, "mask_trimmed.tif")
-  maskFile <- mask(x = maskFile, mask = maskFile, maskvalues = maskValues, 
-                   filename = file.path(ssimTempDir, "mask.tif"), 
+  maskedGrid <- mask(x = fullMaskFile, mask = fullMaskFile, maskvalues = maskValues, 
+                   filename = file.path(ssimTempDir, "full_masked.tif"), 
                    overwrite = TRUE,
                    wopt = wopt_int)
-  maskFile <- trim(x = maskFile,
-                   filename = temp_mask, 
-                   overwrite = TRUE,
-                   wopt = wopt_int)
-  unlink(file.path(ssimTempDir, "mask.tif"), force = TRUE) # remove temp mask file
+  progressBar() 
+  updateRunLog("Finished tile mask in ", updateBreakpoint()) 
+  tileExt <- non_NA_extent(x = maskedGrid)
+  updateRunLog("Finished tile extent calculation in ", updateBreakpoint())
+  # temp_mask <- file.path(ssimTempDir, "mask_trimmed.tif")
+  # trimmedGrid <- trim(x = maskedGrid) # , filename = temp_mask, overwrite = TRUE, wopt = wopt_int)
+  # updateRunLog("Finished trimming tile extent in ", updateBreakpoint())
+  # trimmedGrid  <- writeRaster(trimmedGrid, filename = temp_mask, overwrite = TRUE)                 
+  unlink(file.path(ssimTempDir, "full_masked.tif"), force = TRUE) # remove temp mask file
 
   } else { 
     
@@ -155,7 +151,7 @@ if (name(myLibrary) == "Partial") {
 updateRunLog(sprintf("Terra memmax set to %.2f GB for %d concurrent job(s)", sessionDetails$MEMMAX_GB, maxJobs))
 progressBar()
 
-# Restriction layer (align to template later) ----------------------------------
+# Restriction layer -------------------------------------------------------------
 
 restrictRaster <- NULL
 
@@ -164,9 +160,9 @@ if(nrow((restrictionSheet))>0){
   restrictRaster <- rast(restrictionSheet$RasterFilePath)
   
   if(!is.null(maskValues)){
-    temp_restrict <- file.path(ssimTempDir, "restrict_masked.tif")
-    restrictRaster <- crop(restrictRaster, maskFile,
-                            filename = temp_restrict,
+    tmp_restrict <- file.path(ssimTempDir, "restrict_cropped.tif")
+    restrictRaster <- crop(restrictRaster, tileExt,
+                            filename = tmp_restrict,
                             overwrite = TRUE,
                             datatype = "INT2S", NAflag = -9999, gdal = c("COMPRESS=LZW", "PREDICTOR=2"))
   } else {
@@ -176,21 +172,6 @@ if(nrow((restrictionSheet))>0){
 }
 
 progressBar()
-
-# Template raster --------------------------------------------------------------
-
-# if (nrow(templateSheet) < 1){stop("Template raster is missing. Please provide a template raster before continuing.")}
-
-# templateRaster <- rast(templateSheet$RasterFilePath)
-# if (!is.null(maskValues)){
-#   temp_temp <- file.path(ssimTempDir, "template_masked.tif")
-#   templateRaster <- crop(templateRaster, maskFile,
-#                           filename = temp_temp,
-#                           overwrite = TRUE,
-#                           NAflag = -9999, gdal = c("COMPRESS=LZW", "PREDICTOR=2"))
-# }
-
-# progressBar()
 
 # Model loop -------------------------------------------------------------------
 
@@ -245,43 +226,43 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
                           var_names = modVars, 
                           factor_vars = factorVars)
   if (!is.null(maskValues)){
-    covs <- crop(covs, maskFile, 
-                 filename = file.path(ssimTempDir, "covariates_masked.tif"), 
+    tmp_covs <- file.path(ssimTempDir, "covariates_temp.tif")
+    covs <- crop(covs, tileExt, 
+                 filename = tmp_covs, 
                  overwrite = TRUE,
                  NAflag = -9999, gdal = c("COMPRESS=LZW", "PREDICTOR=2"))
   }
   
   progressBar()
-  updateRunLog("Finished preparing mapping inputs in ", updateBreakpoint())
-  
-  
+  updateRunLog("Finished preparing mapping inputs for ", modType, " in ", updateBreakpoint())
+
   # ------------------------------------------------------------------
-  # Probability map (single-pass write, temp files, then rename)
+  # Probability map 
   # ------------------------------------------------------------------
   
   if (outputOptionsSheet$MakeProbabilityMap) {
     
     # Add restriction band if present so we can apply it inside predict()
-    # covs_for_prob <- covs
-    # restrict_name <- NULL
-    # if (!is.null(restrictRaster)) {
-    #   covs_for_prob <- c(covs_for_prob, restrictRaster)
-    #   names(covs_for_prob)[nlyr(covs_for_prob)] <- "restrict"
-    #   restrict_name <- "restrict"
-    # }
+    covs_for_prob <- covs
+    restrict_name <- NULL
+    if (!is.null(restrictRaster)) {
+      covs_for_prob <- c(covs_for_prob, restrictRaster)
+      names(covs_for_prob)[nlyr(covs_for_prob)] <- "restrict"
+      restrict_name <- "restrict"
+    }
    
     tmp_main  <- file.path(ssimTempDir, "prob_main.tif")
     r_main <- terra::predict(
-      object = covs,
+      object = covs_for_prob,
       model = mod,
       fun = predict_block_int,
       factor_levels = factor_levels,
-      restrict = restrictRaster,
+      restrict_col = restrict_name,
       predictFct = predictFct,
       filename = tmp_main,
       overwrite = TRUE,
       wopt = wopt_int) # compression may not be honored in terra 1.5-21
-    
+
     final_tmp <- tmp_main
     tmp_ext1 <- NULL
     tmp_ext2 <- NULL
@@ -291,7 +272,7 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
       tmp_ext1 <- file.path(ssimTempDir, "prob_temp_ext.tif")
       tmp_ext2 <- file.path(ssimTempDir, "prob_final_ext.tif")
       
-      r_ext <- extend(r_main, maskExt, 
+      r_ext <- extend(r_main, fullExt, 
                       filename = tmp_ext1, 
                       overwrite = TRUE)
       
@@ -303,7 +284,7 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
     }
     
     # Release file handles before rename/unlink (Windows)
-    for (nm in c("r_main","r_ext")){ if (exists(nm, inherits = FALSE)){ rm(list = nm) }}
+    for (nm in c("r_main","r_ext", "covs_for_prob")){ if (exists(nm, inherits = FALSE)){ rm(list = nm) }}
     gc()
     
     prob_path <- file.path(ssimTempDir, paste0(modType, "_prob_map.tif"))
@@ -314,215 +295,249 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
     for (p in c(tmp_main, tmp_ext1, tmp_ext2)){ if (!is.null(p) && file.exists(p) && !identical(p, prob_path)) { unlink(p, force = TRUE) }}
     
     progressBar()
-    updateRunLog("Finished Probability Map in ", updateBreakpoint())
+    updateRunLog("Finished Probability Map for ", modType, " in ", updateBreakpoint())
   }
     
   # ------------------------------------------------------------------
-  # Residuals map (block write, temp -> rename)
+  # Residuals map 
   # ------------------------------------------------------------------
-  # if (outputOptionsSheet$MakeResidualsMap) {
-  #   if (!outputOptionsSheet$MakeProbabilityMap) {
-  #     updateRunLog("\nWarning: Residuals map cannot be generated without generating the Probability map.\n")
-  #   } else {
-  #     residSmooth <- readRDS(modelOutputsSheet$ResidualSmoothRDS[i])
-  #     
-  #     predrast <- rast(file.path(ssimTempDir, paste0(modType, "_prob_map.tif")))
-  #     if (!is.null(maskValues)) predrast <- crop(predrast, maskFile, mask = TRUE)
-  #     
-  #     out_path <- file.path(ssimTempDir, paste0(modType, "_resid_map.tif"))
-  #     tmp_res  <- tempfile(paste0(modType, "_resid_main_"), tmpdir = ssimTempDir, fileext = ".tif")
-  #     tmp_ext  <- if (!is.null(maskValues)) tempfile(paste0(modType, "_resid_ext_"), tmpdir = ssimTempDir, fileext = ".tif") else NULL
-  #     
-  #     r_out <- rast(predrast); NAflag(r_out) <- -9999
-  #     r_out <- writeStart(r_out, filename = tmp_res, datatype = "FLT8S", NAflag = -9999, overwrite = TRUE)
-  #     
-  #     nrows <- nrow(predrast); ncols <- ncol(predrast)
-  #     start_row <- 1L
-  #     while (start_row <= nrows) {
-  #       nrows_block <- min(1024L, nrows - start_row + 1L)
-  #       rows <- start_row:(start_row + nrows_block - 1L)
-  #       
-  #       # cell indices for these rows (no cells() in 1.5-21)
-  #       cell_idx <- unlist(lapply(rows, function(rw) {
-  #         start_cell <- (rw - 1L) * ncols + 1L
-  #         end_cell   <- rw * ncols
-  #         start_cell:end_cell
-  #       }), use.names = FALSE)
-  #       
-  #       coords <- xyFromCell(predrast, cell_idx)
-  #       prob_vals <- values(predrast, row = start_row, nrows = nrows_block, dataframe = FALSE)
-  #       if (!is.null(dim(prob_vals))) prob_vals <- as.vector(prob_vals)
-  #       
-  #       blockvals <- data.frame(x = coords[,1], y = coords[,2])
-  #       predv <- as.numeric(predict(residSmooth, blockvals))
-  #       predv[is.na(prob_vals)] <- NA
-  #       
-  #       writeValues(r_out, predv, start = ((start_row - 1L) * ncols + 1L))
-  #       start_row <- start_row + nrows_block
-  #     }
-  #     
-  #     r_out <- writeStop(r_out)
-  #     
-  #     final_tmp <- tmp_res
-  #     if (!is.null(maskValues)) {
-  #       r_ext <- extend(rast(tmp_res), maskExt, filename = tmp_ext, overwrite = TRUE)
-  #       final_tmp <- tmp_ext
-  #     }
-  #     
-  #     # release handles then rename & cleanup
-  #     for (nm in c("r_out","r_ext","predrast")) if (exists(nm, inherits = FALSE)) rm(list = nm)
-  #     gc()
-  #     
-  #     if (file.exists(out_path)) unlink(out_path, force = TRUE)
-  #     file.rename(final_tmp, out_path)
-  #     for (p in c(tmp_res, tmp_ext)) if (!is.null(p) && file.exists(p) && !identical(p, out_path)) unlink(p, force = TRUE)
-  #     
-  #     progressBar()
-  #     updateRunLog("Finished Residuals Map (streamed) in ", updateBreakpoint())
-  #   }
-  # }
-  # 
-  # # ------------------------------------------------------------------
-  # # Binary map (threshold from on-disk prob; temp -> rename)
-  # # ------------------------------------------------------------------
-  # if (outputOptionsSheet$MakeBinaryMap) {
-  #   if (!outputOptionsSheet$MakeProbabilityMap) {
-  #     updateRunLog("\nWarning: Binary map cannot be generated without generating the Probability map.\n")
-  #   } else {
-  #     thresholds <- mod$binThresholds
-  #     names(thresholds) <- c("Max kappa", "Max sensitivity and specificity", "No omission",
-  #                            "Prevalence", "Sensitivity equals specificity")
-  #     binThreshold <- as.numeric(thresholds[outputOptionsSheet$ThresholdOptimization])
-  #     thr_int <- as.integer(round(binThreshold * 100))
-  #     
-  #     prob_r <- rast(file.path(ssimTempDir, paste0(modType, "_prob_map.tif")))
-  #     bin_r  <- terra::ifel(prob_r >= thr_int, 1L, 0L)  # preserves NA where prob is NA
-  #     
-  #     bin_path <- file.path(ssimTempDir, paste0(modType, "_bin_map.tif"))
-  #     tmp_bin  <- tempfile(paste0(modType, "_bin_main_"),  tmpdir = ssimTempDir, fileext = ".tif")
-  #     tmp_ext  <- if (!is.null(maskValues)) tempfile(paste0(modType, "_bin_ext_"),  tmpdir = ssimTempDir, fileext = ".tif") else NULL
-  #     
-  #     bin_r <- writeRaster(bin_r, filename = tmp_bin, datatype = "INT2S", NAflag = -9999, overwrite = TRUE)
-  #     
-  #     final_tmp <- tmp_bin
-  #     if (!is.null(maskValues)) {
-  #       r_ext <- extend(rast(tmp_bin), maskExt, filename = tmp_ext, overwrite = TRUE)
-  #       final_tmp <- tmp_ext
-  #     }
-  #     
-  #     for (nm in c("prob_r","bin_r","r_ext")) if (exists(nm, inherits = FALSE)) rm(list = nm)
-  #     gc()
-  #     
-  #     if (file.exists(bin_path)) unlink(bin_path, force = TRUE)
-  #     file.rename(final_tmp, bin_path)
-  #     for (p in c(tmp_bin, tmp_ext)) if (!is.null(p) && file.exists(p) && !identical(p, bin_path)) unlink(p, force = TRUE)
-  #     
-  #     progressBar()
-  #     updateRunLog("Finished Binary Map (streamed) in ", updateBreakpoint())
-  #   }
-  # }
-  # 
-  # # ------------------------------------------------------------------
-  # # MESS & MoD maps (temp -> rename)
-  # # ------------------------------------------------------------------
-  # if (outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap) {
-  #   if (length(factorVars)) {
-  #     updateRunLog("\nWarning: MESS and MoD maps cannot be generated for models with categorical variables.\n")
-  #   } else {
-  #     train.dat <- select(trainingData, all_of(modVars))
-  #     for (k in modVars) train.dat[, k] <- sort(train.dat[, k])
-  #     prep <- prepare_mess(train.dat, var_names = modVars)
-  #     
-  #     if (outputOptionsSheet$MakeMessMap) {
-  #       mess_path <- file.path(ssimTempDir, paste0(modType, "_mess_map.tif"))
-  #       tmp_mess  <- tempfile(paste0(modType, "_mess_main_"), tmpdir = ssimTempDir, fileext = ".tif")
-  #       tmp_ext   <- if (!is.null(maskValues)) tempfile(paste0(modType, "_mess_ext_"), tmpdir = ssimTempDir, fileext = ".tif") else NULL
-  #       
-  #       mess_fun <- function(prep, data, ...) {
-  #         round(CalcMESS_fast(data, prep)$output)
-  #       }
-  #       
-  #       r_main <- terra::predict(
-  #         object    = covs[[modVars]],
-  #         model     = prep,
-  #         fun       = mess_fun,
-  #         filename  = tmp_mess,
-  #         datatype  = "INT2S",
-  #         NAflag    = -9999,
-  #         overwrite = TRUE
-  #       )
-  #       
-  #       final_tmp <- tmp_mess
-  #       if (!is.null(maskValues)) {
-  #         r_ext <- extend(r_main, maskExt, filename = tmp_ext, overwrite = TRUE)
-  #         final_tmp <- tmp_ext
-  #       }
-  #       
-  #       for (nm in c("r_main","r_ext")) if (exists(nm, inherits = FALSE)) rm(list = nm)
-  #       gc()
-  #       
-  #       if (file.exists(mess_path)) unlink(mess_path, force = TRUE)
-  #       file.rename(final_tmp, mess_path)
-  #       for (p in c(tmp_mess, tmp_ext)) if (!is.null(p) && file.exists(p) && !identical(p, mess_path)) unlink(p, force = TRUE)
-  #       
-  #       progressBar()
-  #       updateRunLog("Finished MESS Map (streamed) in ", updateBreakpoint())
-  #     }
-  #     
-  #     if (outputOptionsSheet$MakeModMap) {
-  #       mod_path  <- file.path(ssimTempDir, paste0(modType, "_mod_map.tif"))
-  #       tmp_mod   <- tempfile(paste0(modType, "_mod_main_"), tmpdir = ssimTempDir, fileext = ".tif")
-  #       tmp_ext   <- if (!is.null(maskValues)) tempfile(paste0(modType, "_mod_ext_"), tmpdir = ssimTempDir, fileext = ".tif") else NULL
-  #       name_to_id <- setNames(covariatesSheet$ID, covariatesSheet$CovariateName)
-  #       
-  #       mod_fun <- function(prep, data, name_to_id, ...) {
-  #         res <- CalcMESS_fast(data, prep)
-  #         ids <- unname(as.integer(name_to_id[res$Indx]))
-  #         ids[is.na(ids)] <- -9999L
-  #         ids
-  #       }
-  #       
-  #       r_main <- terra::predict(
-  #         object     = covs[[modVars]],
-  #         model      = prep,
-  #         fun        = mod_fun,
-  #         name_to_id = name_to_id,
-  #         filename   = tmp_mod,
-  #         datatype   = "INT2S",
-  #         NAflag     = -9999,
-  #         overwrite  = TRUE
-  #       )
-  #       
-  #       final_tmp <- tmp_mod
-  #       if (!is.null(maskValues)) {
-  #         r_ext <- extend(r_main, maskExt, filename = tmp_ext, overwrite = TRUE)
-  #         final_tmp <- tmp_ext
-  #       }
-  #       
-  #       for (nm in c("r_main","r_ext")) if (exists(nm, inherits = FALSE)) rm(list = nm)
-  #       gc()
-  #       
-  #       if (file.exists(mod_path)) unlink(mod_path, force = TRUE)
-  #       file.rename(final_tmp, mod_path)
-  #       for (p in c(tmp_mod, tmp_ext)) if (!is.null(p) && file.exists(p) && !identical(p, mod_path)) unlink(p, force = TRUE)
-  #       
-  #       progressBar()
-  #       updateRunLog("Finished MoD Map (streamed) in ", updateBreakpoint())
-  #     }
-  #   }
-  # }
+
+  if (outputOptionsSheet$MakeResidualsMap) {
+
+    if (!outputOptionsSheet$MakeProbabilityMap) {
+      updateRunLog("\nWarning: Residuals map cannot be generated without generating the Probability map.\n")
+    
+    } else {
+      residSmooth <- readRDS(modelOutputsSheet$ResidualSmoothRDS[i])
+
+      prob_path <- file.path(ssimTempDir, paste0(modType, "_prob_map.tif"))
+      prob_r <- terra::rast(prob_path)
+      if (!is.null(maskValues)){ prob_r <- terra::crop(prob_r, tileExt) }
+
+      out_path <- file.path(ssimTempDir, paste0(modType, "_resid_map.tif"))
+      tmp_res <- file.path(ssimTempDir, "resid_stage1.tif")
+      tmp_ext <- if (!is.null(maskValues)){ file.path(ssimTempDir, "resid_stage2ext.tif") } else { NULL }
+      tmp_fin <- file.path(ssimTempDir, "resid_finalized.tif")
+
+      nrows <- terra::nrow(prob_r)
+      ncols <- terra::ncol(prob_r)
+
+      # Precompute column/row coordinates
+      x_cols <- terra::xFromCol(prob_r, 1:ncols)     # length = ncols
+      y_rows <- terra::yFromRow(prob_r, 1:nrows)     # length = nrows
+
+      # Stage-1: open a streaming writer (no datatype/compression here)
+      wr <- terra::rast(prob_r)
+      terra::writeStart(wr, filename = tmp_res, overwrite = TRUE)
+
+      block_rows <- if (!is.null(sessionDetails$BLOCK_ROWS)){ sessionDetails$BLOCK_ROWS } else { 384L }
+      start_row  <- 1L
+      while (start_row <= nrows) {
+        nrb <- min(block_rows, nrows - start_row + 1L)
+        rows <- start_row:(start_row + nrb - 1L)
+
+        # Arithmetic coords for this block
+        xvec <- rep.int(x_cols, times = nrb)         # length = ncols * nrb
+        yvec <- rep(y_rows[rows], each = ncols)
+
+        # Predict residual surface for this block
+        predv <- as.numeric(stats::predict(residSmooth, data.frame(x = xvec, y = yvec)))
+
+        # Apply NA mask from probability map (preserve NA semantics)
+        pv <- terra::readValues(prob_r, row = start_row, nrows = nrb, dataframe = FALSE)
+        if (!is.null(dim(pv))){ pv <- as.vector(pv) }
+        predv[is.na(pv)] <- NA_real_
+
+        # Write this block
+        terra::writeValues(wr, predv, start = start_row, nrows = nrb)
+
+        start_row <- start_row + nrb
+      }
+
+      terra::writeStop(wr)  # flush tmp_res
+
+      # Extend to full extent (if needed)
+      src_for_final <- tmp_res
+      if (!is.null(maskValues)) {
+        r_ext <- terra::extend(terra::rast(tmp_res), fullExt, filename = tmp_ext, overwrite = TRUE)
+        rm(r_ext)
+        src_for_final <- tmp_ext
+      }
+
+      # Enforce float type + NAflag + compression
+      src_r  <- terra::rast(src_for_final)
+      r_fin <- terra::writeRaster(src_r, filename = tmp_fin,
+                                  overwrite = TRUE, wopt = wopt_flt)
+      rm(r_fin, src_r); gc()
+
+      # Clean temps
+      if (file.exists(out_path)) { unlink(out_path, force = TRUE) }
+      file.rename(tmp_fin, out_path)
+      
+      for (p in c(tmp_res, if (!is.null(maskValues)){ src_for_final })) {
+        if (!is.null(p) && file.exists(p) && !identical(p, out_path)) { unlink(p, force = TRUE) }
+      }
+
+      for (nm in c("prob_r","wr","x_cols","y_rows")) if (exists(nm, inherits = FALSE)){ rm(list = nm) }
+      gc()
+
+      progressBar()
+      updateRunLog("Finished Residuals Map for ", modType, " in ", updateBreakpoint())
+    }
+  }
+  # ------------------------------------------------------------------
+  # Binary map 
+  # ------------------------------------------------------------------
+
+  if (outputOptionsSheet$MakeBinaryMap) {
+
+    if (!outputOptionsSheet$MakeProbabilityMap) {
+      updateRunLog("\nWarning: Binary map cannot be generated without generating the Probability map.\n")
+    
+    } else {
+      thresholds <- mod$binThresholds
+      names(thresholds) <- c("Max kappa", "Max sensitivity and specificity", "No omission",
+                            "Prevalence", "Sensitivity equals specificity")
+      binThreshold <- as.numeric(thresholds[outputOptionsSheet$ThresholdOptimization])
+      thr_int <- as.integer(round(binThreshold * 100))
+
+      prob_r  <- rast(file.path(ssimTempDir, paste0(modType, "_prob_map.tif")))
+      if (!is.null(maskValues)) { prob_r <- crop(prob_r, tileExt) }
+
+      bin_r   <- terra::ifel(prob_r >= thr_int, 1L, 0L)  # preserves NA from prob
+      bin_path <- file.path(ssimTempDir, paste0(modType, "_bin_map.tif"))
+
+      tmp_bin <- file.path(ssimTempDir, "bin_stage1.tif")
+      tmp_ext <- if (!is.null(maskValues)){ file.path(ssimTempDir, "bin_stage2ext.tif") } else { NULL }
+      tmp_fin <- file.path(ssimTempDir, "bin_finalized.tif")
+
+      # Stage-1 write (datatype later)
+      bin_r <- writeRaster(bin_r, filename = tmp_bin, overwrite = TRUE)
+
+      src_for_final <- tmp_bin
+      if (!is.null(maskValues)) {
+        r_ext <- extend(rast(tmp_bin), fullExt, filename = tmp_ext, overwrite = TRUE)
+        src_for_final <- tmp_ext
+        if (exists("r_ext", inherits = FALSE)) rm(r_ext)
+      }
+
+      # Stage-2 enforce INT4S (+ NAflag/compression)
+      r_fin <- writeRaster(rast(src_for_final), filename = tmp_fin, overwrite = TRUE, wopt = wopt_int)
+      rm(r_fin)
+
+      if (file.exists(bin_path)) { unlink(bin_path, force = TRUE) }
+      file.rename(tmp_fin, bin_path)
+      for (p in c(tmp_bin, tmp_ext)) if (!is.null(p) && file.exists(p) && !identical(p, bin_path)) { unlink(p, force = TRUE) }
+
+      for (nm in c("prob_r","bin_r")) if (exists(nm, inherits = FALSE)) { rm(list = nm) }
+      gc()
+
+      progressBar()
+      updateRunLog("Finished Binary Map for ", modType, " in ", updateBreakpoint())
+    }
+  }
+
+  # ------------------------------------------------------------------
+  # MESS & MoD maps 
+  # ------------------------------------------------------------------
+
+  if (outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap) {
+    
+    if (length(factorVars)) {
+      updateRunLog("\nWarning: MESS and MoD maps cannot be generated for models with categorical variables.\n")
+    
+    } else {
+      # Prep training data order & precompute structures
+      train.dat <- dplyr::select(trainingData, dplyr::all_of(modVars))
+      for (k in modVars){ train.dat[, k] <- sort(train.dat[, k]) }
+      prep <- prepare_mess(train.dat, var_names = modVars)
+
+      # ----- MESS -----
+      if (outputOptionsSheet$MakeMessMap) {
+        mess_path <- file.path(ssimTempDir, paste0(modType, "_mess_map.tif"))
+        tmp_mess <- file.path(ssimTempDir, "mess_stage1.tif")
+        tmp_ext <- if (!is.null(maskValues)){ file.path(ssimTempDir, "mess_stage2ext.tif") } else { NULL }
+        tmp_fin <- file.path(ssimTempDir, "mess_finalized.tif")
+
+        r_main <- terra::predict(
+          object    = covs,
+          model     = prep,
+          fun       = mess_fun,
+          filename  = tmp_mess,
+          overwrite = TRUE
+        )
+
+        src_for_final <- tmp_mess
+        if (!is.null(maskValues)) {
+          r_ext <- extend(r_main, fullExt, filename = tmp_ext, overwrite = TRUE)
+          src_for_final <- tmp_ext
+          if (exists("r_ext", inherits = FALSE)) { rm(r_ext) }
+        }
+
+        r_fin <- writeRaster(rast(src_for_final), filename = tmp_fin, overwrite = TRUE, wopt = wopt_int)
+        rm(r_fin)
+
+        if (file.exists(mess_path)) { unlink(mess_path, force = TRUE) }
+        file.rename(tmp_fin, mess_path)
+        for (p in c(tmp_mess, tmp_ext)) if (!is.null(p) && file.exists(p) && !identical(p, mess_path)) { unlink(p, force = TRUE) }
+
+        for (nm in c("r_main")) if (exists(nm, inherits = FALSE)) { rm(list = nm) }
+        gc()
+
+        progressBar()
+        updateRunLog("Finished MESS Map for ", modType, " in ", updateBreakpoint())
+      }
+
+      # ----- MoD -----
+      if (outputOptionsSheet$MakeModMap) {
+        mod_path <- file.path(ssimTempDir, paste0(modType, "_mod_map.tif"))
+        tmp_mod <- file.path(ssimTempDir, "mod_stage1.tif")
+        tmp_ext <- if (!is.null(maskValues)){ file.path(ssimTempDir, "mod_stage2ext.tif") } else { NULL }
+        tmp_fin <- file.path(ssimTempDir, "mod_finalized.tif")
+        name_to_id <- setNames(covariatesSheet$ID, covariatesSheet$CovariateName)
+
+        r_main <- terra::predict(
+          object     = covs,
+          model      = prep,
+          fun        = mod_fun,
+          name_to_id = name_to_id,
+          filename   = tmp_mod,
+          overwrite  = TRUE
+        )
+
+        src_for_final <- tmp_mod
+        if (!is.null(maskValues)) {
+          r_ext <- extend(r_main, fullExt, filename = tmp_ext, overwrite = TRUE)
+          src_for_final <- tmp_ext
+          if (exists("r_ext", inherits = FALSE)) { rm(r_ext) }
+        }
+
+        r_fin <- writeRaster(rast(src_for_final), filename = tmp_fin, overwrite = TRUE, wopt = wopt_int)
+        rm(r_fin)
+
+        if (file.exists(mod_path)) { unlink(mod_path, force = TRUE) }
+        file.rename(tmp_fin, mod_path)
+        for (p in c(tmp_mod, tmp_ext)) if (!is.null(p) && file.exists(p) && !identical(p, mod_path)) { unlink(p, force = TRUE) }
+
+        for (nm in c("r_main")) if (exists(nm, inherits = FALSE)) { rm(list = nm) }
+        gc()
+
+        progressBar()
+        updateRunLog("Finished MoD Map for ", modType, " in ", updateBreakpoint())
+      }
+    }
+  }
 
   # Release covs handles and temporary files (Windows)
   for (nm in c("covs")){ if (exists(nm, inherits = FALSE)){ rm(list = nm) }}
+  for (p in c(tmp_covs)){ unlink(p, force = TRUE) }
   gc()
-
+  
   # ------------------------------------------------------------------
   # Save output paths to datasheet
   # ------------------------------------------------------------------
-  spatialOutputsSheet <- addRow(
-    spatialOutputsSheet,
-    list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType])
-  )
+  spatialOutputsSheet <- addRow(spatialOutputsSheet, 
+                                  list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType]))
   outputRow <- which(spatialOutputsSheet$ModelsID == modelsSheet$ModelName[modelsSheet$ModelType == modType])
   
   if (outputOptionsSheet$MakeProbabilityMap){ spatialOutputsSheet$ProbabilityRaster[outputRow] <- file.path(ssimTempDir, paste0(modType, "_prob_map.tif")) }
@@ -534,6 +549,11 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
   # occasional GC after heavy writes
   if (i %% 3L == 0L) gc()
 }
+
+# release/remove any remaining temps
+for (nm in c("restrictRaster")){ if (exists(nm, inherits = FALSE)){ rm(list = nm) }}
+unlink(tmp_restrict, force = TRUE)
+gc()
 
 # Finalize
 saveDatasheet(myScenario, spatialOutputsSheet, "wisdm_OutputSpatial")
