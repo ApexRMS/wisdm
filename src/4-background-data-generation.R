@@ -231,10 +231,8 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   ## Extract covariate data for background sites  -----
 
   # rasterize bg data
-  rastPts <- rasterize(bgPts, r)
-  matPts <- as.matrix(rastPts, wide = T)
-  keep <- which(!is.na(matPts))
-  rm(rastPts)
+  cellIds <- cellFromXY(r, geom(bgPts)[, c("x", "y")])
+  keep <- unique(cellIds)
   gc()
 
   rIDs <- rast(r, vals = 1:(dim(r)[1] * dim(r)[2]))
