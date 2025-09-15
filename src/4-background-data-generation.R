@@ -230,34 +230,33 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
 
   ## Extract covariate data for background sites  -----
 
-  # rasterize bg data
+  # extract bg points data
   cellIds <- cellFromXY(r, geom(bgPts)[, c("x", "y")])
   keep <- unique(cellIds)
-  gc()
 
-  rIDs <- rast(r, vals = 1:(dim(r)[1] * dim(r)[2]))
-  cellPerPt <- terra::extract(rIDs, bgPts)
-  cellPerPt$SiteID <- bgPts$SiteID
-  names(cellPerPt)[2] <- "PixelID"
-  bgPts <- merge(bgPts, cellPerPt[, c("PixelID", "SiteID")])
-  rm(rIDs)
-  gc()
+  # Get cell IDs for each point (simpler approach)
+  cellPerPt <- data.frame(
+    ID = 1:length(bgPts), # temporary ID for merging
+    PixelID = cellIds,
+    SiteID = bgPts$SiteID
+  )
 
-  rPixels <- rasterize(bgPts, r, field = "PixelID")
-  matPixs <- as.matrix(rPixels, wide = T)
-  PixelIDs <- matPixs[keep]
+  bgPts$ID <- 1:length(bgPts)
+  bgPts <- merge(bgPts, cellPerPt[, c("ID", "PixelID", "SiteID")], by = "ID")
+  bgPts$ID <- NULL # Remove temporary ID
+
+  PixelIDs <- keep
+
+  cellToPixel <- data.frame(cell = cellIds, PixelID = cellIds)
+  cellToPixel <- cellToPixel[!duplicated(cellToPixel$cell), ]
+  PixelIDs <- cellToPixel$PixelID[match(keep, cellToPixel$cell)]
+
   PixelData <- data.frame(PixelID = PixelIDs)
-  rm(rPixels, matPixs, PixelIDs)
-  gc()
 
   for (i in 1:nrow(covariateDataSheet)) {
     ri <- rast(covariateDataSheet$RasterFilePath[i])
-    mi <- as.matrix(ri, wide = TRUE)
 
-    outMat <- mi * matPts
-    vals <- outMat[keep]
-    rm(ri, mi, outMat)
-    gc()
+    vals <- ri[keep]
 
     PixelData[covariateDataSheet$CovariatesID[i]] <- vals
     progressBar()
