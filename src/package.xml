@@ -238,6 +238,7 @@
   name="PrepMultiprocessing"
   displayName="1 - Prepare Multiprocessing"
   programArguments="1-prep-multiprocessing.py"
+  isMultiprocessing="False"
   condaEnv="wisdm-conda.yml"
   condaEnvVersion="4">
 	<dataSheet name="TemplateRaster" type="Input"/>
@@ -410,7 +411,6 @@
 	condaEnv="wisdm-conda.yml"
 	condaEnvVersion="4">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
-		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="RestrictionRaster" type="Input"/>
 		<dataSheet name="OutputModel" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
