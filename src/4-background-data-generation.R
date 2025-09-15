@@ -178,19 +178,22 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   ## Remove background points that occur in pixels with presence points -----
 
   # rasterize points data
-  r <- rast(
-    ext(templateRaster),
-    resolution = res(templateRaster),
-    crs = crs(templateRaster)
-  )
-  pts <- vect(fieldData, geom = c("X", "Y"), crs = crs(templateRaster))
-  rIDs <- init(r, "cell")
+  rastPts <- rasterize(bgPts, r)
+  # Replace matrix conversion with direct value extraction
+  vals <- values(rastPts)
+  keep <- which(!is.na(vals))
 
-  # Extract cell IDs for each point
-  cellPerPt <- terra::extract(rIDs, pts)
-  cellPerPt$SiteID <- pts$SiteID
+  rIDs <- init(r, "cell")
+  cellPerPt <- terra::extract(rIDs, bgPts)
+  cellPerPt$SiteID <- bgPts$SiteID
   names(cellPerPt)[2] <- "PixelID"
-  pts <- merge(pts, cellPerPt[, c("PixelID", "SiteID")])
+  bgPts <- merge(bgPts, cellPerPt[, c("PixelID", "SiteID")])
+
+  rPixels <- rasterize(bgPts, r, field = "PixelID")
+  pixelVals <- values(rPixels)
+  PixelIDs <- pixelVals[keep]
+
+  PixelData <- data.frame(PixelID = PixelIDs)
   gc()
 
   # check for duplicate pixel ids
