@@ -1,13 +1,78 @@
-.Rproj.user
+
+## SyncroSim files to ignore
+*.ssimbak
+
+## Misc build folders and temp folders
+*_cache/
+/cache/
+scratch/
+dist/
+build/
+tmp/
+
+#### Python files to ignore
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+/Python
+
+# C extensions
+*.so
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py.cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+
+#### R Files to Ignore
+ History files
 .Rhistory
+.Rapp.history
+
+# Session Data files
 .RData
+.RDataTmp
+
+# User-specific files
 .Ruserdata
-/demo
-/devFiles
-/syncrosim-2/packageVersions
-/syncrosim-2/onlineExampleLibraries
-/syncrosim-3/exampleLibraries
-/syncrosim-3/src/templates
-*.bak
-*.gitattributes
-*.ssimpkg
+
+# Example code in package build process
+*-Ex.R
+
+# RStudio files
+.Rproj.user/
+
+# Temporary files created by R markdown
+*.utf8.md
+*.knit.md
+
+# R Environment Variables
+.Renviron
+
+# translation temp files
+po/*~
+
+# RStudio Connect folder
+rsconnect/

@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "posit.air-vscode",
+        "ms-python.autopep8",
+        "ms-python.pylint",
+        "reditorsupport.r"
+    ]
+}
