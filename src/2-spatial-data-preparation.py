@@ -149,6 +149,29 @@ def prep_spatial_data():
     # Check that a template raster was provided
     if pd.isnull(templateRasterSheet.RasterFilePath.item()):
         raise ValueError("Template raster is missing.")
+    
+    # check if restriction raster was provided
+    def check_raster_range(filepath, min_allowed=0.0, max_allowed=1.0):
+        with rasterio.open(filepath) as src:
+            for _, window in src.block_windows(1):  # band 1
+                data = src.read(1, window=window, masked=True)
+
+                # Skip if all values are nodata
+                if data.mask.all():
+                    continue
+
+                block_min = data.min()
+                block_max = data.max()
+
+                if block_min < min_allowed or block_max > max_allowed:
+                    return False  # Out of range found
+
+        return True  # All values are within range
+
+    if len(restrictionRasterSheet.RasterFilePath) > 0:
+        # if provided, ensure raster data is binary
+        if not check_raster_range(restrictionRasterSheet.RasterFilePath.item(), 0, 1):
+            raise ValueError("Restriction raster values must range from 0 to 1.")
 
     # Identify categorical variables 
     catCovs = covariatesSheet.query('IsCategorical == "Yes"').CovariateName.tolist()

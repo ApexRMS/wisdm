@@ -190,7 +190,7 @@ fitModel <- function(dat,           # df of training data
                     "temporary folder before continuing."))
       }
 
-      if(fullFit == T){
+      if(fullFit){
       
       # prepare batch file
       capture.output(cat("java -mx", out$modOptions$MemoryLimit, "m", sep=""), file = out$batchPath)
@@ -277,23 +277,38 @@ fitModel <- function(dat,           # df of training data
     
     # tmp <- Sys.time()
     if(fullFit){
-      modelBRT <- gbm.step(data = dat,
-                           gbm.x = 8:ncol(dat),                                  # column indices for covariates
-                           gbm.y = 4,                                            # column index for response
-                           family = out$modelFamily,
-                           tree.complexity = ifelse(prNum < 50, 1, 5),
-                           learning.rate = out$modOptions$LearningRate,
-                           bag.fraction = out$modOptions$BagFraction,
-                           max.trees = out$modOptions$MaximumTrees,
-                           n.trees = out$modOptions$NumberOfTrees,
-                           # step.size = out$modOptions$stepSize,
-                           n.folds = nFolds,                                     # number of cross-validation folds
-                           site.weights = wt,
-                           plot.main = FALSE)                                    # avoid plotting hold-out deviance curve
-                           # silent = TRUE)                                       # avoid printing the cv results
-      
+      if(out$validationOptions$CrossValidate){
+        modelBRT <- dismo::gbm.step(data = dat,
+                            gbm.x = 8:ncol(dat),                              # column indices for covariates
+                            gbm.y = 4,                                        # column index for response
+                            family = out$modelFamily,
+                            tree.complexity = ifelse(prNum < 50, 1, 5),
+                            learning.rate = out$modOptions$LearningRate,
+                            bag.fraction = out$modOptions$BagFraction,
+                            max.trees = out$modOptions$MaximumTrees,
+                            n.trees = out$modOptions$NumberOfTrees,
+                            n.folds = nFolds,                                 # number of cross-validation folds
+                            fold.vector = dat$ModelSelectionSplit,            # set predefined cross-validation folds
+                            site.weights = wt,
+                            plot.main = FALSE)
+      } else{
+        modelBRT <- dismo::gbm.step(data = dat,
+                             gbm.x = 8:ncol(dat),                                  # column indices for covariates
+                             gbm.y = 4,                                            # column index for response
+                             family = out$modelFamily,
+                             tree.complexity = ifelse(prNum < 50, 1, 5),
+                             learning.rate = out$modOptions$LearningRate,
+                             bag.fraction = out$modOptions$BagFraction,
+                             max.trees = out$modOptions$MaximumTrees,
+                             n.trees = out$modOptions$NumberOfTrees,
+                             # step.size = out$modOptions$stepSize,
+                             n.folds = nFolds,                                     # number of cross-validation folds
+                             site.weights = wt,
+                             plot.main = FALSE)                                    # avoid plotting hold-out deviance curve
+                             # silent = TRUE)                                       # avoid printing the cv results
+      }
     } else {
-      modelBRT <- gbm.step(data = dat,
+      modelBRT <- dismo::gbm.step(data = dat,
                            gbm.x = 8:ncol(dat),                                  # column indices for covariates
                            gbm.y = 4,                                            # column index for response
                            family = out$modelFamily,
@@ -302,14 +317,12 @@ fitModel <- function(dat,           # df of training data
                            bag.fraction = out$modOptions$BagFraction,
                            max.trees = out$modOptions$MaximumTrees,
                            n.trees = out$modOptions$NumberOfTrees,
-                           # step.size = out$modOptions$stepSize,
-                           n.folds = nFolds,                                     # number of cross-validation folds
+                           n.folds = 1,                                         # disables internal CV  
+                           fold.vector = rep(1, nrow(dat)),                     # set all rows to one "fold"
                            site.weights = wt,
                            plot.main = FALSE)                                    # avoid plotting hold-out deviance curve
       
     }
-
-    
      # Sys.time() - tmp
      return(modelBRT)
   }
@@ -567,8 +580,8 @@ est.lr <- function(dat, out){
   bgNum <- as.numeric(table(dat$Response)["0"])                                 # number of backgrounds
   wt <- ifelse(dat$Response == 1, 1, prNum / bgNum)
 
-  n.trees <- c(50,100,200,400,800,900,1000,1100,1200,1500,1800,2400,3200)
-  lrs <- c(.05,.02,.01,.005,.0025,.001,.0005,.0001) # .1
+  n.trees <- c(100,200,400,800,900,1000,1100,1200,1500,1800,2400)
+  lrs <- c(.1,.05,.02,.01,.005,.0025,.001,.0005,.0001) # .1
   lr.out <- NULL
   trees.fit <- 0
   i <- 1
@@ -576,21 +589,37 @@ est.lr <- function(dat, out){
   while(trees.fit < 1000 & i <= length(lrs)){
     n <- 1
     repeat {
-      try(
-        gbm.fit <- gbm.step(data = dat,
-                          gbm.x = 8:ncol(dat),                                  # column indices for covariates
-                          gbm.y = 4,                                            # column index for response
+      gbm.fit <- try(
+        if(out$validationOptions$CrossValidate){
+           dismo::gbm.step(data = dat,
+                          gbm.x = 8:ncol(dat),                              # column indices for covariates
+                          gbm.y = 4,                                        # column index for response
                           family = out$modelFamily,
                           tree.complexity = ifelse(prNum < 50, 1, 5),
                           learning.rate = lrs[i],
                           bag.fraction = out$modOptions$BagFraction,
                           max.trees = out$modOptions$MaximumTrees,
                           n.trees = n.trees[n],
-                          n.folds = nFolds,                                     # number of cross-validation folds
+                          n.folds = 1, # nFolds,                                 # number of cross-validation folds
+                          fold.vector = rep(1,nrow(dat)), # dat$ModelSelectionSplit,            # set predefined cross-validation folds
                           site.weights = wt,
                           plot.main = FALSE)
-      )
-      if(!is.null(gbm.fit)){
+        } else{
+          dismo::gbm.step(data = dat,
+                          gbm.x = 8:ncol(dat),                              # column indices for covariates
+                          gbm.y = 4,                                        # column index for response
+                          family = out$modelFamily,
+                          tree.complexity = ifelse(prNum < 50, 1, 5),
+                          learning.rate = lrs[i],
+                          bag.fraction = out$modOptions$BagFraction,
+                          max.trees = out$modOptions$MaximumTrees,
+                          n.trees = n.trees[n],
+                          n.folds = nFolds,                                 # number of cross-validation folds
+                          site.weights = wt,
+                          plot.main = FALSE)
+        }, silent = TRUE)
+
+      if(!inherits(gbm.fit, "try-error")){
         trees.fit <- gbm.fit$n.trees
         row_i <- cbind(lrs = lrs[i], 
                        n.trees = n.trees[n], 
@@ -640,10 +669,6 @@ cv.fct <- function(out,         # out list
   # subsets the dataset into nk folds and drops
   # each subset in turn, fitting on remaining data
   # and predicting for withheld data
-  #
-  # caters for both single species and community models via the argument sp.no
-  # for the first, sp.no can be left on its default of 1
-  # for community models, sp.no can be varied from 1 to n.spp
   
   # full (training) data 
   family <- out$modelFamily
@@ -662,13 +687,6 @@ cv.fct <- function(out,         # out list
     full.calib <- calibration(obs, preds)
   }
   
-  if (family == "poisson") {
-    full.resid.deviance <- calc.deviance(obs, preds, weights = site.weights, family="poisson")                      
-    full.test <- cor(obs, preds)
-    full.calib <- calibration(obs, preds, family = "poisson")
-  }
-  
-
   # set up for results storage
   nk <- nfolds 
   
@@ -748,12 +766,6 @@ cv.fct <- function(out,         # out list
       subset.calib[i,] <- calibration(y_i, u_i)
     }
     
-    if (family=="poisson"){
-      subset.resid.deviance[i] <- calc.deviance(y_i,u_i,weights = weights.subset, family="poisson")
-      subset.test[i] <- cor(y_i, u_i)
-      subset.calib[i,] <- calibration(y_i, u_i, family = family)
-    }
-    
   } # end of Cross Validation Fold Loop
   
   data$predicted <- fitted.values
@@ -764,13 +776,7 @@ cv.fct <- function(out,         # out list
     cv.test <- roc(obs, u_i)
     cv.calib <- calibration(obs, u_i)
   }
-  
-  if (family == "poisson"){
-    cv.resid.deviance <- calc.deviance(obs, u_i, weights = site.weights, family="poisson")
-    cv.test <- cor(obs, u_i)
-    cv.calib <- calibration(obs, u_i, family = "poisson")
-  }
-  
+   
   subset.test.mean <- mean(subset.test)
   subset.test.se <- sqrt(var(subset.test))/sqrt(nk)
   
