@@ -5,8 +5,11 @@
 
 library(tidyverse)
 library(png)
-if(!"magick" %in% rownames(installed.packages())){install.packages("magick")}
-library(magick)
+library(tibble)
+library(dplyr)
+library(tidyr)
+library(grid)
+library(gridExtra)
 
 # Functions --------------------------------------------------------------------
 
@@ -38,12 +41,6 @@ buildFillerImage <- function(outputPath){
 # parameters <- parameterNames
 # outputPath <- ssimTempDir  
 
-library(tibble)
-library(dplyr)
-library(tidyr)
-library(png)
-library(grid)
-library(gridExtra)
 
 # buildTuningMatrices: assemble PNG panels into a labeled matrix
 buildTuningMatrices <- function(modType,
