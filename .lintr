@@ -1,0 +1,8 @@
+linters: linters_with_defaults(
+    object_name_linter("camelCase"),
+    return_linter(
+        return_style = c("explicit")
+    ),
+    line_length_linter = NULL
+  )
+encoding: "UTF-8"

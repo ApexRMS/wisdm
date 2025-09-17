@@ -1,0 +1,38 @@
+# -------------------------------------------------------------------
+# 1. Tell CodeRabbit where to find your coding standards
+# -------------------------------------------------------------------
+code_guidelines:
+  - .vscode/copilot-instructions.md
+
+# -------------------------------------------------------------------
+# 2. Review settings
+# -------------------------------------------------------------------
+reviews:
+  # Choose the type of review: "pull_request", "push", or both
+  on: pull_request
+
+  # How strict to be when applying rules from your guidelines
+  strictness: high # options: low, medium, high
+
+  # Limit review to certain file types or paths
+  include:
+    - "**/*.js"
+    - "**/*.ts"
+    - "**/*.py"
+    - "**/*.md"
+    - "**/*.R"
+    - "**/*.xml"
+    - "**/*.yml"
+
+  # Exclude paths from review
+  exclude:
+    - "node_modules/**"
+    - "dist/**"
+    - "build/**"
+
+# -------------------------------------------------------------------
+# 3. Optional: AI model / verbosity settings
+# -------------------------------------------------------------------
+ai:
+  verbosity: detailed # options: brief, detailed
+  tone: constructive # options: friendly, constructive, strict
