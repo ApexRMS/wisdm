@@ -185,25 +185,25 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
     modVars <- attr(terms(formula(mod)), "term.labels")
     modVars <- unique(unlist(strsplit(gsub("I\\(", "", gsub("\\^2\\)", "", modVars)), ":")))
     trainingData <- mod$data
-    predictFct   <- glm.predict
+    predictFct <- glm.predict
   } else if (modType == "rf") {
-    modVars      <- rownames(mod$importance)
+    modVars <- rownames(mod$importance)
     trainingData <- mod$trainingData
-    predictFct   <- rf.predict
+    predictFct <- rf.predict
     library(randomForest)
   } else if (modType == "maxent") {
-    modVars      <- mod$Raw.coef$V1
+    modVars <- mod$Raw.coef$V1
     trainingData <- mod$trainingData
     mod$trainingData <- NULL
-    predictFct   <- maxent.predict
+    predictFct <- maxent.predict
   } else if (modType == "brt") {
-    modVars      <- mod$contributions$var
+    modVars <- mod$contributions$var
     trainingData <- mod$trainingData
-    predictFct   <- brt.predict
+    predictFct <- brt.predict
   } else if (modType == "gam") {
-    modVars      <- attr(mod$terms, "term.labels")
+    modVars <- attr(mod$terms, "term.labels")
     trainingData <- mod$trainingData
-    predictFct   <- gam.predict
+    predictFct <- gam.predict
   } else {
     stop("Unsupported model type: ", modType)
   }
@@ -536,7 +536,7 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
   # ------------------------------------------------------------------
   # Save output paths to datasheet
   # ------------------------------------------------------------------
-  spatialOutputsSheet <- addRow(spatialOutputsSheet, 
+  spatialOutputsSheet <- bind_rows(spatialOutputsSheet, 
                                   list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType]))
   outputRow <- which(spatialOutputsSheet$ModelsID == modelsSheet$ModelName[modelsSheet$ModelType == modType])
   
