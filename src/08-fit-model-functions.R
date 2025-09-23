@@ -165,8 +165,7 @@ fitModel <- function(dat,           # df of training data
       error = function(err) {
         message("randomForest() failed: ", err$message)
         NULL
-      }
-    )
+      })
     
     # Returns either the fitted model or NULL
     return(modelRF)
@@ -276,161 +275,45 @@ fitModel <- function(dat,           # df of training data
     wt <- ifelse(dat$Response == 1, 1, prNum / bgNum)
     
     # tmp <- Sys.time()
-    if(fullFit){
-      if(out$validationOptions$CrossValidate){
-        modelBRT <- dismo::gbm.step(data = dat,
-                            gbm.x = 8:ncol(dat),                              # column indices for covariates
-                            gbm.y = 4,                                        # column index for response
-                            family = out$modelFamily,
-                            tree.complexity = ifelse(prNum < 50, 1, 5),
-                            learning.rate = out$modOptions$LearningRate,
-                            bag.fraction = out$modOptions$BagFraction,
-                            max.trees = out$modOptions$MaximumTrees,
-                            n.trees = out$modOptions$NumberOfTrees,
-                            n.folds = nFolds,                                 # number of cross-validation folds
-                            fold.vector = dat$ModelSelectionSplit,            # set predefined cross-validation folds
-                            site.weights = wt,
-                            plot.main = FALSE)
-      } else{
-        modelBRT <- dismo::gbm.step(data = dat,
-                             gbm.x = 8:ncol(dat),                                  # column indices for covariates
-                             gbm.y = 4,                                            # column index for response
-                             family = out$modelFamily,
-                             tree.complexity = ifelse(prNum < 50, 1, 5),
-                             learning.rate = out$modOptions$LearningRate,
-                             bag.fraction = out$modOptions$BagFraction,
-                             max.trees = out$modOptions$MaximumTrees,
-                             n.trees = out$modOptions$NumberOfTrees,
-                             # step.size = out$modOptions$stepSize,
-                             n.folds = nFolds,                                     # number of cross-validation folds
-                             site.weights = wt,
-                             plot.main = FALSE)                                    # avoid plotting hold-out deviance curve
-                             # silent = TRUE)                                       # avoid printing the cv results
-      }
-    } else {
-      modelBRT <- dismo::gbm.step(data = dat,
-                           gbm.x = 8:ncol(dat),                                  # column indices for covariates
-                           gbm.y = 4,                                            # column index for response
-                           family = out$modelFamily,
-                           tree.complexity = ifelse(prNum < 50, 1, 5),
-                           learning.rate = out$modOptions$LearningRate,
-                           bag.fraction = out$modOptions$BagFraction,
-                           max.trees = out$modOptions$MaximumTrees,
-                           n.trees = out$modOptions$NumberOfTrees,
-                           n.folds = 1,                                         # disables internal CV  
-                           fold.vector = rep(1, nrow(dat)),                     # set all rows to one "fold"
-                           site.weights = wt,
-                           plot.main = FALSE)                                    # avoid plotting hold-out deviance curve
+    modelBRT <- tryCatch({
       
-    }
-     # Sys.time() - tmp
-     return(modelBRT)
+      if(fullFit){ # cross-validation used for model tuning
+          dismo::gbm.step(data = dat,
+                          gbm.x = 8:ncol(dat),                              # column indices for covariates
+                          gbm.y = 4,                                        # column index for response
+                          family = out$modelFamily,
+                          tree.complexity = ifelse(prNum < 50, 1, 5),
+                          learning.rate = out$modOptions$LearningRate,
+                          bag.fraction = out$modOptions$BagFraction,
+                          max.trees = out$modOptions$MaximumTrees,
+                          n.trees = out$modOptions$NumberOfTrees,
+                          n.folds = nFolds,                                 # number of cross-validation folds
+                          # fold.vector = dat$ModelSelectionSplit,            # set predefined cross-validation folds
+                          site.weights = wt,
+                          plot.main = FALSE)
+
+        } else { # cross-validation used for model evaluation (run from cv.fct where data is subset by fold prior to call)
+          gbm::gbm(formula = Response ~ .,
+            data = dat[, c(4, 8:ncol(dat))],                      # response + predictors
+            distribution = out$modelFamily,
+            n.trees = out$modOptions$NumberOfTrees,
+            interaction.depth = ifelse(prNum < 50, 1, 5),
+            shrinkage = out$modOptions$LearningRate,
+            bag.fraction = out$modOptions$BagFraction,
+            n.minobsinnode = 10,                                  # minimum number of training observations per tree node; gbm default is 10
+            weights = wt,
+            keep.data = TRUE,
+            verbose = FALSE)                                      # avoid printing to console
+      }}, 
+    error = function(err) {
+      message("gbm.step() failed: ", err$message)
+      NULL
+    })
+    
+    # Returns either the fitted model or NULL
+    return(modelBRT)
   }
-    # brt.full<-list()
-    # lr.list<-list()
-    # mod.simp<-list()
-    # 
-    # 
-    # if(!is.null(tc)) out$mods$parms$tc.full<-out$mods$parms$tc.sub<-tc
-    # 
-    # #going to try to estimate learning rate and predictors to use in final model not just on the subset but by calculating for
-    # #several of the splits (if the used was split)
-    # lr.samp<-sample(1:num.splits,size=min(num.splits,5),replace=FALSE)
-    # for(i in 1:length(lr.samp)){
-    #   if(length(lr.samp)>1) {out$dat$Subset$dat<-dat[c(Split,rep(lr.samp[i],times=sum(dat$response>0)))==lr.samp[i],]
-    #   out$dat$Subset$weight<-weight[c(Split,rep(lr.samp[i],times=sum(dat$response>0)))==lr.samp[i]]
-    #   if(is.null(out$dat$Subset$weight))  out$dat$Subset$weight<-rep(1,times=nrow(out$dat$Subset$dat))
-    #   out$dat$Subset$ratio=.5
-    #   }
-    #   lr.list[[i]]<-est.lr(out)
-    # }
-    # #now reassembling everything from lr estimation before continuing
-    # out$mods$lr.mod$good.cols<-unique(unlist(lapply(lr.list,function(lst){lst$lr.mod$good.cols})))
-    # out$mods$parms$tc.sub<-round(mean(unlist(lapply(lr.list,function(lst){lst$parms$tc.sub}))))
-    # out$mods$parms$tc.full<-round(mean(unlist(lapply(lr.list,function(lst){lst$parms$tc.full}))))
-    # out$mods$lr.mod$lr0<-mean(unlist(lapply(lr.list,function(lst){lst$lr.mod$lr0})))
-    # out$mods$lr.mod$lr<-mean(unlist(lapply(lr.list,function(lst){lst$lr.mod$lr})))
-    # 
-    # cat("\nfinished with learning rate estimation, lr=",out$mods$lr.mod$lr0)
-    # cat("\nfor final fit, lr=",out$mods$lr.mod$lr,"and tc=",out$mods$parms$tc.full,"\n")
-    # 
-    # if(simp.method=="cross-validation"){
-    #   for(i in 1:length(lr.samp)){
-    #     if(length(lr.samp)>1) {out$dat$Subset$dat<-dat[c(Split,rep(lr.samp[i],times=sum(dat$response>0)))==lr.samp[i],]
-    #     out$dat$Subset$weight<-weight[c(Split,rep(lr.samp[i],times=sum(dat$response>0)))==lr.samp[i]]
-    #     out$dat$Subset$ratio=.5
-    #     }
-    #     # remove variables with <1% relative influence and re-fit model
-    #     if(length(out$mods$lr.mod$good.cols)<=1) stop("BRT must have at least two independent variables")
-    #     max.trees<-NULL
-    #     #learning rate estimation removes columns with low contributions to fit for removal
-    #     #here we put specify use all if no predictor selection was to occur
-    #     if(!predSelect) out$mods$lr.mod$good.cols<-seq(from=2,to=ncol(out$dat$Subset$dat))
-    # 
-    #     n.trees<-c(300,600,800,1000,1200,1500,1800)
-    #     if(!is.null(out$input$n.trees)) n.trees=out$input$n.trees
-    #     m0 <- gbm.step.fast(dat=out$dat$Subset$dat,gbm.x=out$mods$lr.mod$good.cols,gbm.y=1,family=model.family,
-    #                         n.trees = n.trees,step.size=step.size,max.trees=max.trees,
-    #                         tolerance.method=tolerance.method,tolerance=tolerance, n.folds=n.folds,prev.stratify=prev.stratify,
-    #                         tree.complexity=out$mods$parms$tc.sub,learning.rate=out$mods$lr.mod$lr0,bag.fraction=bag.fraction,site.weights=out$dat$Subset$weight,
-    #                         autostop=T,debug.mode=F,silent=!debug.mode,
-    #                         plot.main=F,superfast=F)
-    #     if(predSelect) mod.simp[[i]] <- gbm.simplify(m0,n.folds=n.folds,plot=F,verbose=F,alpha=alpha) # this step is very slow #
-    # 
-    #   }        #if we removed bad predictors the good predictor list otherwise make sure we specify include all again
-    #   if(predSelect) out$mods$simp.mod$good.cols <- unique(unlist(lapply(mod.simp,function(lst){lst$pred.list[[length(lst$pred.list)]]})))
-    #   else out$mods$simp.mod$good.cols <- seq(from=2,to=ncol(out$dat$Subset$dat))
-    #   out$mods$simp.mod$good.vars <- names(dat)[out$mods$simp.mod$good.cols]
-    #   {cat("\n");cat("50%\n")}
-    # }
-    # 
-    # final.mod<-list()
-    # 
-    # for(i in 1:num.splits){
-    #   if(out$mods$lr.mod$lr==0) out$mods$lr.mod$lr<-out$mods$lr.mod$lr0
-    #   n.trees<-c(300,600,800,1000,1200,1500,1800,2200,2600,3000,3500,4000,4500,5000)
-    #   if(!is.null(out$input$n.trees)) n.trees=out$input$n.trees
-    #   final.mod[[i]] <- gbm.step.fast(dat=dat[c(Split,rep(i,times=sum(dat$response>0)))==i,],gbm.x=out$mods$simp.mod$good.cols,gbm.y = 1,family=model.family,
-    #                                   n.trees = n.trees,n.folds=n.folds,max.trees,
-    #                                   tree.complexity=out$mods$parms$tc.full,learning.rate=out$mods$lr.mod$lr,bag.fraction=bag.fraction,site.weights=rep(1,times=nrow(dat[c(Split,rep(i,times=sum(dat$response>0)))==i,])),
-    #                                   autostop=T,debug.mode=F,silent=!debug.mode,plot.main=F,superfast=F)
-    #   #
-    #   y <- gbm.interactions(final.mod[[i]])
-    #   int <- y$rank.list;
-    #   int<-int[int$p<.05,]
-    #   int <- int[order(int$p),]
-    #   int$p <- round(int$p,4)
-    #   names(int) <- c("v1","name1","v2","name2","int.size","p-value")
-    #   row.names(int)<-NULL
-    #   if(full.fit){
-    #     if(nrow(int)>0) out$mods$interactions[[i]] <- int else out$mods$interactions[[i]] <- NULL
-    #   }
-    # }
-    # 
-    # if(full.fit) {
-    # 
-    #   #post processing steps
-    #   out$mods$final.mod<-final.mod
-    #   var.name<-unlist(lapply(final.mod,function(lst){as.character(lst$contributions[,1])}))
-    #   var.contrib<-unlist(lapply(final.mod,function(lst){lst$contributions[,2]}))
-    #   var.final<-unique(var.name)
-    #   #storing number of variables in final model
-    #   out$mods$vnames<- unique(var.name)
-    #   #can't take mean here because we need to account for when the variable didn't show up in the model
-    #   out$mods$summary<-aggregate(var.contrib,list(Var=var.name),FUN=sum)
-    #   out$mods$summary[,2]<-out$mods$summary[,2]/num.splits
-    #   names(out$mods$summary)[2]<-"rel.inf"
-    #   out$mods$summary<-out$mods$summary[order(out$mods$summary$rel.inf,decreasing=TRUE),]
-    #   out$mods$n.vars.final<-length(var.final)
-    # 
-    #   if(!is.null(unlist(lapply(out$mods$interactions,is.null)))){
-    #     interaction.lst<-out$mods$interactions[!unlist(lapply(out$mods$interactions,is.null))]
-    #     interactions<-(do.call("rbind",out$mods$interactions))[,1:4] #can't consider p-value just if they were included at least once
-    #     out$mods$interactions<-interactions[!duplicated(interactions[,1:4],MARGIN=1),]
-    #   } else out$mods$interactions=NULL
-    #   return(out)
-    # }
-    # else return(final.mod)
+    
   #================================================================
   #                        GAM
   #================================================================= 
@@ -475,41 +358,10 @@ fitModel <- function(dat,           # df of training data
     return(modelGAM)
   }
   
-  # #================================================================
-  # #          Habitat Suitability Criterion
-  # #================================================================= 
-  # if(Model=="udc"){
-  #   
-  #   out$mods$final.mod[[1]]<-read.udc(out$input$udc.file)
-  #   return(out)
-  # }
-  # 
-  # 
-  # SplitBackground(out,dat)
-  # out$dat$ma$train$Split<-c(Split,rep(0,times=sum(dat$response>0)))
-  # #================================================================
-  # #                        MARS
-  # #================================================================= 
-  # if(Model=="mars") {
-  #   fit_contribs<-list()
-  #   mars.model<-list()
-  #   for(i in 1:num.splits){
-  #     mars.model[[i]]<-earth(response~.,data=dat[c(Split,rep(i,times=sum(dat$response>0)))==i,],degree=mars.degree,penalty=mars.penalty,glm=list(family=model.family))
-  #     
-  #     #
-  #     if(full.fit) {out$mods$final.mod[[i]]<-mars.model[[i]]
-  #     fit_contribs[[i]] <- evimp(mars.model[[i]],trim=TRUE)
-  #     }
-  #   }
-  #   if(full.fit){
-  #     assign("fit_contribs",fit_contribs,envir=parent.frame())
-  #     return(out)
-  #   } else return(mars.model)
-  # }
-
 }
 
 ### Read Maxent ----------------------------------------------------------------
+# function to read in maxent lambdas file and extract coefficients for each feature type
 
 read.maxent<-function(lambdas){
   lambdas <- read.csv(lambdas,header=FALSE)
@@ -523,7 +375,7 @@ read.maxent<-function(lambdas){
   fctType[grep("[*]",as.character(lambdas[,1]))]<-"product"
   fctType[grep("[(]",as.character(lambdas[,1]))]<-"threshold"
   
-  #make these all default to NULL in case the feature type was turned off
+  # make these all default to NULL in case the feature type was turned off
   Raw.coef<-Quad.coef<-Prod.coef<-Fwd.Hinge<-Rev.Hinge<-Thresh.val<-Raw.mult<-Quad.mult<-
     Prod.mult<-FH.mult<-FH.cnst<-Rev.mult<-Rev.cnst<-Thresh.cnst<-NULL
   
@@ -557,10 +409,10 @@ read.maxent<-function(lambdas){
     "Thresh.val"<-lambdas[fctType=="threshold",]
     Thresh.cnst<-Thresh.val[,2]
   }
-  
-  
+    
   retn.lst<-list(Raw.coef=Raw.coef,Quad.coef=Quad.coef,Prod.coef=Prod.coef,Fwd.Hinge=Fwd.Hinge,Rev.Hinge=Rev.Hinge,Thresh.val=Thresh.val,Raw.mult=Raw.mult,Quad.mult=Quad.mult,
                  Prod.mult=Prod.mult,FH.mult=FH.mult,FH.cnst=FH.cnst,Rev.mult=Rev.mult,Rev.cnst=Rev.cnst,Thresh.cnst=Thresh.cnst,normalizers=normalizers,entropy=entropy)
+  
   return(retn.lst)
 }
 
@@ -576,57 +428,60 @@ est.lr <- function(dat, out){
   } else { nFolds <- 10 }
   
   # calculating the case weights
-  prNum <- as.numeric(table(dat$Response)["1"])                                 # number of presences
-  bgNum <- as.numeric(table(dat$Response)["0"])                                 # number of backgrounds
+  prNum <- as.numeric(table(dat$Response)["1"])                     # number of presences
+  bgNum <- as.numeric(table(dat$Response)["0"])                     # number of backgrounds
   wt <- ifelse(dat$Response == 1, 1, prNum / bgNum)
 
-  n.trees <- c(100,200,400,800,900,1000,1100,1200,1500,1800,2400)
-  lrs <- c(.1,.05,.02,.01,.005,.0025,.001,.0005,.0001) # .1
+  # learning rates to test
+  lrs <- c(.1,.05,.02,.01,.005,.0025,.001,.0005,.0001) 
   lr.out <- NULL
   trees.fit <- 0
   i <- 1
   
-  while(trees.fit < 1000 & i <= length(lrs)){
+  while(trees.fit < 3000 & i <= length(lrs)){
+
+    # pick tree grid adaptively by learning rate
+    lr <- lrs[i]
+    if (lr >= 0.05) {
+      n.trees <- c(100, 250, 500, 1000)
+    } else if (lr >= 0.01) {
+      n.trees <- c(500, 1000, 2000, 3000)
+    } else if (lr >= 0.0025) {
+      n.trees <- c(1000, 2000, 4000, 6000)
+    } else {
+      n.trees <- c(2000, 5000, 10000)
+    }
+
     n <- 1
     repeat {
       gbm.fit <- try(
-        if(out$validationOptions$CrossValidate){
-           dismo::gbm.step(data = dat,
-                          gbm.x = 8:ncol(dat),                              # column indices for covariates
-                          gbm.y = 4,                                        # column index for response
-                          family = out$modelFamily,
-                          tree.complexity = ifelse(prNum < 50, 1, 5),
-                          learning.rate = lrs[i],
-                          bag.fraction = out$modOptions$BagFraction,
-                          max.trees = out$modOptions$MaximumTrees,
-                          n.trees = n.trees[n],
-                          n.folds = 1, # nFolds,                                 # number of cross-validation folds
-                          fold.vector = rep(1,nrow(dat)), # dat$ModelSelectionSplit,            # set predefined cross-validation folds
-                          site.weights = wt,
-                          plot.main = FALSE)
-        } else{
-          dismo::gbm.step(data = dat,
-                          gbm.x = 8:ncol(dat),                              # column indices for covariates
-                          gbm.y = 4,                                        # column index for response
-                          family = out$modelFamily,
-                          tree.complexity = ifelse(prNum < 50, 1, 5),
-                          learning.rate = lrs[i],
-                          bag.fraction = out$modOptions$BagFraction,
-                          max.trees = out$modOptions$MaximumTrees,
-                          n.trees = n.trees[n],
-                          n.folds = nFolds,                                 # number of cross-validation folds
-                          site.weights = wt,
-                          plot.main = FALSE)
-        }, silent = TRUE)
+        # cross-validation used for model tuning - gbm.step not used here as we need to loop through learning rates 
+          gbm::gbm(formula = Response ~ .,
+            data = dat[, c(4, 8:ncol(dat))],                      # response + predictors
+            distribution = out$modelFamily,
+            n.trees = n.trees[n],
+            interaction.depth = ifelse(prNum < 50, 1, 5),
+            shrinkage = lrs[i],
+            bag.fraction = out$modOptions$BagFraction,
+            n.minobsinnode = 10,                                  # minimum number of training observations per tree node; gbm default is 10
+            cv.folds = nFolds,
+            weights = wt,
+            keep.data = TRUE,
+            verbose = FALSE
+            ), silent = TRUE)
 
       if(!inherits(gbm.fit, "try-error")){
-        trees.fit <- gbm.fit$n.trees
+        # Find optimal trees by CV
+        best.trees <- which.min(gbm.fit$cv.error)
+        cv.dev <- gbm.fit$cv.error[best.trees]
+        
+        trees.fit <- best.trees
         row_i <- cbind(lrs = lrs[i], 
                        n.trees = n.trees[n], 
                        trees.fit = trees.fit,
-                       cv.dev = gbm.fit$cv.statistics$deviance.mean)
+                       cv.dev = cv.dev)
         lr.out <- rbind(lr.out, row_i)
-        if(trees.fit >= 1000) break
+        if(trees.fit >= 3000) break
       } 
       n <- n+1
       if(n > length(n.trees)) break
@@ -634,17 +489,17 @@ est.lr <- function(dat, out){
     i <- i+1
   }
   
-  # pick lr and n.trees that gives closest to 1000 trees in final model 
+  # summarize lr outputs and save out data frame
   if (is.null(lr.out)){
     return(lr.out)
-  } else{
+  } else {
     lr.out <- as.data.frame(lr.out)
     ab <- coef(lm(trees.fit~log(lrs), data=lr.out))
     lr <- round(as.numeric(exp((1000-ab[1])/ab[2])),6)
     lr.out$abs <- abs(lr.out$trees.fit-1000)
     lr.out$d.lr <- abs(lr.out$lrs-lr)
     lr.out <- lr.out[order(lr.out$abs,lr.out$d.lr),]
-    lr.out <- lr.out[1,]
+    # lr.out <- lr.out[1,] # pick lr that gives closest to 1000 trees in final model (moved out of function)
     return(lr.out)
   } 
 }
