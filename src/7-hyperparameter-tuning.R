@@ -130,7 +130,7 @@ if(modType == "brt"){
 
 ## Validation Sheet
 if(nrow(validationDataSheet)<1){
-  validationDataSheet <- addRow(validationDataSheet, list(SplitData = FALSE,
+  validationDataSheet <- bind_rows(validationDataSheet, list(SplitData = FALSE,
                                                           CrossValidate = FALSE))
 }
 if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}

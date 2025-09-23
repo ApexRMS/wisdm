@@ -47,7 +47,7 @@ progressBar()
 
 ## Covariate selection 
 if(nrow(covariateSelectionSheet)<1){
-  covariateSelectionSheet <- addRow(covariateSelectionSheet, list(SelectionMethod = "Interactive (Correlation Viewer)"))
+  covariateSelectionSheet <- bind_rows(covariateSelectionSheet, list(SelectionMethod = "Interactive (Correlation Viewer)"))
 }
 
 if(is.na(covariateSelectionSheet$SelectionMethod)){covariateSelectionSheet$SelectionMethod <- "Interactive (Correlation Viewer)"}
@@ -220,7 +220,7 @@ if(covariateSelectionSheet$SelectionMethod == "Interactive (Correlation Viewer)"
   }
   
   # save image files
-  covariateCorrelationSheet <- addRow(
+  covariateCorrelationSheet <- bind_rows(
     covariateCorrelationSheet, 
     data.frame(InitialMatrix = file.path(ssimTempDir, 
                                          "InitialCovariateCorrelationMatrix.png"), 
