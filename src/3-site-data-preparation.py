@@ -147,7 +147,9 @@ if len(fieldDataSheet) == 0:
     # raise warning if field data was not provided
     raise ValueError("Field data was not provided. Please provide field data before continuing.")
 
-# check that field data is between 0 and 1
+# check that response data is provided and between 0 and 1
+if pd.isnull(fieldDataSheet.Response).any():
+    raise ValueError("Field data is missing values in the 'Response' column. Please provide presence-(pseudo)absence data before continuing.")
 if any(fieldDataSheet.Response)>1:
    # raise warning if field data includes counts
    raise ValueError("Field data contains counts in 'Response' column when occurrence data is expected. Please provide presence-(pseudo)absence data before continuing.")
