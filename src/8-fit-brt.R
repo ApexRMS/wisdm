@@ -271,6 +271,7 @@ progressBar(type = "begin", totalSteps = steps)
   updateRunLog(pander::pandoc.table.return(tbl, style = "simple", split.tables = 100))
   
   # save model info to temp storage
+  finalMod$trainingData <- trainingData
   saveRDS(finalMod, file = file.path(ssimTempDir, paste0(modType, "_model.rds")))
   
 ## Run Cross Validation (if specified) -----------------------------------------
