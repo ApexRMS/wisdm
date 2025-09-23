@@ -23,8 +23,8 @@
 <dataSheet name="Models" dataScope="Project" displayMember="ModelName">
 	<column name="ModelName" displayName="Model Name" dataType="String"/>
 	<column name="ModelType" displayName="Model Type" dataType="String"/>
-	<record columns="ModelName|ModelType"	values="Generalized Linear Model|glm"/>
-	<record columns="ModelName|ModelType"	values="Random Forest|rf"/>
+	<record columns="ModelName|ModelType" values="Generalized Linear Model|glm"/>
+	<record columns="ModelName|ModelType" values="Random Forest|rf"/>
 	<record columns="ModelName|ModelType" values="Maxent|maxent"/>
 	<record columns="ModelName|ModelType" values="Boosted Regression Trees|brt"/>
 </dataSheet>
