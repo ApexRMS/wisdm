@@ -154,6 +154,7 @@ progressBar()
 # Restriction layer -------------------------------------------------------------
 
 restrictRaster <- NULL
+tmp_restrict <- NULL
 
 if(nrow((restrictionSheet))>0){
   
@@ -552,7 +553,9 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
 
 # release/remove any remaining temps
 for (nm in c("restrictRaster")){ if (exists(nm, inherits = FALSE)){ rm(list = nm) }}
-unlink(tmp_restrict, force = TRUE)
+if (!is.null(tmp_restrict)) {
+  if (file.exists(tmp_restrict)) {unlink(tmp_restrict, force = TRUE)}
+}
 gc()
 
 # Finalize
