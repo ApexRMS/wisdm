@@ -56,7 +56,7 @@ progressBar(type = "begin", totalSteps = steps)
   
   ## GAM Sheet
   if(nrow(GAMSheet)<1){
-    GAMSheet <- addRow(GAMSheet, list(AllowShrinkageSmoothers = FALSE,
+    GAMSheet <- bind_rows(GAMSheet, list(AllowShrinkageSmoothers = FALSE,
                                       ConsiderLinearTerms = FALSE))
                                       # ConsiderInteractions = FALSE))
   }
@@ -68,7 +68,7 @@ progressBar(type = "begin", totalSteps = steps)
   
   ## Validation Sheet
   if(nrow(validationDataSheet)<1){
-    validationDataSheet <- addRow(validationDataSheet, list(SplitData = FALSE,
+    validationDataSheet <- bind_rows(validationDataSheet, list(SplitData = FALSE,
                                                             CrossValidate = FALSE))
   }
   if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}
@@ -260,28 +260,22 @@ progressBar(type = "begin", totalSteps = steps)
   tempFiles <- list.files(file.path(ssimTempDir, "Data"))
   
   # add model Outputs to datasheet
-  modelOutputsSheet <- addRow(modelOutputsSheet, 
+    modelOutputsSheet <- bind_rows(modelOutputsSheet, 
                               list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
-                                   ModelRDS = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"),
-                                   ResponseCurves = paste0(ssimTempDir,"\\Data\\", modType, "_ResponseCurves.png"),
-                                   TextOutput = paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),
-                                   ResidualSmoothPlot = paste0(ssimTempDir,"\\Data\\", modType, "_ResidualSmoothPlot.png"),
-                                   ResidualSmoothRDS = paste0(ssimTempDir,"\\Data\\", modType, "_ResidualSmoothFunction.rds")))
-  
-  
-  if(out$modelFamily != "poisson"){
-    if("gam_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_StandardResidualPlots.png") }
-    modelOutputsSheet$ConfusionMatrix <-  paste0(ssimTempDir,"\\Data\\", modType, "_ConfusionMatrix.png")
-    modelOutputsSheet$VariableImportancePlot <-  paste0(ssimTempDir,"\\Data\\", modType, "_VariableImportance.png")
-    modelOutputsSheet$VariableImportanceData <-  paste0(ssimTempDir,"\\Data\\", modType, "_VariableImportance.csv")
-    modelOutputsSheet$ROCAUCPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_ROCAUCPlot.png")
-    modelOutputsSheet$CalibrationPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_CalibrationPlot.png")
-  } else {
-    modelOutputsSheet$ResidualsPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_PoissonResidualPlots.png")
-  }
-  
-  if("gam_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- paste0(ssimTempDir,"\\Data\\", modType, "_AUCPRPlot.png") } 
-  
+                                   ModelRDS = file.path(ssimTempDir, paste0(modType, "_model.rds")),
+                                   ResponseCurves = file.path(ssimTempDir, paste0(modType, "_ResponseCurves.png")),
+                                   TextOutput = file.path(ssimTempDir, paste0(modType, "_output.txt")),
+                                   ResidualSmoothPlot = file.path(ssimTempDir, paste0(modType, "_ResidualSmoothPlot.png")),
+                                   ResidualSmoothRDS = file.path(ssimTempDir, paste0(modType, "_ResidualSmoothFunction.rds")),
+                                   ConfusionMatrix = file.path(ssimTempDir, paste0(modType, "_ConfusionMatrix.png")),
+                                   VariableImportancePlot =  file.path(ssimTempDir, paste0(modType, "_VariableImportance.png")),
+                                   VariableImportanceData =  file.path(ssimTempDir, paste0(modType, "_VariableImportance.csv")),
+                                   ROCAUCPlot = file.path(ssimTempDir, paste0(modType, "_ROCAUCPlot.png")),
+                                   CalibrationPlot = file.path(ssimTempDir, paste0(modType, "_CalibrationPlot.png"))))
+
+  if("gam_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- file.path(ssimTempDir, paste0(modType, "_StandardResidualPlots.png")) }
+  if("gam_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- file.path(ssimTempDir, paste0(modType, "_AUCPRPlot.png")) }
+
   saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs", append = T)
   progressBar(type = "end")
   

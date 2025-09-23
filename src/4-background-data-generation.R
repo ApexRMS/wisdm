@@ -50,7 +50,7 @@ fieldDataSheet <- fieldDataSheet[!fieldDataSheet$Response == -9999,]
 
 ## Background data options sheet
 if(nrow(backgroundDataOptionsSheet)<1){
-  backgroundDataOptionsSheet <- addRow(backgroundDataOptionsSheet, list(GenerateBackgroundSites = FALSE))
+  backgroundDataOptionsSheet <- bind_rows(backgroundDataOptionsSheet, list(GenerateBackgroundSites = FALSE))
 }
 if(is.na(backgroundDataOptionsSheet$GenerateBackgroundSites)){ backgroundDataOptionsSheet$GenerateBackgroundSites <- FALSE }
 if(backgroundDataOptionsSheet$GenerateBackgroundSites){

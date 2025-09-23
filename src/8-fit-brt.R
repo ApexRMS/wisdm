@@ -58,7 +58,7 @@ progressBar(type = "begin", totalSteps = steps)
   if(nrow(BRTSheet)<1 | all(is.na(BRTSheet))){
     fitFromDefaults <- TRUE
     BRTSheet <- BRTSheet %>% drop_na()
-    BRTSheet <- addRow(BRTSheet, list(FittingMethod = "Use defaults and tuning",
+    BRTSheet <- bind_rows(BRTSheet, list(FittingMethod = "Use defaults and tuning",
                                       LearningRate = 0.001,                     # learning.rate
                                       BagFraction = 0.75,                       # bag.fraction
                                       MaximumTrees = 10000,                     # max.trees
@@ -66,6 +66,10 @@ progressBar(type = "begin", totalSteps = steps)
   } else {
     if(BRTSheet$FittingMethod == "Use defaults and tuning"){ 
       fitFromDefaults <- TRUE
+      BRTSheet$LearningRate <- 0.001
+      BRTSheet$BagFraction <- 0.75
+      BRTSheet$MaximumTrees <- 10000
+      BRTSheet$NumberOfTrees <- 50
     } else {
       fitFromDefaults <- FALSE
       BRTSheet$FittingMethod <- "Use values provided below"
@@ -77,11 +81,9 @@ progressBar(type = "begin", totalSteps = steps)
   if(is.na(BRTSheet$MaximumTrees)){BRTSheet$MaximumTrees <- 10000}
   if(is.na(BRTSheet$NumberOfTrees)){BRTSheet$NumberOfTrees <- 50}
   
-  saveDatasheet(myScenario, BRTSheet, "wisdm_BRT")
-  
   ## Validation Sheet
   if(nrow(validationDataSheet)<1){
-    validationDataSheet <- addRow(validationDataSheet, list(SplitData = FALSE,
+    validationDataSheet <- bind_rows(validationDataSheet, list(SplitData = FALSE,
                                                             CrossValidate = FALSE))
   }
   if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}
@@ -172,7 +174,6 @@ progressBar(type = "begin", totalSteps = steps)
   capture.output(cat("Boosted Regression Tree Results"), file=file.path(ssimTempDir, paste0(modType, "_output.txt"))) 
   on.exit(capture.output(cat("Model Failed\n\n"),file=file.path(ssimTempDir, paste0(modType, "_output.txt"),append=TRUE)))  
 
-
 # Review model data ------------------------------------------------------------
 
   if(nrow(trainingData)/(length(out$inputVars)-1)<10){
@@ -184,68 +185,47 @@ progressBar(type = "begin", totalSteps = steps)
 # Fit model --------------------------------------------------------------------
   
   if(fitFromDefaults){
-    
-    # estimate learning rate
-    if(validationDataSheet$CrossValidate){
-      lr.list <- list()
-      for(i in 1:validationDataSheet$NumberOfFolds){
-        dat <- trainingData[trainingData$ModelSelectionSplit != i,]
-        lr.i <- est.lr(dat = dat, out = out)
-        if (is.null(lr.i)){
-          stop("Unable to fit model using defaults, parameter tuning, and current data split. Try preparing data with fewer cross validation folds.")
-        } else { lr.list[[i]] <-  lr.i}
-      }
-      BRTSheet$LearningRate <- out$modOptions$LearningRate <- mean(unlist(lapply(lr.list,function(lst){lst$lrs})))
-      BRTSheet$NumberOfTrees <- out$modOptions$NumberOfTrees <- mean(unlist(lapply(lr.list,function(lst){lst$n.trees})))
-    } else {
-      lr.out <- est.lr(dat = trainingData, out = out)
-      BRTSheet$LearningRate <- out$modOptions$LearningRate <- lr.out$lrs
-      BRTSheet$NumberOfTrees <- out$modOptions$NumberOfTrees <- lr.out$n.trees
+      # tune learning rate to give approx 1000 trees in final model
+      allLrOut <- est.lr(dat = trainingData, out = out)
+      lrOut <- allLrOut[allLrOut$n.trees != allLrOut$trees.fit,]
+      BRTSheet$LearningRate <- out$modOptions$LearningRate <- lrOut$lrs[1]
     }
+
   saveDatasheet(myScenario, BRTSheet, "wisdm_BRT")
-  }
   
   finalMod <- fitModel(dat = trainingData, 
                        out = out)
-  
+
   if(is.null(finalMod)){
     # updateRunLog("Unable to fit model with defined parameters. Try setting a smaller learning rate or smaller step size (i.e., Number of trees add per stage).")
     stop("Unable to fit model with defined parameters. Try setting a smaller learning rate or smaller step size (i.e., Number of trees added per stage).")
   }
   
-  # if(is.null(finalMod)){
-  #   repeat{
-  #     # out$modOptions$stepSize <- out$modOptions$stepSize-10
-  #     # out$modOptions$NumberOfTrees <- out$modOptions$NumberOfTrees-10
-  #     out$modOptions$LearningRate <- out$modOptions$LearningRate/2
-  #     
-  #     finalMod <- fitModel(dat = trainingData,
-  #                          out = out)
-  #    if(!is.null(finalMod)) break
-  #   }
-  #   # updateRunLog(paste0("Smaller step size required for model fitting. 'Number of Trees' reduced from ", BRTSheet$NumberOfTrees, " to ", out$modOptions$NumberOfTrees, "."))
-  #   # BRTSheet$NumberOfTrees <- out$modOptions$NumberOfTrees
-  #   updateRunLog(paste0("Smaller learning rate required for model fitting. Learning rate reduced from ", BRTSheet$LearningRate, " to ", out$modOptions$LearningRate, "."))
-  #   BRTSheet$LearningRate <- noquote(format(out$modOptions$LearningRate, scientific = F))
-  #   
-  #   saveDatasheet(myScenario, BRTSheet, "wisdm_BRT")
-  # }
-  
-  # finalMod$trainingData <- trainingData
-  
-  # add relevant model details to out 
+  # add relevant model details to out
   out$finalMod <- finalMod
   out$finalVars <- finalMod$contributions$var # brt doesn't drop variables
   out$nVarsFinal <- length(out$finalVars)
+
+  # number of trees
+  nTrees <- if (!is.null(finalMod$gbm.call$best.trees)) { # gbm.step stores optimal number of trees here
+    finalMod$gbm.call$best.trees
+  } else if (!is.null(finalMod$n.trees)) { # gbm stores the maximum number fitted
+    finalMod$n.trees
+  } else { NA }
   
-  txt0 <- paste("\n\n","Settings:\n",
-                # if(out$pseudoAbs) "(Averaged across available splits)\n", 
+  # number of folds
+  cvFolds <- if (!is.null(finalMod$gbm.call$cv.folds)) { # gbm.step
+    finalMod$gbm.call$cv.folds
+  } else if (!is.null(finalMod$cv.folds)) { # gbm
+    finalMod$cv.folds
+  } else { NA }
+  
+  txt0 <- paste("\n\n","Settings:\n",              
                 # "\n\trandom seed used             : ",out$input$seed,
                 "\n\ttree complexity              : ",finalMod$interaction.depth,
                 "\n\tlearning rate                : ",finalMod$shrinkage,
-                "\n\tn(trees)                     : ",finalMod$n.trees,
-                # "\n\tmodel simplification         : ",simp.method,
-                "\n\tn folds                      : ",finalMod$gbm.call$cv.folds,
+                "\n\tn(trees)                     : ",nTrees,
+                "\n\tn folds                      : ",cvFolds,
                 "\n\tn covariates in final model  : ",paste(out$finalVars, collapse = ", "),
                 sep="")
   
@@ -291,6 +271,7 @@ progressBar(type = "begin", totalSteps = steps)
   updateRunLog(pander::pandoc.table.return(tbl, style = "simple", split.tables = 100))
   
   # save model info to temp storage
+  finalMod$trainingData <- trainingData
   saveRDS(finalMod, file = file.path(ssimTempDir, paste0(modType, "_model.rds")))
   
 ## Run Cross Validation (if specified) -----------------------------------------
@@ -319,26 +300,20 @@ progressBar(type = "begin", totalSteps = steps)
   tempFiles <- list.files(ssimTempDir)
   
   # add model Outputs to datasheet
-  modelOutputsSheet <- addRow(modelOutputsSheet, 
+  modelOutputsSheet <- bind_rows(modelOutputsSheet, 
                               list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
                                    ModelRDS = file.path(ssimTempDir, paste0(modType, "_model.rds")),
                                    ResponseCurves = file.path(ssimTempDir, paste0(modType, "_ResponseCurves.png")),
                                    TextOutput = file.path(ssimTempDir, paste0(modType, "_output.txt")),
                                    ResidualSmoothPlot = file.path(ssimTempDir, paste0(modType, "_ResidualSmoothPlot.png")),
-                                   ResidualSmoothRDS = file.path(ssimTempDir, paste0(modType, "_ResidualSmoothFunction.rds"))))
-  
-  
-  if(out$modelFamily != "poisson"){
-    if("brt_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- file.path(ssimTempDir, paste0(modType, "_StandardResidualPlots.png")) }
-    modelOutputsSheet$ConfusionMatrix <- file.path(ssimTempDir, paste0(modType, "_ConfusionMatrix.png"))
-    modelOutputsSheet$VariableImportancePlot <- file.path(ssimTempDir, paste0(modType, "_VariableImportance.png"))
-    modelOutputsSheet$VariableImportanceData <- file.path(ssimTempDir, paste0(modType, "_VariableImportance.csv"))
-    modelOutputsSheet$ROCAUCPlot <- file.path(ssimTempDir, paste0(modType, "_ROCAUCPlot.png"))
-    modelOutputsSheet$CalibrationPlot <- file.path(ssimTempDir, paste0(modType, "_CalibrationPlot.png"))
-  } else {
-    modelOutputsSheet$ResidualsPlot <- file.path(ssimTempDir, paste0(modType, "_PoissonResidualPlots.png"))
-  }
-  
+                                   ResidualSmoothRDS = file.path(ssimTempDir, paste0(modType, "_ResidualSmoothFunction.rds")),
+                                   ConfusionMatrix = file.path(ssimTempDir, paste0(modType, "_ConfusionMatrix.png")),
+                                   VariableImportancePlot =  file.path(ssimTempDir, paste0(modType, "_VariableImportance.png")),
+                                   VariableImportanceData =  file.path(ssimTempDir, paste0(modType, "_VariableImportance.csv")),
+                                   ROCAUCPlot = file.path(ssimTempDir, paste0(modType, "_ROCAUCPlot.png")),
+                                   CalibrationPlot = file.path(ssimTempDir, paste0(modType, "_CalibrationPlot.png"))))
+
+  if("brt_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- file.path(ssimTempDir, paste0(modType, "_StandardResidualPlots.png")) }
   if("brt_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- file.path(ssimTempDir, paste0(modType, "_AUCPRPlot.png")) } 
   
   saveDatasheet(myScenario, modelOutputsSheet, "wisdm_OutputModel", append = T)

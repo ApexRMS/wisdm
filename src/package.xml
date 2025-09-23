@@ -26,7 +26,7 @@
 	<record columns="ModelName|ModelType"	values="Generalized Linear Model|glm"/>
 	<record columns="ModelName|ModelType"	values="Random Forest|rf"/>
 	<record columns="ModelName|ModelType" values="Maxent|maxent"/>
-	<record columns="ModelName|ModelType" values="Boosted Regression Tree|brt"/>
+	<record columns="ModelName|ModelType" values="Boosted Regression Trees|brt"/>
 </dataSheet>
 
 <!--Scenario Datasheets-->
@@ -99,7 +99,7 @@
 
 <!--Model Options-->
 
-<dataSheet  name="BRT" displayName="Boosted Regression Tree" isSingleRow="True">
+<dataSheet  name="BRT" displayName="Boosted Regression Trees" isSingleRow="True">
 	<column name="FittingMethod" displayName="Fitting method" dataType="Integer" validationType="List" formula1="0:Use defaults and tuning|1:Use values provided below"/>
 	<column name="LearningRate" displayName="Learning rate" dataType="Double"/>
 	<column name="NumberOfTrees" displayName="Number of trees added per stage" dataType="Integer"/>
@@ -389,7 +389,7 @@
 <!--BRT Transformer-->
 <transformer
 	name="BRT"
-	displayName="8 - Boosted Regression Tree"
+	displayName="8 - Boosted Regression Trees"
 	programArguments="8-fit-brt.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
