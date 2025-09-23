@@ -61,7 +61,7 @@ if(!any(fieldDataSheet$Response == -9998)){
 
 ## Validation Sheet
 if(nrow(validationDataSheet)<1){
-  validationDataSheet <- addRow(validationDataSheet, list(SplitData = FALSE,
+  validationDataSheet <- bind_rows(validationDataSheet, list(SplitData = FALSE,
                                                           CrossValidate = FALSE))
 }
 if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}
@@ -70,7 +70,7 @@ if(is.na(validationDataSheet$SplitData)){validationDataSheet$SplitData <- FALSE}
 ## Maxent Sheet 
 if(nrow(maxentSheet)<1 | all(is.na(maxentSheet))){
   maxentSheet <- maxentSheet %>% drop_na()
-  maxentSheet <- addRow(maxentSheet, list(MemoryLimit = 512,
+  maxentSheet <- bind_rows(maxentSheet, list(MemoryLimit = 512,
                                           VisibleInterface = FALSE,
                                           MaximumBackgroundPoints = 10000,
                                           SaveMaxentFiles = FALSE))
@@ -310,7 +310,7 @@ progressBar()
 tempFiles <- list.files(ssimTempDir)
 
 # add model Outputs to datasheet
-modelOutputsSheet <- addRow(modelOutputsSheet, 
+modelOutputsSheet <- bind_rows(modelOutputsSheet, 
                             list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
                                  ModelRDS = file.path(ssimTempDir, paste0(modType, "_model.rds")),
                                  ResponseCurves = file.path(ssimTempDir, paste0(modType, "_ResponseCurves.png")),

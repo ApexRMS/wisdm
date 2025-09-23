@@ -57,7 +57,7 @@ progressBar(type = "begin", totalSteps = steps)
   
   ## GLM Sheet
   if(nrow(GLMSheet)<1){
-    GLMSheet <- addRow(GLMSheet, list(SelectBestPredictors = FALSE,
+    GLMSheet <- bind_rows(GLMSheet, list(SelectBestPredictors = FALSE,
                                       SimplificationMethod = "AIC",
                                       ConsiderSquaredTerms = FALSE,
                                       ConsiderInteractions = FALSE))
@@ -71,7 +71,7 @@ progressBar(type = "begin", totalSteps = steps)
   
   ## Validation Sheet
   if(nrow(validationDataSheet)<1){
-    validationDataSheet <- addRow(validationDataSheet, list(SplitData = FALSE,
+    validationDataSheet <- bind_rows(validationDataSheet, list(SplitData = FALSE,
                                                             CrossValidate = FALSE))
   }
   if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}
@@ -257,27 +257,21 @@ progressBar(type = "begin", totalSteps = steps)
   tempFiles <- list.files(ssimTempDir)
   
   # add model Outputs to datasheet
-  modelOutputsSheet <- addRow(modelOutputsSheet, 
+  modelOutputsSheet <- bind_rows(modelOutputsSheet, 
                               list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
                                    ModelRDS = file.path(ssimTempDir, paste0(modType, "_model.rds")),
                                    ResponseCurves = file.path(ssimTempDir, paste0(modType, "_ResponseCurves.png")),
                                    TextOutput = file.path(ssimTempDir, paste0(modType, "_output.txt")),
                                    ResidualSmoothPlot = file.path(ssimTempDir, paste0(modType, "_ResidualSmoothPlot.png")),
-                                   ResidualSmoothRDS = file.path(ssimTempDir, paste0(modType, "_ResidualSmoothFunction.rds"))))
-  
-  
-  if(out$modelFamily != "poisson"){
-    if("glm_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- file.path(ssimTempDir, paste0(modType, "_StandardResidualPlots.png")) }
-    modelOutputsSheet$ConfusionMatrix <- file.path(ssimTempDir, paste0(modType, "_ConfusionMatrix.png"))
-    modelOutputsSheet$VariableImportancePlot <- file.path(ssimTempDir, paste0(modType, "_VariableImportance.png"))
-    modelOutputsSheet$VariableImportanceData <- file.path(ssimTempDir, paste0(modType, "_VariableImportance.csv"))
-    modelOutputsSheet$ROCAUCPlot <- file.path(ssimTempDir, paste0(modType, "_ROCAUCPlot.png"))
-    modelOutputsSheet$CalibrationPlot <- file.path(ssimTempDir, paste0(modType, "_CalibrationPlot.png"))
-  } else {
-    modelOutputsSheet$ResidualsPlot <- file.path(ssimTempDir, paste0(modType, "_PoissonResidualPlots.png"))
-  }
-  
-  if("glm_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- file.path(ssimTempDir, paste0(modType, "_AUCPRPlot.png")) } 
+                                   ResidualSmoothRDS = file.path(ssimTempDir, paste0(modType, "_ResidualSmoothFunction.rds")),
+                                   ConfusionMatrix = file.path(ssimTempDir, paste0(modType, "_ConfusionMatrix.png")),
+                                   VariableImportancePlot =  file.path(ssimTempDir, paste0(modType, "_VariableImportance.png")),
+                                   VariableImportanceData =  file.path(ssimTempDir, paste0(modType, "_VariableImportance.csv")),
+                                   ROCAUCPlot = file.path(ssimTempDir, paste0(modType, "_ROCAUCPlot.png")),
+                                   CalibrationPlot = file.path(ssimTempDir, paste0(modType, "_CalibrationPlot.png"))))
+
+  if("glm_StandardResidualPlots.png" %in% tempFiles){ modelOutputsSheet$ResidualsPlot <- file.path(ssimTempDir, paste0(modType, "_StandardResidualPlots.png")) }
+  if("glm_AUCPRPlot.png" %in% tempFiles){ modelOutputsSheet$AUCPRPlot <- file.path(ssimTempDir, paste0(modType, "_AUCPRPlot.png")) }
   
   saveDatasheet(myScenario, modelOutputsSheet, "wisdm_OutputModel", append = T)
   progressBar(type = "end")
