@@ -139,7 +139,7 @@ if networkSheet.NetworkEnabled.item() == "No":
     # pyproj.network.is_network_enabled()
 
 # Check that a template raster was provided
-if pd.isnull(templateRasterSheet.RasterFilePath.item()):
+if templateRasterSheet.empty or pd.isnull(templateRasterSheet.RasterFilePath.iloc[0]):
     raise ValueError("Template raster is missing.")
 
 # check if field data was provided

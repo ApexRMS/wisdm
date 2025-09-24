@@ -147,31 +147,31 @@ def prep_spatial_data():
         # pyproj.network.is_network_enabled()
 
     # Check that a template raster was provided
-    if pd.isnull(templateRasterSheet.RasterFilePath.item()):
+    if templateRasterSheet.empty or pd.isnull(templateRasterSheet.RasterFilePath.iloc[0]):
         raise ValueError("Template raster is missing.")
     
     # check if restriction raster was provided
-    def check_raster_range(filepath, min_allowed=0.0, max_allowed=1.0):
-        with rasterio.open(filepath) as src:
-            for _, window in src.block_windows(1):  # band 1
-                data = src.read(1, window=window, masked=True)
+    def check_raster_range(filepath, min_allowed=0.0, max_allowed=1.0, epsilon=1e-8):  
+        with rasterio.open(filepath) as src:  
+            for _, window in src.block_windows(1):  # band 1  
+                data = src.read(1, window=window, masked=True)  
+                # Skip if all values are nodata  
+                if np.ma.count(data) == 0:  
+                    continue  
+                # Scalarize masked mins/maxes and compare with tolerance  
+                block_min = float(np.ma.min(data))  
+                block_max = float(np.ma.max(data))  
+                if block_min < (min_allowed - epsilon) or block_max > (max_allowed + epsilon):  
+                    return False  # Out of range found  
+        return True  # All values are within range  
 
-                # Skip if all values are nodata
-                if data.mask.all():
-                    continue
-
-                block_min = data.min()
-                block_max = data.max()
-
-                if block_min < min_allowed or block_max > max_allowed:
-                    return False  # Out of range found
-
-        return True  # All values are within range
-
-    if not pd.isnull(restrictionRasterSheet.RasterFilePath.item()):
-        # if provided, ensure raster data is binary
-        if not check_raster_range(restrictionRasterSheet.RasterFilePath.item(), 0, 1):
-            raise ValueError("Restriction raster values must range from 0 to 1.")
+    # if provided, ensure raster data is between 0-1
+    restrictionPath = None
+    if not restrictionRasterSheet.empty:
+        restrictionPath = restrictionRasterSheet.RasterFilePath.iloc[0]
+        if pd.notnull(restrictionPath):
+            if not check_raster_range(restrictionRasterSheet.RasterFilePath.item(), 0, 1):
+                raise ValueError("Restriction raster values must range from 0 to 1.")
 
     # Identify categorical variables 
     catCovs = covariatesSheet.query('IsCategorical == "Yes"').CovariateName.tolist()
@@ -367,12 +367,11 @@ def prep_spatial_data():
     # Prepare restriction raster --------------------------------------------------
 
     # check if restriction raster was provided
-    if len(restrictionRasterSheet.RasterFilePath) > 0:
+    if pd.notnull(restrictionPath):
         ps.environment.progress_bar("message", message = "Processing restriction raster at " + datetime.now().strftime("%H:%M:%S"))
         ps.environment.update_run_log("Processing restriction raster at " + datetime.now().strftime("%H:%M:%S"))
 
         # Load raster, determine input and output paths
-        restrictionPath = restrictionRasterSheet.RasterFilePath.item()
         outputRestrictionPath = os.path.join(ssimTempDir, os.path.basename(restrictionRasterSheet.RasterFilePath.item()))
         
         with rioxarray.open_rasterio(restrictionPath, chunks = True) as restrictionRaster:
@@ -435,13 +434,13 @@ def prep_spatial_data():
 
                     with rioxarray.open_rasterio(unmaskedTempPath, chunks={'x': chunkDims, 'y': chunkDims}, lock = False) as restrictionRaster:
 
-                            # Mask and set no data value
-                            maskedRestrictionRaster = xr.concat([restrictionRaster, templateRaster], "band").chunk({'band':-1, 'x':chunkDims, 'y':chunkDims}).map_blocks(mask, kwargs=dict(input_nodata=restrictionRaster.rio.nodata, template_nodata=templateRaster.rio.nodata), template = restrictionRaster)
-                            maskedRestrictionRaster.rio.write_nodata(nodata_value, encoded=True, inplace=True)
-                            maskedRestrictionRaster = maskedRestrictionRaster.astype(signed_dtype)
+                        # Mask and set no data value
+                        maskedRestrictionRaster = xr.concat([restrictionRaster, templateRaster], "band").chunk({'band':-1, 'x':chunkDims, 'y':chunkDims}).map_blocks(mask, kwargs=dict(input_nodata=restrictionRaster.rio.nodata, template_nodata=templateRaster.rio.nodata), template = restrictionRaster)
+                        maskedRestrictionRaster.rio.write_nodata(nodata_value, encoded=True, inplace=True)
+                        maskedRestrictionRaster = maskedRestrictionRaster.astype(signed_dtype)
 
-                                # Write to disk
-                            maskedRestrictionRaster.rio.to_raster(outputRestrictionPath, dtype=signed_dtype, nodata=nodata_value, tiled = True, lock = SerializableLock(), windowed=True, overwrite = True, compress = 'lzw')
+                        # Write to disk
+                        maskedRestrictionRaster.rio.to_raster(outputRestrictionPath, dtype=signed_dtype, nodata=nodata_value, tiled = True, lock = SerializableLock(), windowed=True, overwrite = True, compress = 'lzw')
 
         # Tornado's ioloop.py occassionally throws an attribute error looking for an f_code attribute, but the output is still produced correctly
         except AttributeError:
