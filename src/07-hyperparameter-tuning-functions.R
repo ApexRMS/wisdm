@@ -76,8 +76,8 @@ buildTuningMatrices <- function(modType,            # "brt" or "rf"
   
   # tidy table: pivot to long, keep only relevant columns
   modelOutputsTable <- modelOutputsTable %>%
-    dplyr::select(-ModelsID, -ModelRDS, -ResidualSmoothRDS, -ResidualsPlot,
-      -TextOutput, -VariableImportanceData, -MaxentFiles, -fitFailed) %>%
+    dplyr::select(-any_of(c("ModelsID", "ModelRDS", "ResidualSmoothRDS", "ResidualsPlot",
+      "TextOutput", "VariableImportanceData", "MaxentFiles", "fitFailed"))) %>%
     pivot_longer(
       cols = seq(length(parameters)+1, ncol(.)),
       names_to = "ModelOutput", values_to = "ImageFile"

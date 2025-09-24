@@ -215,9 +215,15 @@ build_cov_stack <- function(cov_data,      # dataframe of CovariatesID, RasterFi
     missingTifs <- rows$CovariatesID[!file.exists(paths)]
     stop("Missing rasters in Covariate Data: ", paste(missingTifs, collapse = ", "))
   }
-  if (sum(file.access(paths), mode = 0) != 0) {
-    stop("Unreadable raster: ", paths[(file.access(paths) != 0)][1])
-  }
+  # Existence/readability checks  
+  if (any(file.access(paths, mode = 0) != 0)) {  
+    bad <- which(file.access(paths, mode = 0) != 0)[1]  
+    stop("Missing raster: ", paths[bad])  
+  }  
+  if (any(file.access(paths, mode = 4) != 0)) {  
+    bad <- which(file.access(paths, mode = 4) != 0)[1]  
+    stop("Unreadable raster: ", paths[bad])  
+  }  
   
   s <- rast(paths)
   names(s) <- rows$CovariatesID

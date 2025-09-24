@@ -250,13 +250,15 @@ modelEvaluation <- function(predOcc, predAbs) {
   
   N <- na + np
   
-  setClass("modelEvaluation",
-           slots = list(presence = "numeric",
-                        absence = "numeric",
-                        confusion = "matrix",
-                        stats = "data.frame",
-                        tr_stats = "data.frame",
-                        thresholds = "data.frame"))
+  if (!methods::isClass("modelEvaluation")) {
+    setClass("modelEvaluation",
+            slots = list(presence = "numeric",
+                          absence = "numeric",
+                          confusion = "matrix",
+                          stats = "data.frame",
+                          tr_stats = "data.frame",
+                          thresholds = "data.frame"))
+  }
   
   xc <- methods::new("modelEvaluation")
   xc@presence = p
@@ -335,4 +337,29 @@ modelEvaluation <- function(predOcc, predAbs) {
   return(xc)
 }
 
+# safe rbind function -------------------------------------------------------
 
+safe_rbind <- function(df, row) {
+  # Ensure row is a data.frame
+  if (!is.data.frame(row)) {
+    row <- as.data.frame(row, stringsAsFactors = FALSE)
+  }
+  
+  # Add any missing columns to row
+  for (col in setdiff(names(df), names(row))) {
+    row[[col]] <- NA
+  }
+  
+  # Add any new columns to df
+  for (col in setdiff(names(row), names(df))) {
+    df[[col]] <- NA
+  }
+  
+  # Align column order
+  row <- row[names(df)]
+  
+  # Bind
+  df <- rbind(df, row)
+  rownames(df) <- NULL  # reset row names
+  return(df)
+}

@@ -48,8 +48,11 @@ progressBar(type = "begin", totalSteps = steps)
 # Error handling ---------------------------------------------------------------
 
   # check for both presence and absence data
+  if (nrow(fieldDataSheet) == 0L) {
+    stop("No Field Data found; please ensure that the Field Data datasheet is populated before continuing.")
+  }
   if(all(fieldDataSheet$Response == 1) | all(fieldDataSheet$Response == 0)){
-    stop("Random Forest is a presence-absences (or presence-background) method; please ensure that the Field Data includes both presence and absence (or pseudo-absence) data before continuing.")
+    stop("BRT is a presence-absences (or presence-background) method; please ensure that the Field Data includes both presence and absence (or pseudo-absence) data before continuing.")
   }
 
 #  Set defaults ----------------------------------------------------------------  
@@ -58,7 +61,7 @@ progressBar(type = "begin", totalSteps = steps)
   if(nrow(BRTSheet)<1 | all(is.na(BRTSheet))){
     fitFromDefaults <- TRUE
     BRTSheet <- BRTSheet %>% drop_na()
-    BRTSheet <- bind_rows(BRTSheet, list(FittingMethod = "Use defaults and tuning",
+    BRTSheet <- safe_rbind(BRTSheet, data.frame(FittingMethod = "Use defaults and tuning",
                                       LearningRate = 0.001,                     # learning.rate
                                       BagFraction = 0.75,                       # bag.fraction
                                       MaximumTrees = 10000,                     # max.trees
@@ -83,7 +86,7 @@ progressBar(type = "begin", totalSteps = steps)
   
   ## Validation Sheet
   if(nrow(validationDataSheet)<1){
-    validationDataSheet <- bind_rows(validationDataSheet, list(SplitData = FALSE,
+    validationDataSheet <- safe_rbind(validationDataSheet, data.frame(SplitData = FALSE,
                                                             CrossValidate = FALSE))
   }
   if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}
@@ -96,7 +99,8 @@ progressBar(type = "begin", totalSteps = steps)
   rm(siteDataSheet); gc()
   
   # remove variables dropped due to correlation
-  siteDataWide <- siteDataWide[,c('SiteID', retainedCovariatesSheet$CovariatesID)]
+  keepVars <- intersect(c('SiteID', retainedCovariatesSheet$CovariatesID), names(siteDataWide))
+  siteDataWide <- siteDataWide[, keepVars, drop = FALSE]
   
   # merge field and site data
   siteDataWide <- merge(fieldDataSheet, siteDataWide, by = "SiteID")
@@ -187,8 +191,13 @@ progressBar(type = "begin", totalSteps = steps)
   if(fitFromDefaults){
       # tune learning rate to give approx 1000 trees in final model
       allLrOut <- est.lr(dat = trainingData, out = out)
-      lrOut <- allLrOut[allLrOut$n.trees != allLrOut$trees.fit,]
-      BRTSheet$LearningRate <- out$modOptions$LearningRate <- lrOut$lrs[1]
+      if (is.null(allLrOut) || nrow(allLrOut) == 0L) {
+        updateRunLog("\nWarning: Learning-rate estimation failed; falling back to default 0.001\n")
+      } else {
+        lrOut <- allLrOut[allLrOut$n.trees != allLrOut$trees.fit, , drop = FALSE]
+        if (nrow(lrOut) == 0L) { lrOut <- allLrOut }
+        BRTSheet$LearningRate <- out$modOptions$LearningRate <- lrOut$lrs[1]
+      }
     }
 
   saveDatasheet(myScenario, BRTSheet, "wisdm_BRT")
@@ -300,8 +309,8 @@ progressBar(type = "begin", totalSteps = steps)
   tempFiles <- list.files(ssimTempDir)
   
   # add model Outputs to datasheet
-  modelOutputsSheet <- bind_rows(modelOutputsSheet, 
-                              list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
+  modelOutputsSheet <- safe_rbind(modelOutputsSheet, 
+                              data.frame(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
                                    ModelRDS = file.path(ssimTempDir, paste0(modType, "_model.rds")),
                                    ResponseCurves = file.path(ssimTempDir, paste0(modType, "_ResponseCurves.png")),
                                    TextOutput = file.path(ssimTempDir, paste0(modType, "_output.txt")),

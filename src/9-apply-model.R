@@ -72,7 +72,9 @@ if(any(is.na(covariatesSheet$ID))){
 
 ## Output options sheet
 if(nrow(outputOptionsSheet)<1){
-  outputOptionsSheet[1,] <- rbind(outputOptionsSheet, list(T, T, NA, T, T, T))
+  outputOptionsSheet <- safe_rbind(outputOptionsSheet, data.frame(
+    MakeProbabilityMap = T, MakeBinaryMap = F, ThresholdOptimization = NA, 
+    MakeResidualsMap = F, MakeMessMap = F, MakeModMap = F))
 }
 if(is.na(outputOptionsSheet$MakeProbabilityMap)){ outputOptionsSheet$MakeProbabilityMap <- F }
 if(is.na(outputOptionsSheet$MakeBinaryMap)){ outputOptionsSheet$MakeBinaryMap <- F }
@@ -537,9 +539,9 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
   # ------------------------------------------------------------------
   # Save output paths to datasheet
   # ------------------------------------------------------------------
-  spatialOutputsSheet <- bind_rows(spatialOutputsSheet, 
-                                  list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType]))
-  outputRow <- which(spatialOutputsSheet$ModelsID == modelsSheet$ModelName[modelsSheet$ModelType == modType])
+  spatialOutputsSheet <- safe_rbind(spatialOutputsSheet, 
+                                  data.frame(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType]))
+  outputRow <- nrow(spatialOutputsSheet)
   
   if (outputOptionsSheet$MakeProbabilityMap){ spatialOutputsSheet$ProbabilityRaster[outputRow] <- file.path(ssimTempDir, paste0(modType, "_prob_map.tif")) }
   if (outputOptionsSheet$MakeBinaryMap){ spatialOutputsSheet$BinaryRaster[outputRow] <- file.path(ssimTempDir, paste0(modType, "_bin_map.tif")) }

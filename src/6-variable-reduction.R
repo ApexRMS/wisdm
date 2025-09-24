@@ -16,6 +16,7 @@ library(dplyr)
 library(shiny)
 
 packageDir <- Sys.getenv("ssim_package_directory")
+source(file.path(packageDir, "00-helper-functions.R"))
 source(file.path(packageDir, "06-variable-reduction-functions.R"))
 
 # Set progress bar -------------------------------------------------------------
@@ -47,7 +48,7 @@ progressBar()
 
 ## Covariate selection 
 if(nrow(covariateSelectionSheet)<1){
-  covariateSelectionSheet <- bind_rows(covariateSelectionSheet, list(SelectionMethod = "Interactive (Correlation Viewer)"))
+  covariateSelectionSheet <- safe_rbind(covariateSelectionSheet, data.frame(SelectionMethod = "Interactive (Correlation Viewer)"))
 }
 
 if(is.na(covariateSelectionSheet$SelectionMethod)){covariateSelectionSheet$SelectionMethod <- "Interactive (Correlation Viewer)"}
@@ -220,7 +221,7 @@ if(covariateSelectionSheet$SelectionMethod == "Interactive (Correlation Viewer)"
   }
   
   # save image files
-  covariateCorrelationSheet <- bind_rows(
+  covariateCorrelationSheet <- safe_rbind(
     covariateCorrelationSheet, 
     data.frame(InitialMatrix = file.path(ssimTempDir, 
                                          "InitialCovariateCorrelationMatrix.png"), 

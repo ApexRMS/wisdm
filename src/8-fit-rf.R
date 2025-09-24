@@ -49,20 +49,18 @@ progressBar(type = "begin", totalSteps = steps)
 # Error handling ---------------------------------------------------------------
 
   # check for both presence and absence data
+  if (nrow(fieldDataSheet) == 0L) {
+    stop("No Field Data found; please ensure that the Field Data datasheet is populated before continuing.")
+  }
   if(all(fieldDataSheet$Response == 1) | all(fieldDataSheet$Response == 0)){
     stop("Random Forest is a presence-absences (or presence-background) method; please ensure that the Field Data includes both presence and absence (or pseudo-absence) data before continuing.")
   }
 
 #  Set defaults ----------------------------------------------------------------  
-  
-  # if response column contains only 1's and 0's response = presAbs
-  if(max(fieldDataSheet$Response)>1){
-    modelFamily <-"poisson" 
-  } else { modelFamily <- "binomial" }
-  
+    
   ## RF Sheet
   if(nrow(RFSheet)<1){
-    RFSheet <- bind_rows(RFSheet, list(EvaluateCovariateImportance = TRUE,         # importance
+    RFSheet <- safe_rbind(RFSheet, data.frame(EvaluateCovariateImportance = TRUE,         # importance
                                     CalculateCasewiseImportance = FALSE,        # localImp
                                     NumberOfVariablesSampled = NA,              # mtry
                                     MaximumNodes = NA,                          # maxnodes
@@ -75,10 +73,7 @@ progressBar(type = "begin", totalSteps = steps)
   
   if(is.na(RFSheet$EvaluateCovariateImportance)){RFSheet$EvaluateCovariateImportance <- TRUE}
   if(is.na(RFSheet$CalculateCasewiseImportance)){RFSheet$CalculateCasewiseImportance <- FALSE}
-  if(is.na(RFSheet$NodeSize)){
-    if(modelFamily == "poisson"){RFSheet$NodeSize <- 5}
-    if(modelFamily == "binomial"){RFSheet$NodeSize <- 1}
-  }
+  if(is.na(RFSheet$NodeSize)){RFSheet$NodeSize <- 1}
   if(is.na(RFSheet$NumberOfTrees)){RFSheet$NumberOfTrees <- 1000}
   if(is.na(RFSheet$NormalizeVotes)){RFSheet$NormalizeVotes <- TRUE}
   if(is.na(RFSheet$CalculateProximity)){RFSheet$CalculateProximity <- FALSE}
@@ -95,7 +90,7 @@ progressBar(type = "begin", totalSteps = steps)
   
   ## Validation Sheet
   if(nrow(validationDataSheet)<1){
-    validationDataSheet <- bind_rows(validationDataSheet, list(SplitData = FALSE,
+    validationDataSheet <- safe_rbind(validationDataSheet, data.frame(SplitData = FALSE,
                                                             CrossValidate = FALSE))
   }
   if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}
@@ -291,8 +286,8 @@ progressBar(type = "begin", totalSteps = steps)
   tempFiles <- list.files(ssimTempDir)
   
   # add model Outputs to datasheet
-  modelOutputsSheet <- bind_rows(modelOutputsSheet, 
-                              list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
+  modelOutputsSheet <- safe_rbind(modelOutputsSheet, 
+                              data.frame(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
                                    ModelRDS = file.path(ssimTempDir, paste0(modType, "_model.rds")),
                                    ResponseCurves = file.path(ssimTempDir, paste0(modType, "_ResponseCurves.png")),
                                    TextOutput = file.path(ssimTempDir, paste0(modType, "_output.txt")),

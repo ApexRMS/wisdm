@@ -48,6 +48,9 @@ progressBar(type = "begin", totalSteps = steps)
 # Error handling ---------------------------------------------------------------
 
   # check for both presence and absence data
+  if (nrow(fieldDataSheet) == 0L) {
+    stop("No Field Data found; please ensure that the Field Data datasheet is populated before continuing.")
+  }
   if(all(fieldDataSheet$Response == 1) | all(fieldDataSheet$Response == 0)){
     stop("GAM is a presence-absences method; please ensure that the Field Data includes both presence and absence (or pseudo-absence) data before continuing.")
   }
@@ -56,7 +59,7 @@ progressBar(type = "begin", totalSteps = steps)
   
   ## GAM Sheet
   if(nrow(GAMSheet)<1){
-    GAMSheet <- bind_rows(GAMSheet, list(AllowShrinkageSmoothers = FALSE,
+    GAMSheet <- safe_rbind(GAMSheet, data.frame(AllowShrinkageSmoothers = FALSE,
                                       ConsiderLinearTerms = FALSE))
                                       # ConsiderInteractions = FALSE))
   }
@@ -68,7 +71,7 @@ progressBar(type = "begin", totalSteps = steps)
   
   ## Validation Sheet
   if(nrow(validationDataSheet)<1){
-    validationDataSheet <- bind_rows(validationDataSheet, list(SplitData = FALSE,
+    validationDataSheet <- safe_rbind(validationDataSheet, data.frame(SplitData = FALSE,
                                                             CrossValidate = FALSE))
   }
   if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}
@@ -149,12 +152,12 @@ progressBar(type = "begin", totalSteps = steps)
   out$validationOptions <- validationDataSheet 
   
   ## path to temp ssim storage 
-  out$tempDir <- file.path(ssimTempDir, "Data")
+  out$tempDir <- ssimTempDir
   
 # Create output text file ------------------------------------------------------
 
-  capture.output(cat("Generalized Additive Model Results"), file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt")) 
-  on.exit(capture.output(cat("Model Failed\n\n"),file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"),append=TRUE))  
+  capture.output(cat("Generalized Additive Model Results"), file=paste0(ssimTempDir, modType, "_output.txt")) 
+  on.exit(capture.output(cat("Model Failed\n\n"),file=paste0(ssimTempDir, modType, "_output.txt"),append=TRUE))
 
 
 # Review model data ------------------------------------------------------------
@@ -203,7 +206,7 @@ progressBar(type = "begin", totalSteps = steps)
   colnames(coeftbl)[1] <- "Variable"
   updateRunLog(pander::pandoc.table.return(coeftbl, style = "simple", split.tables = 100))
   
-  capture.output(cat(txt0),modSummary,file=paste0(ssimTempDir,"\\Data\\", modType, "_output.txt"), append=TRUE)
+  capture.output(cat(txt0),modSummary,file=paste0(ssimTempDir, modType, "_output.txt"), append=TRUE)
   
   progressBar()
 
@@ -233,7 +236,7 @@ progressBar(type = "begin", totalSteps = steps)
   updateRunLog(pander::pandoc.table.return(tbl, style = "simple", split.tables = 100))
   
   # save model info to temp storage
-  saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
+  saveRDS(finalMod, file = paste0(ssimTempDir, modType, "_model.rds"))
   
 # Run Cross Validation (if specified) ------------------------------------------
   
@@ -257,11 +260,11 @@ progressBar(type = "begin", totalSteps = steps)
 
 # Save model outputs -----------------------------------------------------------
 
-  tempFiles <- list.files(file.path(ssimTempDir, "Data"))
+  tempFiles <- list.files(ssimTempDir)
   
   # add model Outputs to datasheet
-    modelOutputsSheet <- bind_rows(modelOutputsSheet, 
-                              list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
+    modelOutputsSheet <- safe_rbind(modelOutputsSheet, 
+                              data.frame(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
                                    ModelRDS = file.path(ssimTempDir, paste0(modType, "_model.rds")),
                                    ResponseCurves = file.path(ssimTempDir, paste0(modType, "_ResponseCurves.png")),
                                    TextOutput = file.path(ssimTempDir, paste0(modType, "_output.txt")),

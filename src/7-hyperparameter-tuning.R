@@ -130,7 +130,7 @@ if(modType == "brt"){
 
 ## Validation Sheet
 if(nrow(validationDataSheet)<1){
-  validationDataSheet <- bind_rows(validationDataSheet, list(SplitData = FALSE,
+  validationDataSheet <- safe_rbind(validationDataSheet, data.frame(SplitData = FALSE,
                                                           CrossValidate = FALSE))
 }
 if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}
@@ -533,8 +533,8 @@ if (all(comboImgs$fitFailed)) {
 }
 
 # save tuning matrix outputs
-outputHyperparameterTuningSheet <- bind_rows(outputHyperparameterTuningSheet, 
-                                    list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
+outputHyperparameterTuningSheet <- safe_rbind(outputHyperparameterTuningSheet, 
+                                    data.frame(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
                                            ResponseCurves = file.path(ssimTempDir, "ResponseCurvesMatrix.png"),
                                            ResidualSmoothPlot = file.path(ssimTempDir, "ResidualSmoothPlotMatrix.png")))
   

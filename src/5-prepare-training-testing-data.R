@@ -15,6 +15,7 @@ library(dplyr)
 library(pander)
 
 packageDir <- (Sys.getenv("ssim_package_directory"))
+source(file.path(packageDir, "00-helper-functions.R"))
 source(file.path(packageDir, "05-training-testing-data-prep-functions.R"))
 
 # Set progress bar -------------------------------------------------------------
@@ -60,7 +61,7 @@ fieldDataColNames <- names(fieldDataSheet)
 
 ## Validation Sheet
 if(nrow(validationDataSheet)<1){
-  validationDataSheet <- bind_rows(validationDataSheet, list(SplitData = FALSE,
+  validationDataSheet <- safe_rbind(validationDataSheet, data.frame(SplitData = FALSE,
                                                           CrossValidate = FALSE))
 }
 if(is.na(validationDataSheet$SplitData)){validationDataSheet$SplitData <- FALSE}

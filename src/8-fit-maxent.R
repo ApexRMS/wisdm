@@ -50,6 +50,9 @@ progressBar()
 # Error handling ---------------------------------------------------------------
 
 # check for for background data
+if (nrow(fieldDataSheet) == 0L) {
+    stop("No Field Data found; please ensure that the Field Data datasheet is populated before continuing.")
+  }
 if(!any(fieldDataSheet$Response == -9998)){
   if(any(siteDataSheet$Response == 0)){
     stop("Maxent is a presence-background method; please select a method suitable for presence-absence data before continuing.")
@@ -61,7 +64,7 @@ if(!any(fieldDataSheet$Response == -9998)){
 
 ## Validation Sheet
 if(nrow(validationDataSheet)<1){
-  validationDataSheet <- bind_rows(validationDataSheet, list(SplitData = FALSE,
+  validationDataSheet <- safe_rbind(validationDataSheet, data.frame(SplitData = FALSE,
                                                           CrossValidate = FALSE))
 }
 if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}
@@ -70,7 +73,7 @@ if(is.na(validationDataSheet$SplitData)){validationDataSheet$SplitData <- FALSE}
 ## Maxent Sheet 
 if(nrow(maxentSheet)<1 | all(is.na(maxentSheet))){
   maxentSheet <- maxentSheet %>% drop_na()
-  maxentSheet <- bind_rows(maxentSheet, list(MemoryLimit = 512,
+  maxentSheet <- safe_rbind(maxentSheet, data.frame(MemoryLimit = 512,
                                           VisibleInterface = FALSE,
                                           MaximumBackgroundPoints = 10000,
                                           SaveMaxentFiles = FALSE))
@@ -310,8 +313,8 @@ progressBar()
 tempFiles <- list.files(ssimTempDir)
 
 # add model Outputs to datasheet
-modelOutputsSheet <- bind_rows(modelOutputsSheet, 
-                            list(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
+modelOutputsSheet <- safe_rbind(modelOutputsSheet, 
+                            data.frame(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
                                  ModelRDS = file.path(ssimTempDir, paste0(modType, "_model.rds")),
                                  ResponseCurves = file.path(ssimTempDir, paste0(modType, "_ResponseCurves.png")),
                                  TextOutput = file.path(ssimTempDir, paste0(modType, "_output.txt")),

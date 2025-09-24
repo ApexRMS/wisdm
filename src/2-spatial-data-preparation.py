@@ -168,7 +168,7 @@ def prep_spatial_data():
 
         return True  # All values are within range
 
-    if len(restrictionRasterSheet.RasterFilePath) > 0:
+    if not pd.isnull(restrictionRasterSheet.RasterFilePath.item()):
         # if provided, ensure raster data is binary
         if not check_raster_range(restrictionRasterSheet.RasterFilePath.item(), 0, 1):
             raise ValueError("Restriction raster values must range from 0 to 1.")
@@ -430,10 +430,10 @@ def prep_spatial_data():
             # Restart client to avoid lock conflicts
             with Client(threads_per_worker = num_threads, n_workers = 1, processes=False) as client:
 
-                # Open template within clien
+                # Open template within client
                 with rioxarray.open_rasterio(templatePath, chunks={'x': chunkDims, 'y': chunkDims}, lock = False) as templateRaster:
 
-                    with rioxarray.open_rasterio(unmaskedTempPath, chunks={'x': chunkDims, 'y': chunkDims}, lock = False) as covariateRaster:
+                    with rioxarray.open_rasterio(unmaskedTempPath, chunks={'x': chunkDims, 'y': chunkDims}, lock = False) as restrictionRaster:
 
                             # Mask and set no data value
                             maskedRestrictionRaster = xr.concat([restrictionRaster, templateRaster], "band").chunk({'band':-1, 'x':chunkDims, 'y':chunkDims}).map_blocks(mask, kwargs=dict(input_nodata=restrictionRaster.rio.nodata, template_nodata=templateRaster.rio.nodata), template = restrictionRaster)

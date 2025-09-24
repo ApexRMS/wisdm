@@ -116,9 +116,7 @@ fitModel <- function(dat,           # df of training data
     if("predicted" %in% names(dat)){ dat <- select(dat, -predicted)}
     
     x = dat[,-c(1:7)] 
-    if(out$modelFamily == "poisson"){ 
-      y = dat$Response
-    } else { y = factor(dat$Response) }
+    y = factor(dat$Response)
       
     # tune the mtry parameter - this controls the number of covariates randomly subset for each split #
     if(is.null(mtry)){
@@ -158,7 +156,7 @@ fitModel <- function(dat,           # df of training data
             !is.null(y) && is.null(xtest),
             keep.forest
           ),
-          corr.bias = corr.bias,
+          # corr.bias = corr.bias,
           keep.inbag = keep.inbag
         )
       },
@@ -286,7 +284,7 @@ fitModel <- function(dat,           # df of training data
                           learning.rate = out$modOptions$LearningRate,
                           bag.fraction = out$modOptions$BagFraction,
                           max.trees = out$modOptions$MaximumTrees,
-                          n.trees = out$modOptions$NumberOfTrees,
+                          step.size = out$modOptions$NumberOfTrees,
                           n.folds = nFolds,                                 # number of cross-validation folds
                           # fold.vector = dat$ModelSelectionSplit,            # set predefined cross-validation folds
                           site.weights = wt,
@@ -1231,7 +1229,7 @@ VariableImportance <- function(out,  # out list
   
   if(out$modType == "rf"){ 
     trainPred <- pred.fct(mod = out$finalMod, x = out$data$train, modType = out$modType)
-    auc$train <- roc(out$dat$train$Response,trainPred)
+    auc$train <- roc(out$data$train$Response,trainPred)
   } else { trainPred <- out$data$train$predicted }
   
   # add 1 to the drop in AUC to ensure it's greater than zero then I can normalize
