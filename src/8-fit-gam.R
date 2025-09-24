@@ -156,8 +156,8 @@ progressBar(type = "begin", totalSteps = steps)
   
 # Create output text file ------------------------------------------------------
 
-  capture.output(cat("Generalized Additive Model Results"), file=paste0(ssimTempDir, modType, "_output.txt")) 
-  on.exit(capture.output(cat("Model Failed\n\n"),file=paste0(ssimTempDir, modType, "_output.txt"),append=TRUE))
+  capture.output(cat("Generalized Additive Model Results"), file=file.path(ssimTempDir, paste0(modType, "_output.txt"))) 
+  on.exit(capture.output(cat("Model Failed\n\n"),file=file.path(ssimTempDir, paste0(modType, "_output.txt"))),append=TRUE))
 
 
 # Review model data ------------------------------------------------------------
@@ -205,9 +205,9 @@ progressBar(type = "begin", totalSteps = steps)
   rownames(coeftbl) <- NULL
   colnames(coeftbl)[1] <- "Variable"
   updateRunLog(pander::pandoc.table.return(coeftbl, style = "simple", split.tables = 100))
-  
-  capture.output(cat(txt0),modSummary,file=paste0(ssimTempDir, modType, "_output.txt"), append=TRUE)
-  
+
+  capture.output(cat(txt0),modSummary,file=file.path(ssimTempDir, paste0(modType, "_output.txt")), append=TRUE)
+
   progressBar()
 
 # Test model predictions -------------------------------------------------------
@@ -236,7 +236,7 @@ progressBar(type = "begin", totalSteps = steps)
   updateRunLog(pander::pandoc.table.return(tbl, style = "simple", split.tables = 100))
   
   # save model info to temp storage
-  saveRDS(finalMod, file = paste0(ssimTempDir, modType, "_model.rds"))
+  saveRDS(finalMod, file = file.path(ssimTempDir, paste0(modType, "_model.rds")))
   
 # Run Cross Validation (if specified) ------------------------------------------
   
