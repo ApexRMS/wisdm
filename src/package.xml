@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.3.1" minSyncroSimVersion="3.1.10" url="https://apexrms.github.io/wisdm/">
+<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.4.0" minSyncroSimVersion="3.1.10" url="https://apexrms.github.io/wisdm/">
 
 <!--Library Datasheets-->
 
@@ -240,7 +240,7 @@
   programArguments="1-prep-multiprocessing.py"
   isMultiprocessing="False"
   condaEnv="wisdm-conda.yml"
-  condaEnvVersion="4">
+  condaEnvVersion="5">
 	<dataSheet name="TemplateRaster" type="Input"/>
 	<dataSheet name="core_SpatialMultiprocessing" type="Output"/>		
 </transformer>	
@@ -252,7 +252,7 @@
   programArguments="2-spatial-data-preparation.py"
   isMultiprocessing="False"
   condaEnv="wisdm-conda.yml"
-  condaEnvVersion="4">
+  condaEnvVersion="5">
 	<dataSheet name="TemplateRaster" type="Input"/>
 	<dataSheet name="RestrictionRaster" type="Both"/>
 	<dataSheet name="CovariateData" type="Both"/>
@@ -265,7 +265,7 @@
 	programArguments="3-site-data-preparation.py"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-  	condaEnvVersion="4">
+  	condaEnvVersion="5">
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="FieldDataOptions" type="Input"/>
 		<dataSheet name="FieldData" type="Both"/>
@@ -280,7 +280,7 @@
 	programArguments="4-background-data-generation.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-  	condaEnvVersion="4">
+  	condaEnvVersion="5">
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="FieldData" type="Both"/>
 		<dataSheet name="BackgroundDataOptions" type="Input"/>
@@ -295,7 +295,7 @@
 	programArguments="5-prepare-training-testing-data.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-  	condaEnvVersion="4">
+  	condaEnvVersion="5">
 		<dataSheet name="FieldData" type="Both"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
@@ -308,7 +308,7 @@
 	programArguments="6-variable-reduction.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"	
-  	condaEnvVersion="4">
+  	condaEnvVersion="5">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="CovariateSelectionOptions" type ="Input"/>
@@ -323,7 +323,7 @@
   programArguments="7-hyperparameter-tuning.R"
   isMultiprocessing="False"
   condaEnv="wisdm-conda.yml"
-  condaEnvVersion="4">
+  condaEnvVersion="5">
 	<dataSheet name="FieldData" type="Input"/>
 	<dataSheet name="ValidationOptions" type="Input"/>
 	<dataSheet name="RetainedCovariates" type="Input"/>
@@ -344,7 +344,7 @@
 	programArguments="8-fit-glm.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-	condaEnvVersion="4">
+	condaEnvVersion="5">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
 		<dataSheet name="RetainedCovariates" type="Input"/>
@@ -360,7 +360,7 @@
 	programArguments="8-fit-rf.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-	condaEnvVersion="4">
+	condaEnvVersion="5">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
 		<dataSheet name="RetainedCovariates" type="Input"/>
@@ -376,7 +376,7 @@
 	programArguments="8-fit-maxent.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-	condaEnvVersion="4">
+	condaEnvVersion="5">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
@@ -393,7 +393,7 @@
 	programArguments="8-fit-brt.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-	condaEnvVersion="4">
+	condaEnvVersion="5">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
@@ -409,7 +409,7 @@
 	displayName="9 - Apply Model"
 	programArguments="9-apply-model.R"
 	condaEnv="wisdm-conda.yml"
-	condaEnvVersion="4">
+	condaEnvVersion="5">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
 		<dataSheet name="RestrictionRaster" type="Input"/>
 		<dataSheet name="OutputModel" type="Input"/>
@@ -425,7 +425,7 @@
 	programArguments="10-ensemble-model.py"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-	condaEnvVersion="4">
+	condaEnvVersion="5">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="EnsembleOptions" type="Input"/>
