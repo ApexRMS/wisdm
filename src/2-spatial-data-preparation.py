@@ -179,7 +179,7 @@ def prep_spatial_data():
     if not restrictionRasterSheet.empty:
         restrictionPath = restrictionRasterSheet.RasterFilePath.iloc[0]
         if pd.notnull(restrictionPath):
-            if not check_raster_range(restrictionRasterSheet.RasterFilePath.item(), 0, 1):
+            if not check_raster_range(restrictionPath, 0, 1):
                 raise ValueError(
                     "Restriction raster values must range from 0 to 1.")
 
@@ -188,7 +188,7 @@ def prep_spatial_data():
         'IsCategorical == "Yes"').CovariateName.tolist()
 
     # Ensure that covariate names do not contain spaces
-    if any(covariateDataSheet.CovariatesID.str.contains(" ")):
+    if covariateDataSheet.CovariatesID.str.contains(r"\s", na=False).any():
         raise ValueError("Covariate names cannot contain spaces.")
 
     # Convert Resample and Aggregation method columns to strings
@@ -301,15 +301,20 @@ def prep_spatial_data():
         with rioxarray.open_rasterio(covariatePath, chunks=chunkDims) as covariateRaster:
 
             # check raster data type and set to signed type if necessary
-            if np.issubdtype(covariateRaster.dtype, np.unsignedinteger):
-                src_dtype = covariateRaster.dtype
-                bitdepth = src_dtype.itemsize * 8
-                if bitdepth <= 16:
-                    signed_dtype = 'int16'
+            src_dtype = covariateRaster.dtype
+            if np.issubdtype(src_dtype, np.unsignedinteger):
+                # Avoid overflow when introducing negative nodata
+                if src_dtype == np.uint8:
+                    signed_dtype = "int16"
+                elif src_dtype == np.uint16:
+                    signed_dtype = "int32"
+                elif src_dtype == np.uint32:
+                    signed_dtype = "int64"
                 else:
-                    signed_dtype = 'int32'
+                    # Fallback to float32 when integer range may exceed int64/driver limits
+                    signed_dtype = "float32"
             else:
-                signed_dtype = covariateRaster.dtype
+                signed_dtype = str(src_dtype)
 
             # Decide which resample method to use based on pixel size
             covPixelSize = np.abs(covariateRaster.rio.resolution()).prod()
@@ -341,8 +346,9 @@ def prep_spatial_data():
                             tb = templateBounds
                             cb = covariateRaster.rio.bounds()
                             if cb[0] > tb[0] or cb[1] > tb[1] or cb[2] < tb[2] or cb[3] < tb[3]:
-                                raise ValueError(print("The extent of the", covariateDataSheet.CovariatesID[i],
-                                                       "raster does not overlap the full extent of the template raster. Ensure all covariate rasters overlap the template extent before continuing."))
+                                raise ValueError(f"The extent of the {covariateDataSheet.CovariatesID[i]} raster does not overlap "
+                                                 "the full extent of the template raster. Ensure all covariate rasters overlap the "
+                                                 "template extent before continuing.")
 
                             # Write reprojected and clipped layer to uncompresed temp file
                             # - Note! Some resampling algs fail when you try to write compressed, make sure you leave this temp file uncompresed
@@ -410,12 +416,9 @@ def prep_spatial_data():
 
         with rioxarray.open_rasterio(restrictionPath, chunks=True) as restrictionRaster:
             # Check for valid crs
-            if pd.isnull(restrictionRaster.rio.crs):
-                raise ValueError(print(
-                    "The restriction rasters has an invalid or unknown CRS. Ensure that the raster has a valid CRS before continuing."))
-            elif restrictionRaster.rio.crs.is_valid == False:
-                raise ValueError(print(
-                    "The restriction rasters has an invalid or unknown CRS. Ensure that the raster has a valid CRS before continuing."))
+            if pd.isnull(restrictionRaster.rio.crs) or not restrictionRaster.rio.crs.is_valid:
+                raise ValueError(
+                    "The restriction rasters has an invalid or unknown CRS. Ensure that the raster has a valid CRS before continuing.")
 
             # check raster data type and set to signed type if necessary
             if np.issubdtype(restrictionRaster.dtype, np.unsignedinteger):
@@ -456,8 +459,9 @@ def prep_spatial_data():
                             tb = templateBounds
                             rb = restrictionRaster.rio.bounds()
                             if rb[0] > tb[0] or rb[1] > tb[1] or rb[2] < tb[2] or rb[3] < tb[3]:
-                                raise ValueError(print(
-                                    "The extent of the restriction raster does not overlap the full extent of the template raster. Ensure the restiction raster overlaps the template extent before continuing."))
+                                raise ValueError(
+                                    "The extent of the restriction raster does not overlap the full extent of the template raster. "
+                                    "Ensure the restriction raster overlaps the template extent before continuing.")
 
                             # Write reprojected and clipped layer to uncompresed temp file
                             # - Note! Some resampling algs fail when you try to write compressed, make sure you leave this temp file uncompresed
