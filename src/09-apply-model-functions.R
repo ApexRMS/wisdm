@@ -225,6 +225,11 @@ non_NA_extent <- function(x, block_rows = 2048L) {
     }
     r <- r + n
   }
+  if (is.na(top)) {
+    # Fail explicitly if all values are NA
+    readStop(x)
+    stop("Raster contains no non-NA values - cannot compute non-NA extent")
+  }
   bottom <- NA_integer_
   r <- nr
   while (r >= 1L) {
