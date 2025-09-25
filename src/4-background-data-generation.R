@@ -23,8 +23,7 @@ updateRunLog('4 - Background Data Generation => Begin')
 
 # Connect to library -----------------------------------------------------------
 
-# Active project and scenario
-myProject <- rsyncrosim::project()
+# Active scenario
 myScenario <- scenario()
 
 # temp directory

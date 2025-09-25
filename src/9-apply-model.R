@@ -29,8 +29,9 @@ updateRunLog('9 - Apply Model => Begin')
 
 # Connect to library & read datasheets -----------------------------------------
 
-# Active project and scenario
+# Active library, project and scenario
 myLibrary <- ssimLibrary()
+myProject <- rsyncrosim::project()
 myScenario <- scenario()
 # datasheet(myScenario)
 
@@ -39,8 +40,8 @@ ssimTempDir <- ssimEnvironment()$TransferDirectory
 resultScenario <- ssimEnvironment()$ScenarioId
 
 # Read in datasheets
-covariatesSheet <- datasheet(myScenario, "wisdm_Covariates", optional = T)
-modelsSheet <- datasheet(myScenario, "wisdm_Models")
+covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
+modelsSheet <- datasheet(myProject, "wisdm_Models")
 spatialMultiprocessingSheet <- datasheet(
   myScenario,
   "core_SpatialMultiprocessing"

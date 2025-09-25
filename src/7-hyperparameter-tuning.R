@@ -33,14 +33,15 @@ progressBar(type = "begin", totalSteps = steps)
 # Connect to library -----------------------------------------------------------
 
 # Active project and scenario
+myProject <- rsyncrosim::project()
 myScenario <- scenario() # datasheet(myScenario)
   
 # Path to ssim temporary directory
 ssimTempDir <- ssimEnvironment()$TransferDirectory
   
 # Read in datasheets
-covariatesSheet <- datasheet(myScenario, "wisdm_Covariates", optional = T)
-modelsSheet <- datasheet(myScenario, "wisdm_Models")
+covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
+modelsSheet <- datasheet(myProject, "wisdm_Models")
 fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
 validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
 retainedCovariatesSheet <- datasheet(myScenario, "wisdm_RetainedCovariates", lookupsAsFactors = F)
