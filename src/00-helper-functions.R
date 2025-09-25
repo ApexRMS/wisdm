@@ -26,13 +26,6 @@ calc.deviance <- function(
     deviance <- -2 * sum(deviance.contribs * weights, na.rm = T)
   }
 
-  if (family == "poisson" | family == "Poisson") {
-    deviance.contribs <- ifelse(obs == 0, 0, (obs * log(obs / preds))) -
-      (obs - preds)
-    # deviance.contribs[which(deviance.contribs==Inf)] <- 1
-    deviance <- 2 * sum(deviance.contribs * weights)
-  }
-
   if (family == "laplace") {
     deviance <- sum(abs(obs - preds))
   }
@@ -64,22 +57,45 @@ pred.fct <- function(
   idx <- stats::complete.cases(x)
 
   if (modType == "glm") {
-    y <- try(glm.predict(mod, x), silent = TRUE)
+    y <- tryCatch(glm.predict(mod, x), error = function(e) {
+      rep(NA, nrow(x))
+    })
   }
   if (modType == "rf") {
-    y[idx] <- try(rf.predict(mod, x[idx, ]), silent = TRUE)
+    preds <- tryCatch(
+      rf.predict(mod, x[idx, , drop = FALSE]),
+      error = function(e) {
+        rep(NA, sum(idx))
+      }
+    )
+    y[idx] <- preds
   }
   if (modType == "maxent") {
-    y[idx] <- try(maxent.predict(mod, x[idx, ]), silent = TRUE)
+    preds <- tryCatch(
+      maxent.predict(mod, x[idx, , drop = FALSE]),
+      error = function(e) {
+        rep(NA, sum(idx))
+      }
+    )
+    y[idx] <- preds
   }
   if (modType == "brt") {
-    y[idx] <- try(brt.predict(mod, x[idx, ]), silent = TRUE)
+    preds <- tryCatch(
+      brt.predict(mod, x[idx, , drop = FALSE]),
+      error = function(e) {
+        rep(NA, sum(idx))
+      }
+    )
+    y[idx] <- preds
   }
   if (modType == "gam") {
-    y[idx] <- try(gam.predict(mod, x[idx, ]), silent = TRUE)
-  }
-  if (class(y) == "try-error") {
-    stop("Predicting the response for the new values failed.")
+    preds <- tryCatch(
+      gam.predict(mod, x[idx, , drop = FALSE]),
+      error = function(e) {
+        rep(NA, sum(idx))
+      }
+    )
+    y[idx] <- preds
   }
   return(y)
 } # end pred.vals function
@@ -106,10 +122,18 @@ rf.predict <- function(model, x) {
   # make predictions from complete data only #
   y <- rep(NA, nrow(x))
   idx <- stats::complete.cases(x)
-  y[idx] <- try(
-    as.vector(predict(model, newdata = x[idx, ], type = "vote")[, 2]),
-    silent = TRUE
-  )
+  if (any(idx)) {
+    y[idx] <- tryCatch(
+      as.vector(predict(
+        model,
+        newdata = x[idx, , drop = FALSE],
+        type = "vote"
+      )[, 2]),
+      error = function(e) {
+        rep(NA, sum(idx))
+      }
+    )
+  }
 
   # return predictions.
   return(y)
