@@ -139,7 +139,7 @@ if networkSheet.NetworkEnabled.item() == "No":
     # pyproj.network.is_network_enabled()
 
 # Check that a template raster was provided
-if pd.isnull(templateRasterSheet.RasterFilePath.item()):
+if templateRasterSheet.empty or pd.isnull(templateRasterSheet.RasterFilePath.iloc[0]):
     raise ValueError("Template raster is missing.")
 
 # check if field data was provided
@@ -147,8 +147,10 @@ if len(fieldDataSheet) == 0:
     # raise warning if field data was not provided
     raise ValueError("Field data was not provided. Please provide field data before continuing.")
 
-# check that field data is between 0 and 1
-if any(fieldDataSheet.Response)>1:
+# check that response data is provided and between 0 and 1
+if pd.isnull(fieldDataSheet.Response).any():
+    raise ValueError("Field data is missing values in the 'Response' column. Please provide presence-(pseudo)absence data before continuing.")
+if (fieldDataSheet.Response > 1).any():
    # raise warning if field data includes counts
    raise ValueError("Field data contains counts in 'Response' column when occurrence data is expected. Please provide presence-(pseudo)absence data before continuing.")
 
@@ -158,7 +160,7 @@ if any(pd.isna(fieldDataSheet.SiteID)):
     
 # check of field data options were provided
 if len(fieldDataOptions) == 0:
-    fieldDataOptions = pd.concat([fieldDataOptions, pd.DataFrame({"AggregateOrWeight":["None"]})], 
+    fieldDataOptions = pd.concat([fieldDataOptions, pd.DataFrame({"AggregateAndWeight":["None"]})], 
                                  ignore_index=True)
 
  

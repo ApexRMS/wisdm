@@ -16,14 +16,14 @@ library(dplyr)
 library(pander)
 
 packageDir <- (Sys.getenv("ssim_package_directory"))
+source(file.path(packageDir, "00-helper-functions.R"))
 source(file.path(packageDir, "04-background-data-functions.R"))
 
 updateRunLog('4 - Background Data Generation => Begin')
 
 # Connect to library -----------------------------------------------------------
 
-# Active project and scenario
-myProject <- rsyncrosim::project()
+# Active scenario
 myScenario <- scenario()
 
 # temp directory
@@ -50,7 +50,7 @@ fieldDataSheet <- fieldDataSheet[!fieldDataSheet$Response == -9999,]
 
 ## Background data options sheet
 if(nrow(backgroundDataOptionsSheet)<1){
-  backgroundDataOptionsSheet <- addRow(backgroundDataOptionsSheet, list(GenerateBackgroundSites = FALSE))
+  backgroundDataOptionsSheet <- safe_rbind(backgroundDataOptionsSheet, data.frame(GenerateBackgroundSites = FALSE))
 }
 if(is.na(backgroundDataOptionsSheet$GenerateBackgroundSites)){ backgroundDataOptionsSheet$GenerateBackgroundSites <- FALSE }
 if(backgroundDataOptionsSheet$GenerateBackgroundSites){

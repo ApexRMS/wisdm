@@ -5,8 +5,11 @@
 
 library(tidyverse)
 library(png)
-if(!"magick" %in% rownames(installed.packages())){install.packages("magick")}
-library(magick)
+library(tibble)
+library(dplyr)
+library(tidyr)
+library(grid)
+library(gridExtra)
 
 # Functions --------------------------------------------------------------------
 
@@ -38,21 +41,16 @@ buildFillerImage <- function(outputPath){
 # parameters <- parameterNames
 # outputPath <- ssimTempDir  
 
-library(tibble)
-library(dplyr)
-library(tidyr)
-library(png)
-library(grid)
-library(gridExtra)
 
 # buildTuningMatrices: assemble PNG panels into a labeled matrix
-buildTuningMatrices <- function(modType,
-                                modelOutputsTable,
-                                parameters,
-                                outputPath) {
+buildTuningMatrices <- function(modType,            # "brt" or "rf"
+                                modelOutputsTable,  # data frame with model outputs
+                                parameters,         # vector of 1 or 2 parameter names to vary across matrix
+                                outputPath){        # file path for output PNG files
+  
   # possible outputs
   modelOutputs <- c(
-    "ResponseCurves","ResidualsPlot","ResidualSmoothPlot",
+    "ResponseCurves","ResidualSmoothPlot", # "ResidualsPlot",
     "CalibrationPlot","ROCAUCPlot","AUCPRPlot",
     "ConfusionMatrix","VariableImportancePlot"
   )
@@ -78,8 +76,8 @@ buildTuningMatrices <- function(modType,
   
   # tidy table: pivot to long, keep only relevant columns
   modelOutputsTable <- modelOutputsTable %>%
-    select(-ModelsID, -ModelRDS, -ResidualSmoothRDS,
-           -TextOutput, -VariableImportanceData, -MaxentFiles) %>%
+    dplyr::select(-any_of(c("ModelsID", "ModelRDS", "ResidualSmoothRDS", "ResidualsPlot",
+      "TextOutput", "VariableImportanceData", "MaxentFiles", "fitFailed"))) %>%
     pivot_longer(
       cols = seq(length(parameters)+1, ncol(.)),
       names_to = "ModelOutput", values_to = "ImageFile"

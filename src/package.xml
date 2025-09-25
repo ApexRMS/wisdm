@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.3.1" minSyncroSimVersion="3.1.10" url="https://apexrms.github.io/wisdm/">
+<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.4.0" minSyncroSimVersion="3.1.10" url="https://apexrms.github.io/wisdm/">
 
 <!--Library Datasheets-->
 
@@ -23,10 +23,10 @@
 <dataSheet name="Models" dataScope="Project" displayMember="ModelName">
 	<column name="ModelName" displayName="Model Name" dataType="String"/>
 	<column name="ModelType" displayName="Model Type" dataType="String"/>
-	<record columns="ModelName|ModelType"	values="Generalized Linear Model|glm"/>
-	<record columns="ModelName|ModelType"	values="Random Forest|rf"/>
+	<record columns="ModelName|ModelType" values="Generalized Linear Model|glm"/>
+	<record columns="ModelName|ModelType" values="Random Forest|rf"/>
 	<record columns="ModelName|ModelType" values="Maxent|maxent"/>
-	<record columns="ModelName|ModelType" values="Boosted Regression Tree|brt"/>
+	<record columns="ModelName|ModelType" values="Boosted Regression Trees|brt"/>
 </dataSheet>
 
 <!--Scenario Datasheets-->
@@ -99,7 +99,7 @@
 
 <!--Model Options-->
 
-<dataSheet  name="BRT" displayName="Boosted Regression Tree" isSingleRow="True">
+<dataSheet  name="BRT" displayName="Boosted Regression Trees" isSingleRow="True">
 	<column name="FittingMethod" displayName="Fitting method" dataType="Integer" validationType="List" formula1="0:Use defaults and tuning|1:Use values provided below"/>
 	<column name="LearningRate" displayName="Learning rate" dataType="Double"/>
 	<column name="NumberOfTrees" displayName="Number of trees added per stage" dataType="Integer"/>
@@ -238,8 +238,9 @@
   name="PrepMultiprocessing"
   displayName="1 - Prepare Multiprocessing"
   programArguments="1-prep-multiprocessing.py"
+  isMultiprocessing="False"
   condaEnv="wisdm-conda.yml"
-  condaEnvVersion="4">
+  condaEnvVersion="5">
 	<dataSheet name="TemplateRaster" type="Input"/>
 	<dataSheet name="core_SpatialMultiprocessing" type="Output"/>		
 </transformer>	
@@ -251,7 +252,7 @@
   programArguments="2-spatial-data-preparation.py"
   isMultiprocessing="False"
   condaEnv="wisdm-conda.yml"
-  condaEnvVersion="4">
+  condaEnvVersion="5">
 	<dataSheet name="TemplateRaster" type="Input"/>
 	<dataSheet name="RestrictionRaster" type="Both"/>
 	<dataSheet name="CovariateData" type="Both"/>
@@ -264,7 +265,7 @@
 	programArguments="3-site-data-preparation.py"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-  	condaEnvVersion="4">
+  	condaEnvVersion="5">
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="FieldDataOptions" type="Input"/>
 		<dataSheet name="FieldData" type="Both"/>
@@ -279,7 +280,7 @@
 	programArguments="4-background-data-generation.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-  	condaEnvVersion="4">
+  	condaEnvVersion="5">
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="FieldData" type="Both"/>
 		<dataSheet name="BackgroundDataOptions" type="Input"/>
@@ -294,7 +295,7 @@
 	programArguments="5-prepare-training-testing-data.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-  	condaEnvVersion="4">
+  	condaEnvVersion="5">
 		<dataSheet name="FieldData" type="Both"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
@@ -307,7 +308,7 @@
 	programArguments="6-variable-reduction.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"	
-  	condaEnvVersion="4">
+  	condaEnvVersion="5">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="CovariateSelectionOptions" type ="Input"/>
@@ -322,7 +323,7 @@
   programArguments="7-hyperparameter-tuning.R"
   isMultiprocessing="False"
   condaEnv="wisdm-conda.yml"
-  condaEnvVersion="4">
+  condaEnvVersion="5">
 	<dataSheet name="FieldData" type="Input"/>
 	<dataSheet name="ValidationOptions" type="Input"/>
 	<dataSheet name="RetainedCovariates" type="Input"/>
@@ -343,7 +344,7 @@
 	programArguments="8-fit-glm.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-	condaEnvVersion="4">
+	condaEnvVersion="5">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
 		<dataSheet name="RetainedCovariates" type="Input"/>
@@ -359,7 +360,7 @@
 	programArguments="8-fit-rf.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-	condaEnvVersion="4">
+	condaEnvVersion="5">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
 		<dataSheet name="RetainedCovariates" type="Input"/>
@@ -375,7 +376,7 @@
 	programArguments="8-fit-maxent.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-	condaEnvVersion="4">
+	condaEnvVersion="5">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
@@ -388,11 +389,11 @@
 <!--BRT Transformer-->
 <transformer
 	name="BRT"
-	displayName="8 - Boosted Regression Tree"
+	displayName="8 - Boosted Regression Trees"
 	programArguments="8-fit-brt.R"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-	condaEnvVersion="4">
+	condaEnvVersion="5">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
 		<dataSheet name="ValidationOptions" type="Input"/>
@@ -408,9 +409,8 @@
 	displayName="9 - Apply Model"
 	programArguments="9-apply-model.R"
 	condaEnv="wisdm-conda.yml"
-	condaEnvVersion="4">
+	condaEnvVersion="5">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
-		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="RestrictionRaster" type="Input"/>
 		<dataSheet name="OutputModel" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
@@ -425,7 +425,7 @@
 	programArguments="10-ensemble-model.py"
 	isMultiprocessing="False"
 	condaEnv="wisdm-conda.yml"
-	condaEnvVersion="4">
+	condaEnvVersion="5">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="EnsembleOptions" type="Input"/>
