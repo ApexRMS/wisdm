@@ -502,13 +502,13 @@ fitModel <- function(
           # cross-validation used for model tuning
           dismo::gbm.step(
             data = dat,
-            gbm.x = names(dplyr::select(dat, -all_of(nonCovariateCols))), # names of predictor variables in data
-            gbm.y = "Response", # name of response variable in data
+            gbm.x = which(!(names(dat) %in% nonCovariateCols)), # indicies of predictor variables in data
+            gbm.y = which(names(dat) == "Response"), # index of response variable in data
             family = out$modelFamily,
             tree.complexity = ifelse(prNum < 50, 1, 5),
             learning.rate = out$modOptions$LearningRate,
             bag.fraction = out$modOptions$BagFraction,
-            max.trees = out$modOptions$MaximumTrees,
+            max.trees = out$modOptions$MaximumTrees, # maximum number of trees to fit before stopping
             step.size = out$modOptions$NumberOfTrees,
             n.folds = nFolds, # number of cross-validation folds
             # fold.vector = dat$ModelSelectionSplit,            # set predefined cross-validation folds
@@ -524,7 +524,7 @@ fitModel <- function(
               -all_of(nonCovariateCols[nonCovariateCols != "Response"])
             ), # response + predictors
             distribution = out$modelFamily,
-            n.trees = out$modOptions$NumberOfTrees,
+            n.trees = out$modOptions$nTrees, # total number of trees to fit (set to optimal number from full fit)
             interaction.depth = ifelse(prNum < 50, 1, 5),
             shrinkage = out$modOptions$LearningRate,
             bag.fraction = out$modOptions$BagFraction,
