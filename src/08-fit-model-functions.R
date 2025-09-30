@@ -221,10 +221,10 @@ fitModel <- function(
     ytest = NULL
 
     if ("predicted" %in% names(dat)) {
-      dat <- select(dat, -predicted)
+      dat <- dplyr::select(dat, -predicted)
     }
 
-    x = dat[, -nonCovariateCols]
+    x = dplyr::select(dat, -all_of(nonCovariateCols))
     y = factor(dat$Response)
 
     # tune the mtry parameter - this controls the number of covariates randomly subset for each split #
@@ -502,7 +502,7 @@ fitModel <- function(
           # cross-validation used for model tuning
           dismo::gbm.step(
             data = dat,
-            gbm.x = names(dat)[-nonCovariateCols], # names of predictor variables in data
+            gbm.x = names(dplyr::select(dat, -all_of(nonCovariateCols))), # names of predictor variables in data
             gbm.y = "Response", # name of response variable in data
             family = out$modelFamily,
             tree.complexity = ifelse(prNum < 50, 1, 5),
@@ -519,7 +519,10 @@ fitModel <- function(
           # cross-validation used for model evaluation (run from cv.fct where data is subset by fold prior to call)
           gbm::gbm(
             formula = Response ~ .,
-            data = dat[, c("Response", names(dat)[-nonCovariateCols])], # response + predictors
+            data = dplyr::select(
+              dat,
+              -all_of(nonCovariateCols[nonCovariateCols != "Response"])
+            ), # response + predictors
             distribution = out$modelFamily,
             n.trees = out$modOptions$NumberOfTrees,
             interaction.depth = ifelse(prNum < 50, 1, 5),
@@ -752,7 +755,10 @@ est.lr <- function(dat, out) {
         # cross-validation used for model tuning - gbm.step not used here as we need to loop through learning rates
         gbm::gbm(
           formula = Response ~ .,
-          data = dat[, c("Response", names(dat)[-nonCovariateCols])], # response + predictors
+          data = dplyr::select(
+            dat,
+            -all_of(nonCovariateCols[nonCovariateCols != "Response"])
+          ), # response + predictors
           distribution = out$modelFamily,
           n.trees = n.trees[n],
           interaction.depth = ifelse(prNum < 50, 1, 5),
