@@ -29,7 +29,7 @@ backgroundSurfaceGeneration <- function(sp,         # species
         kde_bg_out <- gsub('/', '\\\\', paste0(outputDir, '/', sp, '_kde_bg_surface.tif'))
         kde.mat <- matrix(m, nrow = length(unique(ud@coords[, 1])))
       
-        t <- terra::rast(ud)
+        t <- terra::rast(raster::raster(ud))
         ext(t) <- ext(ud)
         crs(t) <- crs(template)
         t <- t / max(kde.mat) * 100 # normalize from 0-100
