@@ -311,6 +311,7 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
     var_names = modVars,
     factor_vars = factorVars
   )
+  tmp_covs <- NULL
   if (!is.null(maskValues)) {
     tmp_covs <- file.path(ssimTempDir, "covariates_temp.tif")
     covs <- crop(
@@ -790,7 +791,9 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
     }
   }
   for (p in c(tmp_covs)) {
-    unlink(p, force = TRUE)
+    if (!is.null(p) && file.exists(p)) {
+      unlink(p, force = TRUE)
+    }
   }
   gc()
 
