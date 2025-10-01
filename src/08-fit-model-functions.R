@@ -618,6 +618,37 @@ fitModel <- function(
   }
 }
 
+### check java installation ----------------------------------------------------
+# function to check if java is installed and available on system path
+
+checkJava <- function() {
+  os <- Sys.info()[["sysname"]]
+  
+  # set system call
+  cmd <- "java -version"
+  
+  # capture status
+  res <- tryCatch(
+    {
+      if (os == "Windows") {
+        shell(cmd)  # Windows shell
+      } else {
+        system(cmd) # Linux/macOS system
+      }
+      TRUE  # if command runs, Java is available
+    },
+    error = function(e) FALSE,
+    warning = function(w) FALSE
+  )
+  
+  if (isTRUE(res)) {
+    message("Java is installed and available on PATH.")
+  } else {
+    message("Java is not installed or not on PATH.")
+  }
+  
+  invisible(res)
+}
 ### Read Maxent ----------------------------------------------------------------
 # function to read in maxent lambdas file and extract coefficients for each feature type
 
