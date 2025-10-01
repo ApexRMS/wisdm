@@ -123,11 +123,12 @@ client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False
 
 # Set ensemble defaults if not provided
 if len(ensembleOptionsSheet) == 0:
-    ensembleOptionsSheet = pd.DataFrame({'MakeProbabilityEnsemble': "Yes", 
-                                         'ProbabilityMethod': "Mean", 
-                                         "NormalizeProbability": "No", 
-                                         'MakeBinaryEnsemble': "No", 
-                                         'IgnoreNA': "Yes"})
+    ensembleOptionsSheet = pd.DataFrame({'MakeProbabilityEnsemble': ["Yes"], 
+                                         'ProbabilityMethod': ["Mean"], 
+                                         "NormalizeProbability": ["No"], 
+                                         'MakeBinaryEnsemble': ["No"],
+                                         'BinaryMethod': [None], 
+                                         'IgnoreNA': ["Yes"]})
 if ensembleOptionsSheet.MakeProbabilityEnsemble.item() == "Yes":
     if pd.isnull(ensembleOptionsSheet.ProbabilityMethod.item()):
         ensembleOptionsSheet['ProbabilityMethod'] = "Mean"
