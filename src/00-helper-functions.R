@@ -158,46 +158,45 @@ maxent.predict <- function(model, x) {
     on.exit(detach(model))
   }
 
-  # build prediction shell filled with NA
-  prediction <- rep(NA, nrow(x))
-  names(prediction) <- row.names(x)
+  n <- nrow(x)
 
-  # These all default to zero in case the feature was excluded
-  Raw <- Quad <- Prod <- Forw <- Rev <- Thresh <- 0
+  # initialize all contributions as 0-vectors of length n
+  Raw <- Quad <- Prod <- Forw <- Rev <- Thresh <- rep(0, n)
+
+  make_matrix <- function(formula_txt, data) {
+    model.matrix(
+      as.formula(formula_txt),
+      model.frame(as.formula(formula_txt), data = data, na.action = na.pass)
+    )
+  }
 
   if (!is.null(Raw.coef)) {
-    Raw <- model.matrix(
-      as.formula(paste("~", paste(Raw.coef[, 1], collapse = " + "), sep = "")),
+    Raw.mat <- make_matrix(
+      paste("~", paste(Raw.coef[, 1], collapse = " + ")),
       x
     )
-    Raw <- apply(t(Raw) * Raw.mult, 2, sum)
+    Raw <- apply(t(Raw.mat) * Raw.mult, 2, sum)
   }
+
   if (!is.null(Quad.coef)) {
-    Quad <- model.matrix(
-      as.formula(paste(
-        "~ I(",
-        paste(Quad.coef[, 1], collapse = ") + I("),
-        ")",
-        sep = ""
-      )),
+    Quad.mat <- make_matrix(
+      paste("~ I(", paste(Quad.coef[, 1], collapse = ") + I("), ")"),
       x
     )
-    Quad <- apply(t(Quad) * Quad.mult, 2, sum)
+    Quad <- apply(t(Quad.mat) * Quad.mult, 2, sum)
   }
+
   if (!is.null(Prod.coef)) {
-    Prod <- model.matrix(
-      as.formula(paste(
-        "~ ",
-        paste(Prod.coef[, 1], collapse = " + "),
-        sep = ""
-      )),
+    Prod.mat <- make_matrix(
+      paste("~ ", paste(Prod.coef[, 1], collapse = " + ")),
       x
     )
-    Prod <- apply(t(Prod) * Prod.mult, 2, sum)
+    Prod <- apply(t(Prod.mat) * Prod.mult, 2, sum)
   }
+
   if (!is.null(Fwd.Hinge)) {
-    Forw <- model.matrix(
-      as.formula(paste(
+    Forw.mat <- make_matrix(
+      paste(
         "~ ",
         paste(
           "-1 + ",
@@ -205,29 +204,25 @@ maxent.predict <- function(model, x) {
             "I(",
             paste(
               Fwd.Hinge[, 1],
-              paste(
-                Fwd.Hinge[, 1],
-                paste("(", Fwd.Hinge[, 3], ")", sep = ""),
-                sep = ">"
-              ),
+              paste(Fwd.Hinge[, 1],
+                    paste("(", Fwd.Hinge[, 3], ")", sep = ""), sep = ">"),
               sep = "*("
             ),
             collapse = ")) + "
           ),
-          "))",
-          sep = ""
-        ),
-        sep = ""
-      )),
+          "))"
+        )
+      ),
       x
     )
-    Forw.Cst <- Forw != 0
-    Forw <- apply(t(Forw) * FH.mult, 2, sum) +
+    Forw.Cst <- Forw.mat != 0
+    Forw <- apply(t(Forw.mat) * FH.mult, 2, sum) +
       apply(t(Forw.Cst) * FH.cnst, 2, sum)
   }
+
   if (!is.null(Rev.Hinge)) {
-    Rev <- model.matrix(
-      as.formula(paste(
+    Rev.mat <- make_matrix(
+      paste(
         "~ ",
         paste(
           "-1 + ",
@@ -235,45 +230,49 @@ maxent.predict <- function(model, x) {
             "I(",
             paste(
               Rev.Hinge[, 1],
-              paste(
-                Rev.Hinge[, 1],
-                paste("(", Rev.Hinge[, 4], ")", sep = ""),
-                sep = "<"
-              ),
+              paste(Rev.Hinge[, 1],
+                    paste("(", Rev.Hinge[, 4], ")", sep = ""), sep = "<"),
               sep = "*("
             ),
             collapse = ")) + "
           ),
-          "))",
-          sep = ""
-        ),
-        sep = ""
-      )),
+          "))"
+        )
+      ),
       x
     )
-    Rev.Cst <- Rev != 0
-    Rev <- apply(t(Rev) * Rev.mult, 2, sum) +
+    Rev.Cst <- Rev.mat != 0
+    Rev <- apply(t(Rev.mat) * Rev.mult, 2, sum) +
       apply(t(Rev.Cst) * Rev.cnst, 2, sum)
   }
+
   if (!is.null(Thresh.val)) {
     Thresh.val[, 1] <- gsub("=", "==", Thresh.val[, 1])
-    Thresh <- model.matrix(
-      as.formula(paste(
-        "~ ",
-        paste("I", Thresh.val[, 1], collapse = " + ", sep = ""),
-        sep = ""
-      )),
+    Thresh.mat <- make_matrix(
+      paste("~ ", paste("I", Thresh.val[, 1], collapse = " + ", sep = "")),
       x
     )
-    Thresh <- apply(t(Thresh[, 2:ncol(Thresh)]) * Thresh.cnst, 2, sum)
+    Thresh <- apply(t(Thresh.mat[, -1]) * Thresh.cnst, 2, sum)
   }
 
+  # cat(
+  # "nrow(x)=", nrow(x),
+  # " Raw=", length(Raw),
+  # " Quad=", length(Quad),
+  # " Prod=", length(Prod),
+  # " Forw=", length(Forw),
+  # " Rev=", length(Rev),
+  # " Thresh=", length(Thresh), "\n"
+  # )
+
+  # sum contributions
   S <- Raw + Quad + Prod + Forw + Rev + Thresh - normalizers[1, 2]
 
+  # logistic transform
   qx <- exp(S) / normalizers[2, 2]
   predVals <- qx * exp(entropy) / (1 + qx * exp(entropy))
-  prediction[names(predVals)] <- predVals
-  return(prediction)
+
+  return(predVals)
 }
 
 ## brt predict function --------------------------------------------------------
