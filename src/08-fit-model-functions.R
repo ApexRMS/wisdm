@@ -623,30 +623,30 @@ fitModel <- function(
 
 checkJava <- function() {
   os <- Sys.info()[["sysname"]]
-  
+
   # set system call
   cmd <- "java -version"
-  
+
   # capture status
   res <- tryCatch(
     {
       if (os == "Windows") {
-        shell(cmd)  # Windows shell
+        shell(cmd) # Windows shell
       } else {
         system(cmd) # Linux/macOS system
       }
-      TRUE  # if command runs, Java is available
+      status == 0L # only exit code 0 means Java is available
     },
     error = function(e) FALSE,
     warning = function(w) FALSE
   )
-  
+
   if (isTRUE(res)) {
     message("Java is installed and available on PATH.")
   } else {
     message("Java is not installed or not on PATH.")
   }
-  
+
   invisible(res)
 }
 ### Read Maxent ----------------------------------------------------------------
