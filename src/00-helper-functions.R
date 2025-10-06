@@ -182,15 +182,15 @@ maxent.predict <- function(model, x) {
 
   # Quadratic Features -----
   if (!is.null(Quad.coef)) {
-Quad.mat <- make_matrix(  
-      paste0("~ -1 + ", paste0("I(", Quad.coef[, 1], ")", collapse = " + ")),  
-      x  
-    )  
-    if (ncol(Quad.mat) != length(Quad.mult)) {  
-      stop("Quad.mult length mismatch with Quad.mat columns")  
-    }  
-    Quad <- as.vector(Quad.mat %*% Quad.mult)  
-  } 
+    Quad.mat <- make_matrix(
+      paste0("~ -1 + ", paste0("I(", Quad.coef[, 1], ")", collapse = " + ")),
+      x
+    )
+    if (ncol(Quad.mat) != length(Quad.mult)) {
+      stop("Quad.mult length mismatch with Quad.mat columns")
+    }
+    Quad <- as.vector(Quad.mat %*% Quad.mult)
+  }
 
   # Product Features -----
   if (!is.null(Prod.coef)) {
@@ -206,17 +206,22 @@ Quad.mat <- make_matrix(
 
   # Forward Hinges -----
   if (!is.null(Fwd.Hinge)) {
-    Forw.mat <- make_matrix(  
-      paste0(  
-        "~ -1 + ",  
-        paste0(  
-          "I(",  
-          Fwd.Hinge[, 1], " * (", Fwd.Hinge[, 1], " > (", Fwd.Hinge[, 3], ")))",  
-          collapse = " + "  
-        )  
-      ),  
-      x  
-    )  
+    Forw.mat <- make_matrix(
+      paste0(
+        "~ -1 + ",
+        paste0(
+          "I(",
+          Fwd.Hinge[, 1],
+          " * (",
+          Fwd.Hinge[, 1],
+          " > (",
+          Fwd.Hinge[, 3],
+          ")))",
+          collapse = " + "
+        )
+      ),
+      x
+    )
 
     # Explicit indicator: 1 if x > threshold, else 0
     Forw.ind <- make_matrix(
@@ -246,17 +251,21 @@ Quad.mat <- make_matrix(
 
   # Reverse Hinges -----
   if (!is.null(Rev.Hinge)) {
-    Rev.mat <- make_matrix(  
-+      paste0(  
-+        "~ -1 + ",  
-+        paste0(  
-+          "I(",  
-+          Rev.Hinge[, 1], " * (", Rev.Hinge[, 1], " < (", Rev.Hinge[, 4], ")))",  
-+          collapse = " + "  
-+        )  
-+      ),  
-+      x  
-+    )  
+    Rev.mat <- make_matrix(
+      paste0(
+        "~ -1 + ",
+        paste0(
+          "I(",
+          Rev.Hinge[, 1],
+          " * (",
+          Rev.Hinge[, 1],
+          " < (",
+          Rev.Hinge[, 4],
+          ")))",
+          collapse = " + "
+        )
+      ),
+      x
     )
 
     # Indicator: 1 if x < threshold, else 0
@@ -289,16 +298,16 @@ Quad.mat <- make_matrix(
   if (!is.null(Thresh.val)) {
     thr_expr <- gsub("(?<!(<|>|!|=))=(?!=)", "==", Thresh.val[, 1], perl = TRUE)
 
-    Thresh.mat <- make_matrix(  
-      paste0("~ -1 + ", paste0("I(", thr_expr, ")", collapse = " + ")),  
-      x  
-    )  
+    Thresh.mat <- make_matrix(
+      paste0("~ -1 + ", paste0("I(", thr_expr, ")", collapse = " + ")),
+      x
+    )
 
-    if (ncol(Thresh.mat) != length(Thresh.cnst)) {  
-      stop("Thresh.cnst length mismatch with Thresh.mat columns")  
-    }  
+    if (ncol(Thresh.mat) != length(Thresh.cnst)) {
+      stop("Thresh.cnst length mismatch with Thresh.mat columns")
+    }
 
-    Thresh <- as.vector(Thresh.mat %*% Thresh.cnst) 
+    Thresh <- as.vector(Thresh.mat %*% Thresh.cnst)
   }
 
   # Final Predictions -----
