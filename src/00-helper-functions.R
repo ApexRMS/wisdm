@@ -281,11 +281,11 @@ maxent.predict <- function(model, x) {
   if (!is.null(m$Thresh.val)) {
     thr_expr <- gsub("(?<!(<|>|!|=))=(?!=)", "==", m$Thresh.val[, 1], perl = TRUE)
     Thresh.mat <- make_matrix(
-       paste("~ -1 + ", paste0("as.numeric(", thr_expr, ")"), collapse = " + "), x
+       paste("~ -1 + ", paste0("as.numeric(", thr_expr, ")", collapse = " + ")), x
     )
-    if (ncol(Thresh.mat) - 1 != length(m$Thresh.cnst))
-      stop("Thresh.cnst length mismatch")
-    Thresh <- as.vector(Thresh.mat[, -1, drop = FALSE] %*% m$Thresh.cnst)
+    if (ncol(Thresh.mat) != length(m$Thresh.cnst))
+      stop("Thresh.cnst length mismatch with Thresh.mat columns")
+    Thresh <- as.vector(Thresh.mat %*% m$Thresh.cnst)
   }
 
   # Combine all feature groups 
