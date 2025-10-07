@@ -627,27 +627,23 @@ checkJava <- function() {
   # set system call
   cmd <- "java -version"
 
-  # capture status
-  res <- tryCatch(
-    {
-      if (os == "Windows") {
-        shell(cmd) # Windows shell
-      } else {
-        system(cmd) # Linux/macOS system
-      }
-      status == 0L # only exit code 0 means Java is available
-    },
-    error = function(e) FALSE,
-    warning = function(w) FALSE
-  )
-
-  if (isTRUE(res)) {
+  # run the command and capture exit code
+  status <- tryCatch({
+    if (os == "Windows") {
+      shell(cmd, intern = FALSE, ignore.stdout = TRUE, ignore.stderr = TRUE)
+    } else {
+      system(cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
+    }
+  }, error = function(e) 1L)
+  
+  # evaluate exit status
+  if (is.numeric(status) && status == 0L) {
     message("Java is installed and available on PATH.")
+    TRUE
   } else {
     message("Java is not installed or not on PATH.")
+    FALSE
   }
-
-  invisible(res)
 }
 ### Read Maxent ----------------------------------------------------------------
 # function to read in maxent lambdas file and extract coefficients for each feature type
