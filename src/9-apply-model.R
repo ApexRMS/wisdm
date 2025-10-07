@@ -3,7 +3,7 @@
 ## ApexRMS, August 2025
 ## ---------------------
 
-# built under R version 4.1.3, SyncroSim 3.1.10 & rsyncrosim 2.1.3
+# built under R version 4.1.3, SyncroSim 3.1.17 & rsyncrosim 2.1.3
 # this transformer pulls in selected model objects and applies the models
 # to specified spatial conditions to produce maps of occurrence probability,
 # multivariate environmental similarity surface, most dissimilar variable,
@@ -311,6 +311,7 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
     var_names = modVars,
     factor_vars = factorVars
   )
+  tmp_covs <- NULL
   if (!is.null(maskValues)) {
     tmp_covs <- file.path(ssimTempDir, "covariates_temp.tif")
     covs <- crop(
@@ -790,7 +791,9 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
     }
   }
   for (p in c(tmp_covs)) {
-    unlink(p, force = TRUE)
+    if (!is.null(p) && file.exists(p)) {
+      unlink(p, force = TRUE)
+    }
   }
   gc()
 

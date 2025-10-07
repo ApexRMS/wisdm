@@ -62,6 +62,11 @@ progressBar()
 
 # Error handling ---------------------------------------------------------------
 
+# check for local java installation
+if(!checkJava()){
+  stop("Java not found. Please ensure that Java is installed and available on your system PATH before continuing.")
+}
+
 # check for for background data
 if (nrow(fieldDataSheet) == 0L) {
   stop(

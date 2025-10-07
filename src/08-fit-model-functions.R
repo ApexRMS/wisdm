@@ -221,10 +221,10 @@ fitModel <- function(
     ytest = NULL
 
     if ("predicted" %in% names(dat)) {
-      dat <- select(dat, -predicted)
+      dat <- dplyr::select(dat, -predicted)
     }
 
-    x = dat[, -nonCovariateCols]
+    x = dplyr::select(dat, -all_of(nonCovariateCols))
     y = factor(dat$Response)
 
     # tune the mtry parameter - this controls the number of covariates randomly subset for each split #
@@ -502,13 +502,13 @@ fitModel <- function(
           # cross-validation used for model tuning
           dismo::gbm.step(
             data = dat,
-            gbm.x = names(dat)[-nonCovariateCols], # names of predictor variables in data
-            gbm.y = "Response", # name of response variable in data
+            gbm.x = which(!(names(dat) %in% nonCovariateCols)), # indicies of predictor variables in data
+            gbm.y = which(names(dat) == "Response"), # index of response variable in data
             family = out$modelFamily,
             tree.complexity = ifelse(prNum < 50, 1, 5),
             learning.rate = out$modOptions$LearningRate,
             bag.fraction = out$modOptions$BagFraction,
-            max.trees = out$modOptions$MaximumTrees,
+            max.trees = out$modOptions$MaximumTrees, # maximum number of trees to fit before stopping
             step.size = out$modOptions$NumberOfTrees,
             n.folds = nFolds, # number of cross-validation folds
             # fold.vector = dat$ModelSelectionSplit,            # set predefined cross-validation folds
@@ -519,9 +519,12 @@ fitModel <- function(
           # cross-validation used for model evaluation (run from cv.fct where data is subset by fold prior to call)
           gbm::gbm(
             formula = Response ~ .,
-            data = dat[, c("Response", names(dat)[-nonCovariateCols])], # response + predictors
+            data = dplyr::select(
+              dat,
+              -all_of(nonCovariateCols[nonCovariateCols != "Response"])
+            ), # response + predictors
             distribution = out$modelFamily,
-            n.trees = out$modOptions$NumberOfTrees,
+            n.trees = out$modOptions$nTrees, # total number of trees to fit (set to optimal number from full fit)
             interaction.depth = ifelse(prNum < 50, 1, 5),
             shrinkage = out$modOptions$LearningRate,
             bag.fraction = out$modOptions$BagFraction,
@@ -615,6 +618,33 @@ fitModel <- function(
   }
 }
 
+### check java installation ----------------------------------------------------
+# function to check if java is installed and available on system path
+
+checkJava <- function() {
+  os <- Sys.info()[["sysname"]]
+
+  # set system call
+  cmd <- "java -version"
+
+  # run the command and capture exit code
+  status <- tryCatch({
+    if (os == "Windows") {
+      shell(cmd, intern = FALSE, ignore.stdout = TRUE, ignore.stderr = TRUE)
+    } else {
+      system(cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
+    }
+  }, error = function(e) 1L)
+  
+  # evaluate exit status
+  if (is.numeric(status) && status == 0L) {
+    message("Java is installed and available on PATH.")
+    TRUE
+  } else {
+    message("Java is not installed or not on PATH.")
+    FALSE
+  }
+}
 ### Read Maxent ----------------------------------------------------------------
 # function to read in maxent lambdas file and extract coefficients for each feature type
 
@@ -752,7 +782,10 @@ est.lr <- function(dat, out) {
         # cross-validation used for model tuning - gbm.step not used here as we need to loop through learning rates
         gbm::gbm(
           formula = Response ~ .,
-          data = dat[, c("Response", names(dat)[-nonCovariateCols])], # response + predictors
+          data = dplyr::select(
+            dat,
+            -all_of(nonCovariateCols[nonCovariateCols != "Response"])
+          ), # response + predictors
           distribution = out$modelFamily,
           n.trees = n.trees[n],
           interaction.depth = ifelse(prNum < 50, 1, 5),

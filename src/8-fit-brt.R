@@ -307,26 +307,10 @@ out$finalVars <- finalMod$contributions$var # brt doesn't drop variables
 out$nVarsFinal <- length(out$finalVars)
 
 # number of trees
-nTrees <- if (!is.null(finalMod$gbm.call$best.trees)) {
-  # gbm.step stores optimal number of trees here
-  finalMod$gbm.call$best.trees
-} else if (!is.null(finalMod$n.trees)) {
-  # gbm stores the maximum number fitted
-  finalMod$n.trees
-} else {
-  NA
-}
+out$modOptions$nTrees <- nTrees <- finalMod$gbm.call$best.trees
 
 # number of folds
-cvFolds <- if (!is.null(finalMod$gbm.call$cv.folds)) {
-  # gbm.step
-  finalMod$gbm.call$cv.folds
-} else if (!is.null(finalMod$cv.folds)) {
-  # gbm
-  finalMod$cv.folds
-} else {
-  NA
-}
+cvFolds <- finalMod$gbm.call$cv.folds
 
 txt0 <- paste(
   "\n\n",
