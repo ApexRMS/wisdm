@@ -162,6 +162,7 @@ maxent.predict <- function(model, x) {
   feature_predict <- function(mat, mult, name) {
     if (is.null(mult) || is.null(mat)) return(0)
     if (length(mult) == ncol(mat) + 1) {
+      warning(paste0(name, ": assuming mult[1] is intercept; verify model structure"))  
       as.vector(mat %*% mult[-1]) + mult[1]
     } else if (length(mult) == ncol(mat)) {
       as.vector(mat %*% mult)
@@ -192,7 +193,7 @@ maxent.predict <- function(model, x) {
   # Quadratic Features ---
   if (!is.null(m$Quad.coef)) {
     Quad.mat <- make_matrix(
-      paste("~ -1 + I(", paste(m$Quad.coef[, 1], collapse = ") + I("), ")"), x
+      paste0("~ -1 + ", paste0("I(", m$Quad.coef[, 1], ")", collapse = " + ")), x 
     )
     Quad <- feature_predict(Quad.mat, m$Quad.mult, "Quad")
   }
