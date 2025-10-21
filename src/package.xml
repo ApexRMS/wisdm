@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.4.1" minSyncroSimVersion="3.1.17" url="https://apexrms.github.io/wisdm/">
+<package name="wisdm" displayName="WISDM" description="Workbench for Integrated Species Distribution Modeling" version="2.5.0" minSyncroSimVersion="3.1.17" url="https://apexrms.github.io/wisdm/">
 
 <!--Library Datasheets-->
 
@@ -27,6 +27,7 @@
 	<record columns="ModelName|ModelType" values="Random Forest|rf"/>
 	<record columns="ModelName|ModelType" values="Maxent|maxent"/>
 	<record columns="ModelName|ModelType" values="Boosted Regression Trees|brt"/>
+	<record columns="ModelName|ModelType" values="Generalized Additive Model|gam"/>
 </dataSheet>
 
 <!--Scenario Datasheets-->
@@ -107,6 +108,12 @@
 	<column name="MaximumTrees" displayName="Maximum number of trees" dataType="Integer"/>
 </dataSheet>
 
+<dataSheet name="GAM" displayName="Generalized Additive Model" isSingleRow="True">
+	<column name="SmoothingMethod" displayName="Smoothing method" dataType="Integer" validationType="List" formula1="0:Thin plate regression splines with shrinkage-to-zero"/>
+	<column name="BasisDimension" displayName="Basis dimension (k)" dataType="Integer"/>
+	<column name="PenaltySelectionMethod" displayName="Penalty selection method" dataType="Integer" validationType="List" formula1="0:AIC|1:GCV|2:ML|3:REML|4:UBRE"/>
+</dataSheet>
+
 <dataSheet name="GLM" displayName="Generalized Linear Model" isSingleRow="True">
 	<column name="SelectBestPredictors" displayName="Select best predictors" dataType="Boolean"/>
 	<column name="SimplificationMethod" displayName="Simplification method" dataType="Integer" validationType="List" formula1="0:AIC|1:BIC"/>
@@ -116,8 +123,15 @@
 
 <dataSheet name="Maxent" isSingleRow="True">
 	<column name="MemoryLimit" displayName="Memory allocation (MB)" dataType="Integer"/>
-	<column name="MaximumBackgroundPoints" displayName="Maximum number of background points" dataType="Integer"/>
 	<column name="MultiprocessingThreads" displayName="Number of processing threads" dataType="Integer"/>
+	<column name="AutoFeatureSelection" displayName="Automatic feature selection" dataType="Boolean"/>
+	<column name="UseHinge" displayName="Use hinge feature type" dataType="Boolean"/>
+	<column name="UseLinear" displayName="Use linear feature type" dataType="Boolean"/>
+	<column name="UseQuadratic" displayName="Use quadratic feature type" dataType="Boolean"/>
+	<column name="UseProduct" displayName="Use product feature type" dataType="Boolean"/>
+	<column name="UseThreshold" displayName="Use threshold feature type" dataType="Boolean"/>
+	<column name="RegularizationMultiplier" displayName="Regularization multiplier" dataType="Double"/>
+	<column name="EnableClamping" displayName="Enable clamping" dataType="Boolean"/>
 	<column name="VisibleInterface" displayName="View maxent user interface during run" dataType="Boolean"/>
 	<column name="SaveMaxentFiles" displayName="Save maxent formatted input/output files" dataType="Boolean"/>
 </dataSheet>
@@ -352,7 +366,23 @@
 		<dataSheet name="GLM" type="Input"/>
 		<dataSheet name="OutputModel" type="Output"/>
 </transformer>
-					
+
+<!--GAM Transformer-->
+<transformer
+	name="GAM"
+	displayName="8 - Generalized Additive Model"
+	programArguments="8-fit-gam.R"
+	isMultiprocessing="False"
+	condaEnv="wisdm-conda.yml"
+	condaEnvVersion="5">
+		<dataSheet name="FieldData" type="Input"/>
+		<dataSheet name="ValidationOptions" type="Input"/>
+		<dataSheet name="RetainedCovariates" type="Input"/>
+		<dataSheet name="SiteData" type="Input"/>
+		<dataSheet name="GAM" type="Input"/>
+		<dataSheet name="OutputModel" type="Output"/>
+</transformer>
+
 <!--Random Forest Transformer-->
 <transformer
 	name="RF"
@@ -529,6 +559,7 @@
 	</group>
 	<group name="Models">
 	  	<item name="BRT"/>
+		<item name="GAM"/>
 		<item name="GLM"/>
 		<item name="Maxent"/>
 		<item name="RF" displayName="Random Forest"/>
