@@ -302,11 +302,13 @@ fitModel <- function(
     }
 
     if (fullFit) {
-      # prepare batch file
+      # Prepare batch file ----
       capture.output(
         cat("java -mx", out$modOptions$MemoryLimit, "m", sep = ""),
         file = out$batchPath
       )
+      
+      # core executable
       cat(
         " -jar",
         paste0(
@@ -321,9 +323,12 @@ fitModel <- function(
         file = out$batchPath,
         append = T
       )
+      # optional visible interface
       if (!out$modOptions$VisibleInterface) {
         cat(" -z", file = out$batchPath, append = T)
       }
+      
+      # input files  
       cat(
         paste0(' samplesfile="', out$swdPath, '"'),
         file = out$batchPath,
@@ -334,11 +339,7 @@ fitModel <- function(
         file = out$batchPath,
         append = T
       )
-      if (length(out$factorInputVars) > 0) {
-        for (i in out$factorInputVars) {
-          cat(paste0(" togglelayertype=", i), file = out$batchPath, append = T)
-        }
-      }
+      # test data (if provided)
       if (!is.null(out$testDataPath)) {
         cat(
           paste0(' testsamplesfile="', out$testDataPath, '"'),
@@ -346,6 +347,14 @@ fitModel <- function(
           append = T
         )
       }
+      # factor (categorical) layers
+      if (length(out$factorInputVars) > 0) {
+        for (i in out$factorInputVars) {
+          cat(paste0(" togglelayertype=", i), file = out$batchPath, append = T)
+        }
+      }
+
+      # output directory
       cat(
         paste0(
           ' outputdirectory="',
@@ -355,6 +364,7 @@ fitModel <- function(
         file = out$batchPath,
         append = T
       )
+      # performance settings
       cat(
         " threads=",
         out$modOptions$MultiprocessingThreads,
@@ -362,11 +372,32 @@ fitModel <- function(
         file = out$batchPath,
         append = T
       )
+      # model complexity settings
+      cat(" autofeature=", tolower(out$modOptions$AutoFeatureSelection), sep = "",
+      file = out$batchPath, append = TRUE)
+      cat(" betamultiplier=", out$modOptions$RegularizationMultiplier, sep = "",
+      file = out$batchPath, append = TRUE)
+      cat(" doclamp=", tolower(out$modOptions$EnableClamping), sep = "",
+      file = out$batchPath, append = TRUE)
+
+      # Explicit feature toggles
+      cat(paste0(
+        " linear=", tolower(out$modOptions$UseLinear),
+        " quadratic=", tolower(out$modOptions$UseQuadratic),
+        " product=", tolower(out$modOptions$UseProduct),
+        " hinge=", tolower(out$modOptions$UseHinge),
+        " threshold=", tolower(out$modOptions$UseThreshold)
+      ),
+      file = out$batchPath, append = TRUE)
+
+      # output and diagnostics
       cat(
         " responsecurves jackknife writeclampgrid writemess warnings prefixes",
         file = out$batchPath,
         append = T
-      ) # reverse these default settings
+      ) 
+      
+      # execution controls
       cat(" redoifexists autorun", file = out$batchPath, append = T)
 
       # Note than maxent can't handle spaces in the batch file path
@@ -562,49 +593,17 @@ fitModel <- function(
       cont.mask <- cont.mask[-c(factor.mask)]
     }
 
-    if (out$modOptions$AllowShrinkageSmoothers) {
-      if (out$modOptions$ConsiderLinearTerms) {
-        # creates formula with smooth and linear terms
-        startModel = as.formula(paste(
-          "Response",
-          "~",
-          paste(
-            paste(sanitizedVarNames, collapse = " + "),
-            paste0("s(", sanitizedVarNames, ", bs='ts')", collapse = " + "),
-            sep = " + "
-          )
-        ))
-      } else {
-        # creates formula with smooth terms only
-        startModel = as.formula(paste(
-          "Response",
-          "~",
-          paste0("s(", sanitizedVarNames, ", bs='ts')", collapse = " + "),
-          sep = ""
-        ))
-      }
-    } else {
-      if (out$modOptions$ConsiderLinearTerms) {
-        # creates full scope with smooth and linear terms
-        startModel = as.formula(paste(
-          "Response",
-          "~",
-          paste(
-            paste(sanitizedVarNames, collapse = " + "),
-            paste0("s(", sanitizedVarNames, ")", collapse = " + "),
-            sep = " + "
-          )
-        ))
-      } else {
-        # creates full scope with smooth terms
-        startModel = as.formula(paste(
-          "Response",
-          "~",
-          paste0("s(", sanitizedVarNames, ")", collapse = " + "),
-          sep = ""
-        ))
-      }
-    }
+    smoothTerm <- gamSmoothingMethodCW$codeTerm[gamSmoothingMethodCW$displayTerm == out$modOptions$SmoothingMethod]
+    
+    # creates formula with smooth terms only
+    startModel = as.formula(paste(
+      "Response",
+      "~",
+      paste0("s(", sanitizedVarNames, ", bs='", smoothTerm, "')", collapse = " + "),
+      sep = ""
+      ))
+
+    ## STOPPED HERE - need to add basis dimension and penalty selection method options
 
     modelGAM <- mgcv::gam(
       formula = startModel,
