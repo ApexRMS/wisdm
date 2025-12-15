@@ -380,15 +380,17 @@ fitModel <- function(
       cat(" doclamp=", tolower(out$modOptions$EnableClamping), sep = "",
       file = out$batchPath, append = TRUE)
 
-      # Explicit feature toggles
-      cat(paste0(
-        " linear=", tolower(out$modOptions$UseLinear),
-        " quadratic=", tolower(out$modOptions$UseQuadratic),
-        " product=", tolower(out$modOptions$UseProduct),
-        " hinge=", tolower(out$modOptions$UseHinge),
-        " threshold=", tolower(out$modOptions$UseThreshold)
-      ),
-      file = out$batchPath, append = TRUE)
+      # Explicit feature toggles (if auto feature selection is off)
+      if (!out$modOptions$AutoFeatureSelection){
+        cat(paste0(
+          " linear=", tolower(out$modOptions$UseLinear),
+          " quadratic=", tolower(out$modOptions$UseQuadratic),
+          " product=", tolower(out$modOptions$UseProduct),
+          " hinge=", tolower(out$modOptions$UseHinge),
+          " threshold=", tolower(out$modOptions$UseThreshold)
+        ),
+        file = out$batchPath, append = TRUE)
+      }
 
       # output and diagnostics
       cat(
@@ -593,24 +595,36 @@ fitModel <- function(
       cont.mask <- cont.mask[-c(factor.mask)]
     }
 
-    smoothTerm <- gamSmoothingMethodCW$codeTerm[gamSmoothingMethodCW$displayTerm == out$modOptions$SmoothingMethod]
-    
-    # creates formula with smooth terms only
-    startModel = as.formula(paste(
-      "Response",
-      "~",
-      paste0("s(", sanitizedVarNames, ", bs='", smoothTerm, "')", collapse = " + "),
-      sep = ""
-      ))
+    smoothTerm <- out$constants$gamSmoothingMethodCW$codeTerm[gamSmoothingMethodCW$displayTerm == out$modOptions$SmoothingMethod]
+    basisDimension <- out$modOptions$BasisDimension
+    PenaltySelectionMethod <- out$modOptions$PenaltySelectionMethod
 
-    ## STOPPED HERE - need to add basis dimension and penalty selection method options
+    if (is.na(basisDimension)) {
+      # creates formula with smooth terms only
+      startModel = as.formula(paste(
+        "Response",
+        "~",
+        paste0("s(", sanitizedVarNames[cont.mask], ", bs='", smoothTerm, "')", collapse = " + "),
+        sanitizedVarNames[factor.mask],
+        sep = ""
+        ))
+    } else {
+      # creates formula with smooth terms and basis dimension
+      startModel = as.formula(paste(
+        "Response",
+        "~",
+        paste0("s(", sanitizedVarNames[cont.mask], ", bs='", smoothTerm, "', k=", basisDimension, ")", collapse = " + "),
+        sanitizedVarNames[factor.mask],
+        sep = ""
+      ))
+    }
 
     modelGAM <- mgcv::gam(
       formula = startModel,
       data = dat,
       family = binomial(link = "logit"),
       weights = wt,
-      method = "REML"
+      method = PenaltySelectionMethod
     )
 
     return(modelGAM)
@@ -1101,15 +1115,12 @@ calibration <- function(
   preds, # predicted response
   family = "binomial"
 ) {
-  # calculates calibration statistics for either binomial or count data
-  # but the family argument must be specified for the latter
-  # a conditional test for the latter will catch most failures to specify
-  # the family
+  # calculates calibration statistics for binomial model
 
   if (family == "bernoulli") {
     family <- "binomial"
   }
-  pred.range <- max(preds) - min(preds)
+  pred.range <- max(preds, na.rm = TRUE) - min(preds, na.rm = TRUE)
 
   if (pred.range > 1.2 & family == "binomial") {
     updateRunLog(paste0(
@@ -1119,25 +1130,16 @@ calibration <- function(
     ))
   }
   if (family == "binomial") {
-    pred <- preds + 1e-005
-    pred[pred >= 1] <- 0.99999
-    mod <- glm(obs ~ log((pred) / (1 - (pred))), family = binomial)
+    pred <- pmin(pmax(preds, 1e-005), 0.99999)  
     lp <- log((pred) / (1 - (pred)))
+    mod <- glm(obs ~ lp, family = binomial)
     a0b1 <- glm(obs ~ offset(lp) - 1, family = binomial)
     miller1 <- 1 - pchisq(a0b1$deviance - mod$deviance, 2)
     ab1 <- glm(obs ~ offset(lp), family = binomial)
     miller2 <- 1 - pchisq(a0b1$deviance - ab1$deviance, 1)
     miller3 <- 1 - pchisq(ab1$deviance - mod$deviance, 1)
   }
-  if (family == "poisson") {
-    mod <- glm(obs ~ log(preds), family = poisson)
-    lp <- log(preds)
-    a0b1 <- glm(obs ~ offset(lp) - 1, family = poisson)
-    miller1 <- 1 - pchisq(a0b1$deviance - mod$deviance, 2)
-    ab1 <- glm(obs ~ offset(lp), family = poisson)
-    miller2 <- 1 - pchisq(a0b1$deviance - ab1$deviance, 1)
-    miller3 <- 1 - pchisq(ab1$deviance - mod$deviance, 1)
-  }
+
   calibration.result <- c(mod$coef, miller1, miller2, miller3)
   names(calibration.result) <- c(
     "intercept",
