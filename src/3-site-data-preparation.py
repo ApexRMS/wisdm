@@ -11,7 +11,7 @@
 # Source dependencies ----------------------------------------------------------
 
 ## Modify os path if multiple GDAL installations ----
-import os
+import os, sys
 import glob
 from win32api import GetFileVersionInfo, LOWORD, HIWORD
 
@@ -68,13 +68,10 @@ ps.environment.update_run_log('3 - Site Data Preparation => Begin')
 
 ## Modify the os PROJ path (when running with Conda) ----
 myLibrary = ps.Library()
-mySession = ps.Session()
 
-result = mySession._Session__call_console(["--conda", "--config"])
-conda_fpath = result.stdout.decode('utf-8').strip().split("Conda path is currently: ")[1]
-conda_fpath = os.path.normpath(conda_fpath)
 if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
-    library_folder = os.path.join(conda_fpath, "envs", "wisdm-2", "wisdm-conda-s3", "Library")
+    conda_env_path = os.environ.get("CONDA_PREFIX") or sys.prefix
+    library_folder = os.path.join(conda_env_path, "Library")
     gdal_folder = os.path.join(library_folder, "share", "gdal")
     proj_folder = os.path.join(library_folder, "share", "proj")
     certifi_folder = os.path.join(library_folder, "ssl", "cacert.pem")
