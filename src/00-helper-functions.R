@@ -56,46 +56,26 @@ pred.fct <- function(
   y <- rep(NA, nrow(x))
   idx <- stats::complete.cases(x)
 
-  if (modType == "glm") {
-    y <- tryCatch(glm.predict(mod, x), error = function(e) {
-      rep(NA, nrow(x))
+  predictSafe <- function(predictFct, mod, x, idx) {
+    tryCatch(predictFct(mod, x[idx, , drop = FALSE]), error = function(e) {
+      rep(NA, sum(idx))
     })
   }
+
+  if (modType == "glm") {
+    y[idx] <- predictSafe(glm.predict, mod, x, idx)
+  }
   if (modType == "rf") {
-    preds <- tryCatch(
-      rf.predict(mod, x[idx, , drop = FALSE]),
-      error = function(e) {
-        rep(NA, sum(idx))
-      }
-    )
-    y[idx] <- preds
+    y[idx] <- predictSafe(rf.predict, mod, x, idx)
   }
   if (modType == "maxent") {
-    preds <- tryCatch(
-      maxent.predict(mod, x[idx, , drop = FALSE]),
-      error = function(e) {
-        rep(NA, sum(idx))
-      }
-    )
-    y[idx] <- preds
+    y[idx] <- predictSafe(maxent.predict, mod, x, idx)
   }
   if (modType == "brt") {
-    preds <- tryCatch(
-      brt.predict(mod, x[idx, , drop = FALSE]),
-      error = function(e) {
-        rep(NA, sum(idx))
-      }
-    )
-    y[idx] <- preds
+    y[idx] <- predictSafe(brt.predict, mod, x, idx)
   }
   if (modType == "gam") {
-    preds <- tryCatch(
-      gam.predict(mod, x[idx, , drop = FALSE]),
-      error = function(e) {
-        rep(NA, sum(idx))
-      }
-    )
-    y[idx] <- preds
+    y[idx] <- predictSafe(gam.predict, mod, x, idx)
   }
   return(y)
 } # end pred.vals function
@@ -151,18 +131,26 @@ tweak.p <- function(p) {
 
 maxent.predict <- function(model, x) {
   ## Helper to build model matrices safely (no intercepts)
-  make_matrix <- function(formula_txt, data) {
+  makeMatrix <- function(formula_txt, data) {
     form <- as.formula(formula_txt)
-    mm <- model.matrix(form, model.frame(form, data = data, na.action = na.pass))
+    mm <- model.matrix(
+      form,
+      model.frame(form, data = data, na.action = na.pass)
+    )
     mm <- mm[, colnames(mm) != "(Intercept)", drop = FALSE]
     mm
   }
 
   ## Helper for feature blocks with possible intercept
-  feature_predict <- function(mat, mult, name) {
-    if (is.null(mult) || is.null(mat)) return(0)
+  featurePredict <- function(mat, mult, name) {
+    if (is.null(mult) || is.null(mat)) {
+      return(0)
+    }
     if (length(mult) == ncol(mat) + 1) {
-      warning(paste0(name, ": assuming mult[1] is intercept; verify model structure"))  
+      warning(paste0(
+        name,
+        ": assuming mult[1] is intercept; verify model structure"
+      ))
       as.vector(mat %*% mult[-1]) + mult[1]
     } else if (length(mult) == ncol(mat)) {
       as.vector(mat %*% mult)
@@ -178,37 +166,40 @@ maxent.predict <- function(model, x) {
     m <- model
   }
 
-  # Initialize components 
+  # Initialize components
   n <- nrow(x)
-  Raw <- Quad <- Prod <- Forw <- Rev <- Thresh <- rep(0,n)
+  Raw <- Quad <- Prod <- Forw <- Rev <- Thresh <- rep(0, n)
 
   # Raw Features ---
   if (!is.null(m$Raw.coef)) {
-    Raw.mat <- make_matrix(
-      paste("~ -1 + ", paste(m$Raw.coef[, 1], collapse = " + ")), x
+    Raw.mat <- makeMatrix(
+      paste("~ -1 + ", paste(m$Raw.coef[, 1], collapse = " + ")),
+      x
     )
-    Raw <- feature_predict(Raw.mat, m$Raw.mult, "Raw")
+    Raw <- featurePredict(Raw.mat, m$Raw.mult, "Raw")
   }
 
   # Quadratic Features ---
   if (!is.null(m$Quad.coef)) {
-    Quad.mat <- make_matrix(
-      paste0("~ -1 + ", paste0("I(", m$Quad.coef[, 1], ")", collapse = " + ")), x 
+    Quad.mat <- makeMatrix(
+      paste0("~ -1 + ", paste0("I(", m$Quad.coef[, 1], ")", collapse = " + ")),
+      x
     )
-    Quad <- feature_predict(Quad.mat, m$Quad.mult, "Quad")
+    Quad <- featurePredict(Quad.mat, m$Quad.mult, "Quad")
   }
 
   # Product Features ---
   if (!is.null(m$Prod.coef)) {
-    Prod.mat <- make_matrix(
-      paste("~ -1 + ", paste(m$Prod.coef[, 1], collapse = " + ")), x
+    Prod.mat <- makeMatrix(
+      paste("~ -1 + ", paste(m$Prod.coef[, 1], collapse = " + ")),
+      x
     )
-    Prod <- feature_predict(Prod.mat, m$Prod.mult, "Prod")
+    Prod <- featurePredict(Prod.mat, m$Prod.mult, "Prod")
   }
 
   # Forward Hinge ---
   if (!is.null(m$Fwd.Hinge)) {
-    Forw.mat <- make_matrix(
+    Forw.mat <- makeMatrix(
       paste0(
         "~ -1 + ",
         paste0(
@@ -224,19 +215,27 @@ maxent.predict <- function(model, x) {
       ),
       x
     )
-    Forw.ind <- make_matrix(
+    Forw.ind <- makeMatrix(
       paste0(
         "~ -1 + ",
-        paste0("as.numeric(", m$Fwd.Hinge[, 1], " > (", m$Fwd.Hinge[, 3], "))",
-               collapse = " + ")
+        paste0(
+          "as.numeric(",
+          m$Fwd.Hinge[, 1],
+          " > (",
+          m$Fwd.Hinge[, 3],
+          "))",
+          collapse = " + "
+        )
       ),
       x
     )
 
-    if (ncol(Forw.mat) != length(m$FH.mult))
+    if (ncol(Forw.mat) != length(m$FH.mult)) {
       stop("FH.mult length mismatch with Forw.mat columns")
-    if (ncol(Forw.ind) != length(m$FH.cnst))
+    }
+    if (ncol(Forw.ind) != length(m$FH.cnst)) {
       stop("FH.cnst length mismatch with Forw.ind columns")
+    }
 
     Forw <- as.vector(Forw.mat %*% m$FH.mult) +
       as.vector(Forw.ind %*% m$FH.cnst)
@@ -244,7 +243,7 @@ maxent.predict <- function(model, x) {
 
   # Reverse Hinge ---
   if (!is.null(m$Rev.Hinge)) {
-    Rev.mat <- make_matrix(
+    Rev.mat <- makeMatrix(
       paste0(
         "~ -1 + ",
         paste0(
@@ -260,39 +259,53 @@ maxent.predict <- function(model, x) {
       ),
       x
     )
-    Rev.ind <- make_matrix(
+    Rev.ind <- makeMatrix(
       paste0(
         "~ -1 + ",
-        paste0("as.numeric(", m$Rev.Hinge[, 1], " < (", m$Rev.Hinge[, 4], "))",
-               collapse = " + ")
+        paste0(
+          "as.numeric(",
+          m$Rev.Hinge[, 1],
+          " < (",
+          m$Rev.Hinge[, 4],
+          "))",
+          collapse = " + "
+        )
       ),
       x
     )
 
-    if (ncol(Rev.mat) != length(m$Rev.mult))
+    if (ncol(Rev.mat) != length(m$Rev.mult)) {
       stop("Rev.mult length mismatch with Rev.mat columns")
-    if (ncol(Rev.ind) != length(m$Rev.cnst))
+    }
+    if (ncol(Rev.ind) != length(m$Rev.cnst)) {
       stop("Rev.cnst length mismatch with Rev.ind columns")
+    }
 
-    Rev <- as.vector(Rev.mat %*% m$Rev.mult) +
-      as.vector(Rev.ind %*% m$Rev.cnst)
+    Rev <- as.vector(Rev.mat %*% m$Rev.mult) + as.vector(Rev.ind %*% m$Rev.cnst)
   }
 
   # Threshold Features ---
   if (!is.null(m$Thresh.val)) {
-    thr_expr <- gsub("(?<!(<|>|!|=))=(?!=)", "==", m$Thresh.val[, 1], perl = TRUE)
-    Thresh.mat <- make_matrix(
-       paste("~ -1 + ", paste0("as.numeric(", thr_expr, ")", collapse = " + ")), x
+    thr_expr <- gsub(
+      "(?<!(<|>|!|=))=(?!=)",
+      "==",
+      m$Thresh.val[, 1],
+      perl = TRUE
     )
-    if (ncol(Thresh.mat) != length(m$Thresh.cnst))
+    Thresh.mat <- makeMatrix(
+      paste("~ -1 + ", paste0("as.numeric(", thr_expr, ")", collapse = " + ")),
+      x
+    )
+    if (ncol(Thresh.mat) != length(m$Thresh.cnst)) {
       stop("Thresh.cnst length mismatch with Thresh.mat columns")
+    }
     Thresh <- as.vector(Thresh.mat %*% m$Thresh.cnst)
   }
 
-  # Combine all feature groups 
+  # Combine all feature groups
   S <- Raw + Quad + Prod + Forw + Rev + Thresh - m$normalizers[1, 2]
 
-  # Apply logistic transform 
+  # Apply logistic transform
   qx <- exp(S) / m$normalizers[2, 2]
   predVals <- qx * exp(m$entropy) / (1 + qx * exp(m$entropy))
 
