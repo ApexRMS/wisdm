@@ -302,11 +302,13 @@ fitModel <- function(
     }
 
     if (fullFit) {
-      # prepare batch file
+      # Prepare batch file ----
       capture.output(
         cat("java -mx", out$modOptions$MemoryLimit, "m", sep = ""),
         file = out$batchPath
       )
+      
+      # core executable
       cat(
         " -jar",
         paste0(
@@ -321,9 +323,12 @@ fitModel <- function(
         file = out$batchPath,
         append = T
       )
+      # optional visible interface
       if (!out$modOptions$VisibleInterface) {
         cat(" -z", file = out$batchPath, append = T)
       }
+      
+      # input files  
       cat(
         paste0(' samplesfile="', out$swdPath, '"'),
         file = out$batchPath,
@@ -334,11 +339,7 @@ fitModel <- function(
         file = out$batchPath,
         append = T
       )
-      if (length(out$factorInputVars) > 0) {
-        for (i in out$factorInputVars) {
-          cat(paste0(" togglelayertype=", i), file = out$batchPath, append = T)
-        }
-      }
+      # test data (if provided)
       if (!is.null(out$testDataPath)) {
         cat(
           paste0(' testsamplesfile="', out$testDataPath, '"'),
@@ -346,6 +347,14 @@ fitModel <- function(
           append = T
         )
       }
+      # factor (categorical) layers
+      if (length(out$factorInputVars) > 0) {
+        for (i in out$factorInputVars) {
+          cat(paste0(" togglelayertype=", i), file = out$batchPath, append = T)
+        }
+      }
+
+      # output directory
       cat(
         paste0(
           ' outputdirectory="',
@@ -355,6 +364,7 @@ fitModel <- function(
         file = out$batchPath,
         append = T
       )
+      # performance settings
       cat(
         " threads=",
         out$modOptions$MultiprocessingThreads,
@@ -362,11 +372,34 @@ fitModel <- function(
         file = out$batchPath,
         append = T
       )
+      # model complexity settings
+      cat(" autofeature=", tolower(out$modOptions$AutoFeatureSelection), sep = "",
+      file = out$batchPath, append = TRUE)
+      cat(" betamultiplier=", out$modOptions$RegularizationMultiplier, sep = "",
+      file = out$batchPath, append = TRUE)
+      cat(" doclamp=", tolower(out$modOptions$EnableClamping), sep = "",
+      file = out$batchPath, append = TRUE)
+
+      # Explicit feature toggles (if auto feature selection is off)
+      if (!out$modOptions$AutoFeatureSelection){
+        cat(paste0(
+          " linear=", tolower(out$modOptions$UseLinear),
+          " quadratic=", tolower(out$modOptions$UseQuadratic),
+          " product=", tolower(out$modOptions$UseProduct),
+          " hinge=", tolower(out$modOptions$UseHinge),
+          " threshold=", tolower(out$modOptions$UseThreshold)
+        ),
+        file = out$batchPath, append = TRUE)
+      }
+
+      # output and diagnostics
       cat(
         " responsecurves jackknife writeclampgrid writemess warnings prefixes",
         file = out$batchPath,
         append = T
-      ) # reverse these default settings
+      ) 
+      
+      # execution controls
       cat(" redoifexists autorun", file = out$batchPath, append = T)
 
       # Note than maxent can't handle spaces in the batch file path
@@ -562,48 +595,28 @@ fitModel <- function(
       cont.mask <- cont.mask[-c(factor.mask)]
     }
 
-    if (out$modOptions$AllowShrinkageSmoothers) {
-      if (out$modOptions$ConsiderLinearTerms) {
-        # creates formula with smooth and linear terms
-        startModel = as.formula(paste(
-          "Response",
-          "~",
-          paste(
-            paste(sanitizedVarNames, collapse = " + "),
-            paste0("s(", sanitizedVarNames, ", bs='ts')", collapse = " + "),
-            sep = " + "
-          )
+    smoothTerm <- out$constants$gamSmoothingMethodCW$codeTerm[gamSmoothingMethodCW$displayTerm == out$modOptions$SmoothingMethod]
+    basisDimension <- out$modOptions$BasisDimension
+    PenaltySelectionMethod <- out$modOptions$PenaltySelectionMethod
+
+    if (is.na(basisDimension)) {
+      # creates formula with smooth terms only
+      startModel = as.formula(paste(
+        "Response",
+        "~",
+        paste0("s(", sanitizedVarNames[cont.mask], ", bs='", smoothTerm, "')", collapse = " + "),
+        sanitizedVarNames[factor.mask],
+        sep = ""
         ))
-      } else {
-        # creates formula with smooth terms only
-        startModel = as.formula(paste(
-          "Response",
-          "~",
-          paste0("s(", sanitizedVarNames, ", bs='ts')", collapse = " + "),
-          sep = ""
-        ))
-      }
     } else {
-      if (out$modOptions$ConsiderLinearTerms) {
-        # creates full scope with smooth and linear terms
-        startModel = as.formula(paste(
-          "Response",
-          "~",
-          paste(
-            paste(sanitizedVarNames, collapse = " + "),
-            paste0("s(", sanitizedVarNames, ")", collapse = " + "),
-            sep = " + "
-          )
-        ))
-      } else {
-        # creates full scope with smooth terms
-        startModel = as.formula(paste(
-          "Response",
-          "~",
-          paste0("s(", sanitizedVarNames, ")", collapse = " + "),
-          sep = ""
-        ))
-      }
+      # creates formula with smooth terms and basis dimension
+      startModel = as.formula(paste(
+        "Response",
+        "~",
+        paste0("s(", sanitizedVarNames[cont.mask], ", bs='", smoothTerm, "', k=", basisDimension, ")", collapse = " + "),
+        sanitizedVarNames[factor.mask],
+        sep = ""
+      ))
     }
 
     modelGAM <- mgcv::gam(
@@ -611,7 +624,7 @@ fitModel <- function(
       data = dat,
       family = binomial(link = "logit"),
       weights = wt,
-      method = "REML"
+      method = PenaltySelectionMethod
     )
 
     return(modelGAM)
@@ -1102,15 +1115,12 @@ calibration <- function(
   preds, # predicted response
   family = "binomial"
 ) {
-  # calculates calibration statistics for either binomial or count data
-  # but the family argument must be specified for the latter
-  # a conditional test for the latter will catch most failures to specify
-  # the family
+  # calculates calibration statistics for binomial model
 
   if (family == "bernoulli") {
     family <- "binomial"
   }
-  pred.range <- max(preds) - min(preds)
+  pred.range <- max(preds, na.rm = TRUE) - min(preds, na.rm = TRUE)
 
   if (pred.range > 1.2 & family == "binomial") {
     updateRunLog(paste0(
@@ -1120,25 +1130,16 @@ calibration <- function(
     ))
   }
   if (family == "binomial") {
-    pred <- preds + 1e-005
-    pred[pred >= 1] <- 0.99999
-    mod <- glm(obs ~ log((pred) / (1 - (pred))), family = binomial)
+    pred <- pmin(pmax(preds, 1e-005), 0.99999)  
     lp <- log((pred) / (1 - (pred)))
+    mod <- glm(obs ~ lp, family = binomial)
     a0b1 <- glm(obs ~ offset(lp) - 1, family = binomial)
     miller1 <- 1 - pchisq(a0b1$deviance - mod$deviance, 2)
     ab1 <- glm(obs ~ offset(lp), family = binomial)
     miller2 <- 1 - pchisq(a0b1$deviance - ab1$deviance, 1)
     miller3 <- 1 - pchisq(ab1$deviance - mod$deviance, 1)
   }
-  if (family == "poisson") {
-    mod <- glm(obs ~ log(preds), family = poisson)
-    lp <- log(preds)
-    a0b1 <- glm(obs ~ offset(lp) - 1, family = poisson)
-    miller1 <- 1 - pchisq(a0b1$deviance - mod$deviance, 2)
-    ab1 <- glm(obs ~ offset(lp), family = poisson)
-    miller2 <- 1 - pchisq(a0b1$deviance - ab1$deviance, 1)
-    miller3 <- 1 - pchisq(ab1$deviance - mod$deviance, 1)
-  }
+
   calibration.result <- c(mod$coef, miller1, miller2, miller3)
   names(calibration.result) <- c(
     "intercept",

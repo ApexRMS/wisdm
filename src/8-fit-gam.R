@@ -15,6 +15,7 @@ library(dplyr)
 library(mgcv)
 
 packageDir <- Sys.getenv("ssim_package_directory")
+source(file.path(packageDir, "00-constants.R"))
 source(file.path(packageDir, "00-helper-functions.R"))
 source(file.path(packageDir, "08-fit-model-functions.R"))
 
@@ -32,27 +33,29 @@ myScenario <- scenario()
 # datasheet(myScenario)
 
 # Path to ssim temporary directory
-ssimTempDir <- Sys.getenv("ssim_temp_directory")
+ssimTempDir <- ssimEnvironment()$TransferDirectory
 
 # Read in datasheets
 covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
 modelsSheet <- datasheet(myProject, "wisdm_Models")
 fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
 validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
-reducedCovariatesSheet <- datasheet(
+retainedCovariatesSheet <- datasheet(
   myScenario,
-  "wisdm_ReducedCovariates",
+  "wisdm_RetainedCovariates",
   lookupsAsFactors = F
 )
 siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
 GAMSheet <- datasheet(myScenario, "wisdm_GAM")
 modelOutputsSheet <- datasheet(
   myScenario,
-  "wisdm_ModelOutputs",
+  "wisdm_OutputModel",
   optional = T,
+  returnInvisible = T,
   empty = T,
   lookupsAsFactors = F
-)
+) %>%
+  drop_na()
 
 progressBar()
 
@@ -76,17 +79,19 @@ if (all(fieldDataSheet$Response == 1) | all(fieldDataSheet$Response == 0)) {
 if (nrow(GAMSheet) < 1) {
   GAMSheet <- safe_rbind(
     GAMSheet,
-    data.frame(AllowShrinkageSmoothers = FALSE, ConsiderLinearTerms = FALSE)
+    data.frame(
+      SmoothingMethod = NA,
+      BasisDimension = NA,
+      PenaltySelectionMethod = NA
+    )
   )
-  # ConsiderInteractions = FALSE))
 }
-if (is.na(GAMSheet$AllowShrinkageSmoothers)) {
-  GAMSheet$AllowShrinkageSmoothers <- FALSE
+if (is.na(GAMSheet$SmoothingMethod)) {
+  GAMSheet$SmoothingMethod <- "Thin plate regression splines with shrinkage-to-zero"
 }
-if (is.na(GAMSheet$ConsiderLinearTerms)) {
-  GAMSheet$ConsiderLinearTerms <- FALSE
+if (is.na(GAMSheet$PenaltySelectionMethod)) {
+  GAMSheet$PenaltySelectionMethod <- "REML"
 }
-# if(is.na(GAMSheet$ConsiderInteractions)){GAMSheet$ConsiderInteractions <- FALSE}
 
 saveDatasheet(myScenario, GAMSheet, "wisdm_GAM")
 
@@ -110,7 +115,10 @@ progressBar()
 siteDataWide <- spread(siteDataSheet, key = CovariatesID, value = "Value")
 
 # remove variables dropped due to correlation
-siteDataWide <- siteDataWide[, c('SiteID', reducedCovariatesSheet$CovariatesID)]
+siteDataWide <- siteDataWide[, c(
+  'SiteID',
+  retainedCovariatesSheet$CovariatesID
+)]
 
 # merge field and site data
 siteDataWide <- merge(fieldDataSheet, siteDataWide, by = "SiteID")
@@ -194,7 +202,7 @@ out$modOptions$thresholdOptimization <- "Sens=Spec" # To Do: link to defined Thr
 out$modelFamily <- "binomial"
 
 ## Candidate variables
-out$inputVars <- reducedCovariatesSheet$CovariatesID
+out$inputVars <- retainedCovariatesSheet$CovariatesID
 out$factorInputVars <- factorInputVars
 
 ## training data
@@ -211,6 +219,9 @@ out$validationOptions <- validationDataSheet
 
 ## path to temp ssim storage
 out$tempDir <- ssimTempDir
+
+## relevant constants
+out$constants <- list(gamSmoothingMethodCW = gamSmoothingMethodCW)
 
 # Create output text file ------------------------------------------------------
 
@@ -246,9 +257,6 @@ progressBar()
 finalMod <- fitModel(dat = trainingData, out = out)
 
 finalMod$trainingData <- trainingData
-
-# save model to temp storage
-# saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
 
 # add relevant model details to out
 out$finalMod <- finalMod
@@ -420,5 +428,5 @@ if ("gam_AUCPRPlot.png" %in% tempFiles) {
   )
 }
 
-saveDatasheet(myScenario, modelOutputsSheet, "wisdm_ModelOutputs", append = T)
+saveDatasheet(myScenario, modelOutputsSheet, "wisdm_OutputModel", append = T)
 progressBar(type = "end")

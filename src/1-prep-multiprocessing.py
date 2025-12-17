@@ -40,11 +40,11 @@ myScenario = ps.Scenario()
 myLibrary = myScenario.library
 mySession = ps.Session()
 
-result = mySession._Session__call_console(["--conda", "--config"])
-conda_fpath = result.stdout.decode('utf-8').strip().split("Conda path is currently: ")[1]
-conda_fpath = os.path.normpath(conda_fpath)
+# Set GDAL/PROJ paths if using conda environment ---------------------------
+
 if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
-    library_folder = os.path.join(conda_fpath, "envs", "wisdm-2", "wisdm-conda-s3", "Library")
+    conda_env_path = os.environ.get("CONDA_PREFIX") or sys.prefix
+    library_folder = os.path.join(conda_env_path, "Library")
     gdal_folder = os.path.join(library_folder, "share", "gdal")
     proj_folder = os.path.join(library_folder, "share", "proj")
     certifi_folder = os.path.join(library_folder, "ssl", "cacert.pem")
@@ -119,141 +119,157 @@ def resample_grid(input_grid_filepath, template_grid_filepath, output_filename, 
 templatePath = templateRasterSheet.RasterFilePath.item()
 templateRaster = rioxarray.open_rasterio(templatePath)
 
-# Set desired number of cells per tile 
-# # Note: max cell count is 100 million cells per tile
-# This is approximate, the actual number of cells per tile may vary
-if templateRasterSheet.TileCount.isnull().item():
-    if templateRaster.size <= 1e4:
-        raise ValueError("Template raster has only " + str(templateRaster.size) + " pixels. Multiprocessing is not required.")
-    elif templateRaster.size > 1e4:
-        # Compute number of tiles based on max tile size
-        for maxTileSize in [1e4, 1e5, 5e5, 1e6, 2.5e6, 5e6, 7.5e6, 1e7, 2e7, 3e7, 4e7, 5e7, 6e7, 7e7, 8e7, 9e7, 1e8]:
-            if templateRaster.size >= maxTileSize:
-                numTiles = math.ceil(templateRaster.size/ maxTileSize)
-                if numTiles < 100:
-                    break
-        if numTiles == 1:
+# Error handling ----------------------------------------------------------
+
+# check that template raster was provided and tile count is valid
+if templateRasterSheet.RasterFilePath.isnull().item():
+    raise ValueError("No template raster provided for spatial multiprocessing.")
+
+# stop if tile count is set to 1
+if templateRasterSheet.TileCount.item() == 1:
+    # inform user and skip rest of script
+    print("The tile count for spatial multiprocessing is set to 1. Multiprocessing grid not created.")
+else:
+    # Set defaults -------------------------------------------------------------
+
+    # Set desired number of cells per tile 
+    # # Note: max cell count is 100 million cells per tile
+    # This is approximate, the actual number of cells per tile may vary
+    if templateRasterSheet.TileCount.isnull().item():
+        if templateRaster.size <= 1e5:
             raise ValueError("Template raster has only " + str(templateRaster.size) + " pixels. Multiprocessing is not required.")
-else:
-    numTiles = templateRasterSheet.TileCount.item()   
-    
-tile_size = templateRaster.size/numTiles # 7500000
+        elif templateRaster.size > 1e5:
+            # Compute number of tiles based on max tile size
+            for maxTileSize in [1e5, 5e5, 1e6, 2.5e6, 5e6, 7.5e6, 1e7, 2e7, 3e7, 4e7, 5e7, 6e7, 7e7, 8e7, 9e7, 1e8, 5e8]:
+                if templateRaster.size >= maxTileSize:
+                    numTiles = math.ceil(templateRaster.size/ maxTileSize)
+                    if maxTileSize <= 5e6 and numTiles < 10:
+                        break
+                    if maxTileSize >= 5e6 and numTiles < 60:
+                        break
 
-# Create contiguous tiles
-# contig = True
+            if numTiles == 1:
+                raise ValueError("Template raster has only " + str(templateRaster.size) + " pixels. Multiprocessing is not required.")
+    else:
+        numTiles = templateRasterSheet.TileCount.item()   
+        
+    tile_size = templateRaster.size/numTiles # 7500000
 
-# update progress bar
-ps.environment.progress_bar()
+    # Create contiguous tiles
+    # contig = True
 
-# Build tiling grid --------------------------------------------------------
+    # update progress bar
+    ps.environment.progress_bar()
 
-# Calculate ncol and nrow for one tile 
-tile_dimension = math.ceil(math.sqrt((templateRaster.size / tile_size)))
+    # Build tiling grid --------------------------------------------------------
 
-# Define coords of smp grid ----
-x_left = templateRaster.coords['x'][0].item()
-x_right = templateRaster.coords['x'][-1].item()
-x_coords = np.linspace(x_left, x_right, num = tile_dimension)
+    # Calculate ncol and nrow for one tile 
+    tile_dimension = math.ceil(math.sqrt((templateRaster.size / tile_size)))
 
-y_left = templateRaster.coords['y'][0].item()
-y_right = templateRaster.coords['y'][-1].item()
-y_coords = np.linspace(y_left, y_right, num = tile_dimension)
+    # Define coords of smp grid ----
+    x_left = templateRaster.coords['x'][0].item()
+    x_right = templateRaster.coords['x'][-1].item()
+    x_coords = np.linspace(x_left, x_right, num = tile_dimension)
 
-coords = {'band': [1], 'x': x_coords, 'y': y_coords}
+    y_left = templateRaster.coords['y'][0].item()
+    y_right = templateRaster.coords['y'][-1].item()
+    y_coords = np.linspace(y_left, y_right, num = tile_dimension)
 
-# Create smp grid ----------------------------------------------------------
-small_grid = xarray.DataArray(
-    data = np.linspace(1, pow(tile_dimension, 2), num = pow(tile_dimension, 2)).reshape(1, tile_dimension, tile_dimension),
-    dims = templateRaster.dims,
-    coords = coords,
-    attrs = templateRaster.attrs)
+    coords = {'band': [1], 'x': x_coords, 'y': y_coords}
 
-small_grid.rio.write_crs(templateRaster.rio.crs)
+    # Create smp grid ----------------------------------------------------------
+    small_grid = xarray.DataArray(
+        data = np.linspace(1, pow(tile_dimension, 2), num = pow(tile_dimension, 2)).reshape(1, tile_dimension, tile_dimension),
+        dims = templateRaster.dims,
+        coords = coords,
+        attrs = templateRaster.attrs)
 
-# Write to disk
-with rasterio.open(templatePath) as src:
+    small_grid.rio.write_crs(templateRaster.rio.crs)
 
-  # Scale image transform
-  transform = src.transform * src.transform.scale(
-      (src.width / small_grid.shape[-1]),
-      (src.height / small_grid.shape[-2])
-  )
+    # Write to disk
+    with rasterio.open(templatePath) as src:
 
-  out_meta = src.meta
-  out_meta.update({
-     "dtype": 'int16',
-     "nodata": -9999,
-     "height": small_grid.shape[1],
-     "width": small_grid.shape[2],
-     "transform": transform})
-  
-  # profile = src.profile
+        # Scale image transform
+        transform = src.transform * src.transform.scale(
+            (src.width / small_grid.shape[-1]),
+            (src.height / small_grid.shape[-2])
+        )
 
-  grid_filepath = os.path.join(ssimTempDir, "smp-grid-temp.tif")
+        out_meta = src.meta
+        out_meta.update({
+            "dtype": 'int16',
+            "nodata": -9999,
+            "height": small_grid.shape[1],
+            "width": small_grid.shape[2],
+            "transform": transform})
+        
+        # profile = src.profile
 
-  with rasterio.open(grid_filepath, "w", **out_meta) as dst:
-      dst.write(small_grid)
+        grid_filepath = os.path.join(ssimTempDir, "smp-grid-temp.tif")
 
-# Resample to match primary stratum resolution
-resample_grid(grid_filepath, templatePath, "smp-grid.tif", ssimTempDir)
+        with rasterio.open(grid_filepath, "w", **out_meta) as dst:
+            dst.write(small_grid)
 
-# update progress bar
-ps.environment.progress_bar()
+    # Resample to match primary stratum resolution
+    resample_grid(grid_filepath, templatePath, "smp-grid.tif", ssimTempDir)
 
-# Mask to analysis area ----------------------------------------------------
+    # update progress bar
+    ps.environment.progress_bar()
 
-mask = templateRaster
-nodata_value = templateRaster.rio.nodata
-if np.isnan(nodata_value):
-   mask = ~np.isnan(mask)*1
-else:
-   mask = (mask != nodata_value)*1
+    # Mask to analysis area ----------------------------------------------------
 
-smp_grid = rioxarray.open_rasterio(os.path.join(ssimTempDir, "smp-grid.tif"))
+    mask = templateRaster
+    nodata_value = templateRaster.rio.nodata
+    if np.isnan(nodata_value):
+        mask = ~np.isnan(mask)*1
+    else:
+        mask = (mask != nodata_value)*1
 
-smp_grid = smp_grid.astype(np.int16) * mask
+    smp_grid = rioxarray.open_rasterio(os.path.join(ssimTempDir, "smp-grid.tif"))
 
-# Set output filename of smp grid
-oldVals = np.unique(smp_grid)
-num_tiles = len(oldVals)-1
-output_filename = "smpGrid-" + str(num_tiles) + "-" + str(int(tile_size/1e3)) + "k.tif"
+    smp_grid = smp_grid.astype(np.int16) * mask
 
-# update template raster datasheet
-templateRasterSheet.TileCount = [num_tiles]
-myScenario.save_datasheet(name="wisdm_TemplateRaster", data=templateRasterSheet)
+    # Set output filename of smp grid
+    oldVals = np.unique(smp_grid)
+    num_tiles = len(oldVals)-1
+    output_filename = "smpGrid-" + str(num_tiles) + "-" + str(int(tile_size/1e3)) + "k.tif"
 
-# update progress bar
-ps.environment.progress_bar()
+    # update template raster datasheet
+    templateRasterSheet.TileCount = [num_tiles]
+    myScenario.save_datasheet(name="wisdm_TemplateRaster", data=templateRasterSheet)
 
-# Reclassify tiles --------------------------------------------------------
+    # update progress bar
+    ps.environment.progress_bar()
 
-newVals = list(range(0,num_tiles+1))
+    # Reclassify tiles --------------------------------------------------------
 
-lookups = list(zip(oldVals, newVals))
-idx, val = np.asarray(lookups).T
-lookup_array = np.zeros(idx.max() + 1)
-lookup_array[idx] = val
+    newVals = list(range(0,num_tiles+1))
 
-smp_grid = lookup_array[smp_grid]
+    lookups = list(zip(oldVals, newVals))
+    idx, val = np.asarray(lookups).T
+    lookup_array = np.zeros(idx.max() + 1)
+    lookup_array[idx] = val
 
-# Update 0 to NA Value
-smp_grid[smp_grid == 0] = -9999
+    smp_grid = lookup_array[smp_grid]
 
-# Convert to int
-smp_grid = smp_grid.astype(np.int16)
+    # Update 0 to NA Value
+    smp_grid[smp_grid == 0] = -9999
 
-# Save sampling grid -------------------------------------------------------
+    # Convert to int
+    smp_grid = smp_grid.astype(np.int16)
 
-with rasterio.open(os.path.join(ssimTempDir, "smp-grid.tif")) as src:
-    out_meta = src.meta    
-with rasterio.open(os.path.join(ssimTempDir, output_filename), "w", compress='deflate', **out_meta) as dst:
-    dst.write(smp_grid)
+    # Save sampling grid -------------------------------------------------------
 
-# Save to sample grid to scenario
-# add a row to the datasheet
-spatialMultiprocessingSheet["MaskFileName"] = [os.path.join(ssimTempDir, output_filename)]
-myScenario.save_datasheet(name="core_SpatialMultiprocessing", data=spatialMultiprocessingSheet) 
+    with rasterio.open(os.path.join(ssimTempDir, "smp-grid.tif")) as src:
+        out_meta = src.meta    
+    with rasterio.open(os.path.join(ssimTempDir, output_filename), "w", compress='deflate', **out_meta) as dst:
+        dst.write(smp_grid)
 
-# update progress bar
-ps.environment.progress_bar(report_type = "end")
+    # Save to sample grid to scenario
+    # add a row to the datasheet
+    spatialMultiprocessingSheet["MaskFileName"] = [os.path.join(ssimTempDir, output_filename)]
+    myScenario.save_datasheet(name="core_SpatialMultiprocessing", data=spatialMultiprocessingSheet) 
+
+    # update progress bar
+    ps.environment.progress_bar(report_type = "end")
 

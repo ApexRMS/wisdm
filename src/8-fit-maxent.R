@@ -15,6 +15,7 @@ library(zip)
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "00-helper-functions.R"))
+source(file.path(packageDir, "00-constants.R"))
 source(file.path(packageDir, "08-fit-model-functions.R"))
 
 # disable scientific notation
@@ -106,10 +107,18 @@ if (nrow(maxentSheet) < 1 | all(is.na(maxentSheet))) {
   maxentSheet <- safe_rbind(
     maxentSheet,
     data.frame(
-      MemoryLimit = 512,
-      VisibleInterface = FALSE,
-      MaximumBackgroundPoints = 10000,
-      SaveMaxentFiles = FALSE
+      MemoryLimit = NA,
+      MultiprocessingThreads = NA,
+      AutoFeatureSelection = NA,
+      UseHinge = NA,
+      UseLinear = NA,
+      UseQuadratic = NA,
+      UseProduct = NA,
+      UseThreshold = NA,
+      RegularizationMultiplier = NA,
+      EnableClamping = NA,
+      VisibleInterface = NA,         
+      SaveMaxentFiles = NA
     )
   )
 }
@@ -117,8 +126,59 @@ if (nrow(maxentSheet) < 1 | all(is.na(maxentSheet))) {
 if (is.na(maxentSheet$MemoryLimit)) {
   maxentSheet$MemoryLimit <- 512
 }
-if (is.na(maxentSheet$MaximumBackgroundPoints)) {
-  maxentSheet$MaximumBackgroundPoints <- 10000
+if (is.na(maxentSheet$MultiprocessingThreads)) {
+  if (is.na(mulitprocessingSheet$EnableMultiprocessing) |
+    mulitprocessingSheet$EnableMultiprocessing == FALSE
+  ) {
+    maxentSheet$MultiprocessingThreads <- 1
+  } else {
+    maxentSheet$MultiprocessingThreads <- mulitprocessingSheet$MaximumJobs
+  }
+}
+if (is.na(maxentSheet$AutoFeatureSelection)) {
+  if (any(c(
+    !is.na(maxentSheet$UseHinge),
+    !is.na(maxentSheet$UseLinear),
+    !is.na(maxentSheet$UseQuadratic),
+    !is.na(maxentSheet$UseProduct),
+    !is.na(maxentSheet$UseThreshold)
+  ))) {
+    maxentSheet$AutoFeatureSelection <- FALSE
+  } else {
+    maxentSheet$AutoFeatureSelection <- TRUE
+  }
+}
+if (maxentSheet$AutoFeatureSelection) {
+  updateRunLog("\nAuto Feature Selection is enabled; feature types will be selected based on number of presence records.\n")
+  maxentSheet$UseHinge <- NA
+  maxentSheet$UseLinear <- NA
+  maxentSheet$UseQuadratic <- NA
+  maxentSheet$UseProduct <- NA
+  maxentSheet$UseThreshold <- NA
+} else {
+  updateRunLog("\nAuto Feature Selection is disabled; feature types will be used as specified in the Maxent Options. If not specified, all feature types will be used.\n")
+  if (is.na(maxentSheet$UseHinge)) {
+    maxentSheet$UseHinge <- TRUE
+  }
+  if (is.na(maxentSheet$UseLinear)) {
+    maxentSheet$UseLinear <- TRUE
+  }
+  if (is.na(maxentSheet$UseQuadratic)) {
+    maxentSheet$UseQuadratic <- TRUE
+  }
+  if (is.na(maxentSheet$UseProduct)) {
+    maxentSheet$UseProduct <- TRUE
+  }
+  if (is.na(maxentSheet$UseThreshold)) {
+    maxentSheet$UseThreshold <- TRUE
+  }
+}
+
+if (is.na(maxentSheet$RegularizationMultiplier)) {
+  maxentSheet$RegularizationMultiplier <- 1
+}
+if (is.na(maxentSheet$EnableClamping)) {
+  maxentSheet$EnableClamping <- TRUE
 }
 if (is.na(maxentSheet$VisibleInterface)) {
   maxentSheet$VisibleInterface <- FALSE
@@ -126,18 +186,7 @@ if (is.na(maxentSheet$VisibleInterface)) {
 if (is.na(maxentSheet$SaveMaxentFiles)) {
   maxentSheet$SaveMaxentFiles <- FALSE
 }
-
-if (
-  is.na(mulitprocessingSheet$EnableMultiprocessing) |
-    mulitprocessingSheet$EnableMultiprocessing == FALSE
-) {
-  maxentSheet$MultiprocessingThreads <- 1
-} else {
-  if (is.na(maxentSheet$MultiprocessingThreads)) {
-    maxentSheet$MultiprocessingThreads <- mulitprocessingSheet$MaximumJobs
-  }
-}
-
+# save updated maxent datasheet
 saveDatasheet(myScenario, maxentSheet, "wisdm_Maxent")
 progressBar()
 
