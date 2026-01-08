@@ -128,7 +128,8 @@ if templateRasterSheet.RasterFilePath.isnull().item():
 # stop if tile count is set to 1
 if templateRasterSheet.TileCount.item() == 1:
     # inform user and skip rest of script
-    print("The tile count for spatial multiprocessing is set to 1. Multiprocessing grid not created.")
+    ps.environment.update_run_log("The tile count for spatial multiprocessing is set to 1. Spatial multiprocessing grid not created.")
+    ps.environment.progress_bar(report_type = "end")
 else:
     # Set defaults -------------------------------------------------------------
 
@@ -137,7 +138,9 @@ else:
     # This is approximate, the actual number of cells per tile may vary
     if templateRasterSheet.TileCount.isnull().item():
         if templateRaster.size <= 1e5:
-            raise ValueError("Template raster has only " + str(templateRaster.size) + " pixels. Multiprocessing is not required.")
+            ps.environment.update_run_log("Template raster has only " + str(templateRaster.size) + " pixels. Spatial multiprocessing is not required.")
+            ps.environment.progress_bar(report_type = "end")
+            sys.exit(0)
         elif templateRaster.size > 1e5:
             # Compute number of tiles based on max tile size
             for maxTileSize in [1e5, 5e5, 1e6, 2.5e6, 5e6, 7.5e6, 1e7, 2e7, 3e7, 4e7, 5e7, 6e7, 7e7, 8e7, 9e7, 1e8, 5e8]:
@@ -148,8 +151,8 @@ else:
                     if maxTileSize >= 5e6 and numTiles < 60:
                         break
 
-            if numTiles == 1:
-                raise ValueError("Template raster has only " + str(templateRaster.size) + " pixels. Multiprocessing is not required.")
+            if numTiles < 2:
+                numTiles = 2
     else:
         numTiles = templateRasterSheet.TileCount.item()   
         
