@@ -14,7 +14,7 @@
 # Modify os path if multiple GDAL installations ----
 def prep_spatial_data():
 
-    import os
+    import os, sys
     import glob
     from win32api import GetFileVersionInfo, LOWORD, HIWORD
 
@@ -63,9 +63,9 @@ def prep_spatial_data():
     import pyproj
     from datetime import datetime
     import threading
-    # import spatialUtils
+    import multiprocessing
 
-    from dask.distributed import Client, Lock
+    from dask.distributed import Client, LocalCluster
     from dask.utils import SerializableLock
     from shapely.geometry import Point  # , shape
     from rasterio.enums import Resampling  # , MergeAlg
@@ -80,15 +80,11 @@ def prep_spatial_data():
 
     # Modify the os PROJ path (when running with Conda) ----
     myLibrary = ps.Library()
-    mySession = ps.Session()
-
-    result = mySession._Session__call_console(["--conda", "--config"])
-    conda_fpath = result.stdout.decode(
-        'utf-8').strip().split("Conda path is currently: ")[1]
-    conda_fpath = os.path.normpath(conda_fpath)
+    
+    worker_env = None
     if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
-        library_folder = os.path.join(
-            conda_fpath, "envs", "wisdm-2", "wisdm-conda-s3", "Library")
+        conda_env_path = os.environ.get("CONDA_PREFIX") or sys.prefix
+        library_folder = os.path.join(conda_env_path, "Library")
         gdal_folder = os.path.join(library_folder, "share", "gdal")
         proj_folder = os.path.join(library_folder, "share", "proj")
         certifi_folder = os.path.join(library_folder, "ssl", "cacert.pem")
@@ -103,6 +99,15 @@ def prep_spatial_data():
         pyproj.network.set_ca_bundle_path(certifi_folder)
         ps.environment.update_run_log(
             "pyproj data directory: " + pyproj.datadir.get_data_dir())
+        
+        # What future Dask workers should inherit:
+        worker_env = {
+            "GDAL_DATA": gdal_folder,
+            "PROJ_LIB": proj_folder,
+        }
+        if certifi_folder:
+            worker_env["GDAL_CURL_CA_BUNDLE"] = certifi_folder
+            worker_env["PROJ_CURL_CA_BUNDLE"] = certifi_folder
 
     # Connect to SyncroSim library ------------------------------------------------
 
@@ -140,11 +145,25 @@ def prep_spatial_data():
     else:
         num_threads = 1
 
-    # Note: Follow link in output to view progress
-    dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space'),
-                       'distributed.scheduler.worker-ttl': None},
-                    scheduler='threads', serializers=['dask'], deserializers=['dask'])
+    # dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space'),
+    #                    'distributed.scheduler.worker-ttl': None},
+    #                 scheduler='threads', serializers=['dask'], deserializers=['dask'])
+
+    conf = {
+        'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space'),
+        'distributed.scheduler.worker-ttl': None,
+    }
+    if worker_env:
+        conf['distributed.worker.environ'] = worker_env
+    
+    dask.config.set(conf)
+
     # client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
+    cluster = LocalCluster(
+                n_workers=num_threads,
+                memory_limit='auto',
+                processes=True) 
+    client = Client(cluster)
     # client.dashboard_link
 
     # Check inputs and set defaults ---------------------------------------------
@@ -152,8 +171,6 @@ def prep_spatial_data():
     # Set PROJ network connection
     if networkSheet.NetworkEnabled.item() == "No":
         pyproj.network.set_network_enabled(active=False)
-        # os.environ["PROJ_NETWORK"] = "OFF"
-        # pyproj.network.is_network_enabled()
 
     # Check that a template raster was provided
     if templateRasterSheet.empty or pd.isnull(templateRasterSheet.RasterFilePath.iloc[0]):
@@ -225,13 +242,14 @@ def prep_spatial_data():
     # Load template raster ----------------------------------------------------------------
 
     # set defualt chunk dimensions and no data value
-    warpMemoryLimit = 8192  # MB
-    chunkDims = 1024  # 1024
+    warpMemoryLimit = 32768 # 8192  # MB
+    # chunkDims = 1024  # 1024
     nodata_value = -9999
 
     templatePath = templateRasterSheet.RasterFilePath.item()
     templateRaster = rioxarray.open_rasterio(
-        templatePath, chunks={'x': chunkDims, 'y': chunkDims}, lock=False)
+        templatePath, chunks="auto", # {'x': chunkDims, 'y': chunkDims}, 
+        lock=False)
 
     # Get information about template
     templateCRS = templateRaster.rio.crs
@@ -243,6 +261,9 @@ def prep_spatial_data():
     templateBounds = templateRaster.rio.bounds()
     templateHeight = templateRaster.rio.height
     templateWidth = templateRaster.rio.width
+    with rasterio.open(templatePath) as src:
+        templateBlockShapes = src.block_shapes
+        templateBlockSize = src.block_size
 
     # update progress bar
     ps.environment.progress_bar()
@@ -254,7 +275,7 @@ def prep_spatial_data():
     for i in range(len(covariateDataSheet.CovariatesID)):
         # Load covariate rasters
         covariatePath = covariateDataSheet.RasterFilePath[i]
-        covariateRaster = rioxarray.open_rasterio(covariatePath, chunks=True)
+        covariateRaster = rioxarray.open_rasterio(covariatePath, chunks="auto")
         if pd.isnull(covariateRaster.rio.crs):
             invalidCRS.append(covariateDataSheet.CovariatesID[i])
         elif covariateRaster.rio.crs.is_valid == False:
@@ -284,8 +305,6 @@ def prep_spatial_data():
         # Copy data back into appropriate xarray
         return block[[0]].copy(data=masked)
 
-    unmaskedTempPath = os.path.join(ssimTempDir,  "temp.tif")
-
     # Load and process covariate rasters
     for i in range(len(covariateDataSheet.CovariatesID)):
         ps.environment.progress_bar("message", message="Processing Covariate: " + covariateDataSheet.CovariatesID[i] + " (" + str(
@@ -295,10 +314,11 @@ def prep_spatial_data():
 
         # Determine input and output file paths
         covariatePath = covariateDataSheet.RasterFilePath[i]
+        unmaskedTempPath = os.path.join(ssimTempDir,  "temp_" + os.path.basename(covariatePath))
         outputCovariatePath = os.path.join(
             ssimTempDir, "processed_" + os.path.basename(covariatePath))
 
-        with rioxarray.open_rasterio(covariatePath, chunks=chunkDims) as covariateRaster:
+        with rioxarray.open_rasterio(covariatePath, chunks="auto", lock=False) as covariateRaster:
 
             # check raster data type and set to signed type if necessary
             src_dtype = covariateRaster.dtype
@@ -330,16 +350,35 @@ def prep_spatial_data():
         try:
 
             # Setup client for processing
-            with Client(threads_per_worker=num_threads, n_workers=1, processes=False) as client:
+            # with Client(threads_per_worker=num_threads, n_workers=1, processes=False) as client:
 
-                # Connect to covariate raster file
-                with rasterio.open(covariatePath) as src:
+            with rioxarray.open_rasterio(templatePath,
+                                         chunks="auto", # must be same chunk size as is used for covariateRaster
+                                         lock=False
+                                         ) as templateRaster:
+                        # set chunks from template raster
+                        templateRaster = templateRaster.squeeze()
+                        templateChunks = templateRaster.chunksizes
+            # Connect to covariate raster file
+            with rasterio.open(covariatePath) as src:
 
-                    # Calculate reprojection using a warped virtual layer
-                    with WarpedVRT(src, resampling=rioResampleMethod, crs=templateCRS, transform=templateTransform, height=templateHeight, width=templateWidth, warp_mem_limit=warpMemoryLimit, warp_extras={'NUM_THREADS': num_threads}) as vrt:
+                # Calculate reprojection using a warped virtual layer
+                with WarpedVRT(
+                    src, 
+                    resampling=rioResampleMethod, 
+                    crs=templateCRS, 
+                    transform=templateTransform, 
+                    height=templateHeight, 
+                    width=templateWidth, 
+                    warp_mem_limit=warpMemoryLimit, 
+                    warp_extras={'NUM_THREADS': num_threads}
+                    ) as vrt:
 
                         # Convert to rioxarray
-                        with rioxarray.open_rasterio(vrt, chunks={'x': chunkDims, 'y': chunkDims}, lock=False) as covariateRaster:
+                        with rioxarray.open_rasterio(vrt, 
+                                                     chunks=templateChunks, #{'x': chunkDims, 'y': chunkDims}, 
+                                                     lock=False
+                                                     ) as covariateRaster:
 
                             # Check that covariate layer overlaps template
                             # - Note that bounds are ordered xmin, ymin, xmax, ymax
@@ -350,31 +389,31 @@ def prep_spatial_data():
                                                  "the full extent of the template raster. Ensure all covariate rasters overlap the "
                                                  "template extent before continuing.")
 
-                            # Write reprojected and clipped layer to uncompresed temp file
-                            # - Note! Some resampling algs fail when you try to write compressed, make sure you leave this temp file uncompresed
-                            covariateRaster.rio.to_raster(
-                                unmaskedTempPath, tiled=True, lock=SerializableLock(), windowed=True, overwrite=True)
+                            # Mask and set no data value
+                            maskStack = xr.concat([covariateRaster, templateRaster], dim="band", join="override").chunk(
+                                        {'band':-1})
+                            maskedCovariateRaster = maskStack.map_blocks(mask, kwargs=dict(
+                                        input_nodata=covariateRaster.rio.nodata,
+                                        template_nodata=templateRaster.rio.nodata),
+                                        template=covariateRaster)
+                            maskedCovariateRaster = maskedCovariateRaster.astype(
+                                        signed_dtype)
+                            maskedCovariateRaster.rio.write_nodata(
+                                        nodata_value,
+                                        encoded=True,
+                                        inplace=True)
+                            maskedCovariateRaster = maskedCovariateRaster.squeeze()
+                            # Write to disk
+                            maskedCovariateRaster.rio.to_raster(
+                                        outputCovariatePath,
+                                        dtype=signed_dtype,
+                                        nodata=nodata_value,
+                                        tiled=True,
+                                        overwrite=True,
+                                        compress='lzw')
 
             # Restart client to avoid lock conflicts
-            with Client(threads_per_worker=num_threads, n_workers=1, processes=False) as client:
-
-                # Open template within client
-                with rioxarray.open_rasterio(templatePath, chunks={'x': chunkDims, 'y': chunkDims}, lock=False) as templateRaster:
-
-                    with rioxarray.open_rasterio(unmaskedTempPath, chunks={'x': chunkDims, 'y': chunkDims}, lock=False) as covariateRaster:
-                        # Mask and set no data value
-                        maskStack = xr.concat([covariateRaster, templateRaster], dim="band", join="override").chunk(
-                            {'band': -1, 'x': chunkDims, 'y': chunkDims})
-                        maskedCovariateRaster = maskStack.map_blocks(mask, kwargs=dict(
-                            input_nodata=covariateRaster.rio.nodata, template_nodata=templateRaster.rio.nodata), template=covariateRaster)
-                        maskedCovariateRaster = maskedCovariateRaster.astype(
-                            signed_dtype)
-                        maskedCovariateRaster.rio.write_nodata(
-                            nodata_value, encoded=True, inplace=True)
-
-                        # Write to disk
-                        maskedCovariateRaster.rio.to_raster(outputCovariatePath, dtype=signed_dtype, nodata=nodata_value, tiled=True, lock=SerializableLock(
-                        ), windowed=True, overwrite=True, compress='lzw')
+            # with Client(threads_per_worker=num_threads, n_workers=1, processes=False) as client:
 
         # Tornado's ioloop.py occassionally throws an attribute error looking for an f_code attribute, but the output is still produced correctly
         except Exception as e:
@@ -414,79 +453,82 @@ def prep_spatial_data():
         outputRestrictionPath = os.path.join(
             ssimTempDir, "processed_" + os.path.basename(restrictionPath))
 
-        with rioxarray.open_rasterio(restrictionPath, chunks=True) as restrictionRaster:
-            # Check for valid crs
-            if pd.isnull(restrictionRaster.rio.crs) or not restrictionRaster.rio.crs.is_valid:
-                raise ValueError(
-                    "The restriction rasters has an invalid or unknown CRS. Ensure that the raster has a valid CRS before continuing.")
-
-            # check raster data type and set to signed type if necessary
-            if np.issubdtype(restrictionRaster.dtype, np.unsignedinteger):
-                src_dtype = restrictionRaster.dtype
-                bitdepth = src_dtype.itemsize * 8
-                if bitdepth <= 16:
-                    signed_dtype = 'int16'
-                else:
-                    signed_dtype = 'int32'
-            else:
-                signed_dtype = restrictionRaster.dtype
-
-            # Decide which resample method to use based on pixel size
-            resPixelSize = np.abs(restrictionRaster.rio.resolution()).prod()
-
-            # if restriction resolution is finer then template use aggregate method (if coarser use resample method)
-            if resPixelSize < templatePixelSize:
-                rioResampleMethod = Resampling["nearest"]
-            else:
-                rioResampleMethod = Resampling["average"]
-
         try:
-
-            # Setup client for processing
-            with Client(threads_per_worker=num_threads, n_workers=1, processes=False) as client:
-
-                # Connect to restriction raster file
-                with rasterio.open(restrictionPath) as src:
-
+            with rioxarray.open_rasterio(restrictionPath, chunks="auto", lock=False) as restrictionRaster:
+                # Check for valid crs
+                if pd.isnull(restrictionRaster.rio.crs) or not restrictionRaster.rio.crs.is_valid:
+                    raise ValueError(
+                        "The restriction rasters has an invalid or unknown CRS. Ensure that the raster has a valid CRS before continuing.")
+                # check raster data type and set to signed type if necessary
+                if np.issubdtype(restrictionRaster.dtype, np.unsignedinteger):
+                    src_dtype = restrictionRaster.dtype
+                    bitdepth = src_dtype.itemsize * 8
+                    if bitdepth <= 16:
+                        signed_dtype = 'int16'
+                    else:
+                        signed_dtype = 'int32'
+                else:
+                    signed_dtype = restrictionRaster.dtype
+                
+                # Decide which resample method to use based on pixel size
+                resPixelSize = np.abs(restrictionRaster.rio.resolution()).prod()
+                
+                # if restriction resolution is finer then template use aggregate method (if coarser use resample method)
+                if resPixelSize < templatePixelSize:
+                    rioResampleMethod = Resampling["nearest"]
+                else:
+                    rioResampleMethod = Resampling["average"]
+                # remove restriction raster
+                del restrictionRaster
+                with rioxarray.open_rasterio(templatePath, 
+                                             chunks="auto", # must be same chunk size as is used for covariateRaster
+                                             lock=False) as templateRaster:
+                    # set chunks from template raster
+                    templateRaster = templateRaster.squeeze()
+                    templateChunks = templateRaster.chunksizes
+                    # Connect to restriction raster file
+                    with rasterio.open(restrictionPath) as src:
                     # Calculate reprojection using a warped virtual layer
-                    with WarpedVRT(src, resampling=rioResampleMethod, crs=templateCRS, transform=templateTransform, height=templateHeight, width=templateWidth, warp_mem_limit=warpMemoryLimit, warp_extras={'NUM_THREADS': num_threads}) as vrt:
-
-                        # Convert to rioxarray
-                        with rioxarray.open_rasterio(vrt, chunks={'x': chunkDims, 'y': chunkDims}, lock=False) as restrictionRaster:
-
-                            # Check that restriction layer overlaps template
-                            # - Note that bounds are ordered xmin, ymin, xmax, ymax
-                            tb = templateBounds
-                            rb = restrictionRaster.rio.bounds()
-                            if rb[0] > tb[0] or rb[1] > tb[1] or rb[2] < tb[2] or rb[3] < tb[3]:
-                                raise ValueError(
-                                    "The extent of the restriction raster does not overlap the full extent of the template raster. "
-                                    "Ensure the restriction raster overlaps the template extent before continuing.")
-
-                            # Write reprojected and clipped layer to uncompresed temp file
-                            # - Note! Some resampling algs fail when you try to write compressed, make sure you leave this temp file uncompresed
-                            restrictionRaster.rio.to_raster(
-                                unmaskedTempPath, tiled=True, lock=SerializableLock(), windowed=True, overwrite=True)
-
-            # Restart client to avoid lock conflicts
-            with Client(threads_per_worker=num_threads, n_workers=1, processes=False) as client:
-
-                # Open template within client
-                with rioxarray.open_rasterio(templatePath, chunks={'x': chunkDims, 'y': chunkDims}, lock=False) as templateRaster:
-
-                    with rioxarray.open_rasterio(unmaskedTempPath, chunks={'x': chunkDims, 'y': chunkDims}, lock=False) as restrictionRaster:
-
-                        # Mask and set no data value
-                        maskedRestrictionRaster = xr.concat([restrictionRaster, templateRaster], "band").chunk({'band': -1, 'x': chunkDims, 'y': chunkDims}).map_blocks(
-                            mask, kwargs=dict(input_nodata=restrictionRaster.rio.nodata, template_nodata=templateRaster.rio.nodata), template=restrictionRaster)
-                        maskedRestrictionRaster.rio.write_nodata(
-                            nodata_value, encoded=True, inplace=True)
-                        maskedRestrictionRaster = maskedRestrictionRaster.astype(
-                            signed_dtype)
-
-                        # Write to disk
-                        maskedRestrictionRaster.rio.to_raster(outputRestrictionPath, dtype=signed_dtype, nodata=nodata_value, tiled=True, lock=SerializableLock(
-                        ), windowed=True, overwrite=True, compress='lzw')
+                        with WarpedVRT(src,
+                            resampling=rioResampleMethod,
+                            crs=templateCRS,
+                            transform=templateTransform,
+                            height=templateHeight,
+                            width=templateWidth,
+                            warp_mem_limit=warpMemoryLimit,
+                            warp_extras={'NUM_THREADS': num_threads}) as vrt:
+                            # Convert to rioxarray
+                            with rioxarray.open_rasterio(vrt,
+                                chunks=templateChunks,
+                                lock=False) as restrictionRaster:
+                                # Check that restriction layer overlaps template
+                                # - Note that bounds are ordered xmin, ymin, xmax, ymax
+                                tb = templateBounds
+                                rb = restrictionRaster.rio.bounds()
+                                if rb[0] > tb[0] or rb[1] > tb[1] or rb[2] < tb[2] or rb[3] < tb[3]:
+                                    raise ValueError(
+                                            "The extent of the restriction raster does not overlap the full extent of the template raster. "
+                                            "Ensure the restriction raster overlaps the template extent before continuing.")
+                                # Mask and set no data value
+                                maskStack = xr.concat([restrictionRaster, templateRaster], dim="band", join="override").chunk(
+                                        {'band':-1})
+                                maskedRestrictionRaster = maskStack.map_blocks(
+                                    mask,
+                                    kwargs=dict(input_nodata=restrictionRaster.rio.nodata,
+                                    template_nodata=templateRaster.rio.nodata), 
+                                    template=restrictionRaster)
+                                maskedRestrictionRaster.rio.write_nodata(
+                                    nodata_value, encoded=True, inplace=True)
+                                maskedRestrictionRaster = maskedRestrictionRaster.astype(signed_dtype)
+                                maskedRestrictionRaster = maskedRestrictionRaster.squeeze()
+                                # Write to disk
+                                maskedRestrictionRaster.rio.to_raster(
+                                    outputRestrictionPath,
+                                    dtype=signed_dtype,
+                                    nodata=nodata_value,
+                                    tiled=True,
+                                    overwrite=True,
+                                    compress='lzw')
 
         # Tornado's ioloop.py occassionally throws an attribute error looking for an f_code attribute, but the output is still produced correctly
         except AttributeError:
