@@ -185,9 +185,9 @@ if (name(myLibrary) == "Partial") {
   if (length(maskValues) > 1) {
     maskValues <- maskValues[maskValues != tileID]
   } else {
-    maskValues <- NULL
+    maskValues <- NA
   }
-
+  
   # trim tiling raster to extent of single tile
   maskedGrid <- mask(
     x = fullMaskFile,
@@ -197,6 +197,7 @@ if (name(myLibrary) == "Partial") {
     overwrite = TRUE,
     wopt = wopt_int
   )
+  
   progressBar()
   updateRunLog("Finished tile mask in ", updateBreakpoint())
   tileExt <- non_NA_extent(x = maskedGrid)
