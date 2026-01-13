@@ -62,8 +62,8 @@ def prep_spatial_data():
     import dask
     import pyproj
     from datetime import datetime
-    import threading
-    import multiprocessing
+    # import threading
+    # import multiprocessing
 
     from dask.distributed import Client, LocalCluster
     from dask.utils import SerializableLock
@@ -158,13 +158,14 @@ def prep_spatial_data():
     
     dask.config.set(conf)
 
-    # client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
+   
     cluster = LocalCluster(
                 n_workers=num_threads,
                 memory_limit='auto',
                 processes=True) 
-    client = Client(cluster)
-    # client.dashboard_link
+    Client(cluster)
+    # client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
+    # # client.dashboard_link
 
     # Check inputs and set defaults ---------------------------------------------
 
@@ -241,7 +242,7 @@ def prep_spatial_data():
 
     # Load template raster ----------------------------------------------------------------
 
-    # set defualt chunk dimensions and no data value
+    # set default chunk dimensions and no data value
     warpMemoryLimit = 32768 # 8192  # MB
     # chunkDims = 1024  # 1024
     nodata_value = -9999
@@ -261,9 +262,6 @@ def prep_spatial_data():
     templateBounds = templateRaster.rio.bounds()
     templateHeight = templateRaster.rio.height
     templateWidth = templateRaster.rio.width
-    with rasterio.open(templatePath) as src:
-        templateBlockShapes = src.block_shapes
-        templateBlockSize = src.block_size
 
     # update progress bar
     ps.environment.progress_bar()
@@ -314,7 +312,6 @@ def prep_spatial_data():
 
         # Determine input and output file paths
         covariatePath = covariateDataSheet.RasterFilePath[i]
-        unmaskedTempPath = os.path.join(ssimTempDir,  "temp_" + os.path.basename(covariatePath))
         outputCovariatePath = os.path.join(
             ssimTempDir, "processed_" + os.path.basename(covariatePath))
 
@@ -415,7 +412,7 @@ def prep_spatial_data():
             # Restart client to avoid lock conflicts
             # with Client(threads_per_worker=num_threads, n_workers=1, processes=False) as client:
 
-        # Tornado's ioloop.py occassionally throws an attribute error looking for an f_code attribute, but the output is still produced correctly
+        # Tornado's ioloop.py occasionally throws an attribute error looking for an f_code attribute, but the output is still produced correctly
         except Exception as e:
             ps.environment.update_run_log("Caught exception processing covariate: " +
                                           covariateDataSheet.CovariatesID[i] + " -- " + str(type(e)) + " -- " + str(e))
@@ -488,7 +485,7 @@ def prep_spatial_data():
                     templateChunks = templateRaster.chunksizes
                     # Connect to restriction raster file
                     with rasterio.open(restrictionPath) as src:
-                    # Calculate reprojection using a warped virtual layer
+                        # Calculate reprojection using a warped virtual layer
                         with WarpedVRT(src,
                             resampling=rioResampleMethod,
                             crs=templateCRS,
@@ -530,7 +527,7 @@ def prep_spatial_data():
                                     overwrite=True,
                                     compress='lzw')
 
-        # Tornado's ioloop.py occassionally throws an attribute error looking for an f_code attribute, but the output is still produced correctly
+        # Tornado's ioloop.py occasionally throws an attribute error looking for an f_code attribute, but the output is still produced correctly
         except AttributeError:
             pass
 
