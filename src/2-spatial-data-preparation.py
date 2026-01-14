@@ -105,7 +105,7 @@ def prep_spatial_data():
             "GDAL_DATA": gdal_folder,
             "PROJ_LIB": proj_folder,
         }
-        if certifi_folder:
+        if os.path.exists(certifi_folder):
             worker_env["GDAL_CURL_CA_BUNDLE"] = certifi_folder
             worker_env["PROJ_CURL_CA_BUNDLE"] = certifi_folder
 
@@ -163,7 +163,7 @@ def prep_spatial_data():
                 n_workers=num_threads,
                 memory_limit='auto',
                 processes=True) 
-    Client(cluster)
+    client = Client(cluster)
     # client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
     # # client.dashboard_link
 
@@ -538,6 +538,10 @@ def prep_spatial_data():
         myScenario.save_datasheet(
             name="wisdm_RestrictionRaster", data=restrictionRasterSheet)
 
+    # close dask client
+    client.close()
+    cluster.close()
+    
     # update progress bar
     ps.environment.progress_bar(report_type="end")
     ps.environment.progress_bar(

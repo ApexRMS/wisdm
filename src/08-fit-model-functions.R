@@ -482,6 +482,27 @@ fitModel <- function(
         file = out$batchPath,
         append = T
       )
+
+      # model complexity settings
+      cat(" autofeature=", tolower(out$modOptions$AutoFeatureSelection), sep = "",
+      file = out$batchPath, append = TRUE)
+      cat(" betamultiplier=", out$modOptions$RegularizationMultiplier, sep = "",
+      file = out$batchPath, append = TRUE)
+      cat(" doclamp=", tolower(out$modOptions$EnableClamping), sep = "",
+      file = out$batchPath, append = TRUE)
+
+      # Explicit feature toggles (if auto feature selection is off)
+      if (!out$modOptions$AutoFeatureSelection){
+        cat(paste0(
+          " linear=", tolower(out$modOptions$UseLinear),
+          " quadratic=", tolower(out$modOptions$UseQuadratic),
+          " product=", tolower(out$modOptions$UseProduct),
+          " hinge=", tolower(out$modOptions$UseHinge),
+          " threshold=", tolower(out$modOptions$UseThreshold)
+        ),
+        file = out$batchPath, append = TRUE)
+      }
+
       cat(
         " writeclampgrid writemess warnings prefixes",
         file = out$batchPath,
