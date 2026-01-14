@@ -595,7 +595,7 @@ fitModel <- function(
       cont.mask <- cont.mask[-c(factor.mask)]
     }
 
-    smoothTerm <- out$constants$gamSmoothingMethodCW$codeTerm[gamSmoothingMethodCW$displayTerm == out$modOptions$SmoothingMethod]
+    smoothTerm <- out$constants$gamSmoothingMethodCW$codeTerm[out$constants$gamSmoothingMethodCW$displayTerm == out$modOptions$SmoothingMethod]
     basisDimension <- out$modOptions$BasisDimension
     PenaltySelectionMethod <- out$modOptions$PenaltySelectionMethod
 
@@ -615,6 +615,9 @@ fitModel <- function(
         "~",
         paste0("s(", sanitizedVarNames[cont.mask], ", bs='", smoothTerm, "', k=", basisDimension, ")", collapse = " + "),
         sanitizedVarNames[factor.mask],
+        if (length(factor.mask) > 0) { 
+          paste(" +", paste(sanitizedVarNames[factor.mask], collapse = " + ")) 
+          } else { "" },
         sep = ""
       ))
     }

@@ -154,7 +154,7 @@ def prep_spatial_data():
         'distributed.scheduler.worker-ttl': None,
     }
     if worker_env:
-        conf['distributed.worker.environ'] = worker_env
+        conf['distributed.nanny.environ'] = worker_env
     
     dask.config.set(conf)
 
