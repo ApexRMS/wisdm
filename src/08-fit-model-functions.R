@@ -620,18 +620,18 @@ fitModel <- function(
     basisDimension <- out$modOptions$BasisDimension
     PenaltySelectionMethod <- out$modOptions$PenaltySelectionMethod
 
-    if (is.na(basisDimension)) {
-
-      # build factor formula section if factors are present
-      if(length(factor.mask) > 0){
-        if(length(cont.mask) > 0){
-          factorFormula <- paste(" +", paste(sanitizedVarNames[factor.mask], collapse = " + "))
-        } else {
-          factorFormula <- paste(sanitizedVarNames[factor.mask], collapse = " + ")
-        }
+    # build factor formula section if factors are present
+    if(length(factor.mask) > 0){
+      if(length(cont.mask) > 0){
+        factorFormula <- paste(" +", paste(sanitizedVarNames[factor.mask], collapse = " + "))
       } else {
-        factorFormula <- ""
+        factorFormula <- paste(sanitizedVarNames[factor.mask], collapse = " + ")
       }
+    } else {
+      factorFormula <- ""
+    }
+    
+    if (is.na(basisDimension)) {
 
       # creates formula with smooth terms only
       startModel = as.formula(paste(
