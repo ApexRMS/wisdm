@@ -621,14 +621,26 @@ fitModel <- function(
     PenaltySelectionMethod <- out$modOptions$PenaltySelectionMethod
 
     if (is.na(basisDimension)) {
+
+      # build factor formula section if factors are present
+      if(length(factor.mask) > 0){
+        if(length(cont.mask) > 0){
+          factorFormula <- paste(" +", paste(sanitizedVarNames[factor.mask], collapse = " + "))
+        } else {
+          factorFormula <- paste(sanitizedVarNames[factor.mask], collapse = " + ")
+        }
+      } else {
+        factorFormula <- ""
+      }
+
       # creates formula with smooth terms only
       startModel = as.formula(paste(
         "Response",
         "~",
-        paste0("s(", sanitizedVarNames[cont.mask], ", bs='", smoothTerm, "')", collapse = " + "),
-        if (length(factor.mask) > 0) { 
-          paste(" +", paste(sanitizedVarNames[factor.mask], collapse = " + ")) 
-          } else { "" },
+        if(length(cont.mask) > 0) {
+          paste0("s(", sanitizedVarNames[cont.mask], ", bs='", smoothTerm, "')", collapse = " + ")
+          } else {""},
+        factorFormula,
         sep = ""
         ))
     } else {
@@ -636,10 +648,10 @@ fitModel <- function(
       startModel = as.formula(paste(
         "Response",
         "~",
-        paste0("s(", sanitizedVarNames[cont.mask], ", bs='", smoothTerm, "', k=", basisDimension, ")", collapse = " + "),
-        if (length(factor.mask) > 0) { 
-          paste(" +", paste(sanitizedVarNames[factor.mask], collapse = " + ")) 
-          } else { "" },
+        if(length(cont.mask) > 0) {
+          paste0("s(", sanitizedVarNames[cont.mask], ", bs='", smoothTerm, "', k=", basisDimension, ")", collapse = " + ")
+        } else {""},
+        factorFormula,
         sep = ""
       ))
     }
