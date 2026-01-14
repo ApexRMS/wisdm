@@ -605,7 +605,9 @@ fitModel <- function(
         "Response",
         "~",
         paste0("s(", sanitizedVarNames[cont.mask], ", bs='", smoothTerm, "')", collapse = " + "),
-        sanitizedVarNames[factor.mask],
+        if (length(factor.mask) > 0) { 
+          paste(" +", paste(sanitizedVarNames[factor.mask], collapse = " + ")) 
+          } else { "" },
         sep = ""
         ))
     } else {
@@ -614,7 +616,6 @@ fitModel <- function(
         "Response",
         "~",
         paste0("s(", sanitizedVarNames[cont.mask], ", bs='", smoothTerm, "', k=", basisDimension, ")", collapse = " + "),
-        sanitizedVarNames[factor.mask],
         if (length(factor.mask) > 0) { 
           paste(" +", paste(sanitizedVarNames[factor.mask], collapse = " + ")) 
           } else { "" },
