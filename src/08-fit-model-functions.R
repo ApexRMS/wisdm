@@ -631,6 +631,25 @@ fitModel <- function(
       factorFormula <- ""
     }
     
+    # check if basis dimension can be used adjust if necessary
+    uniqueCounts <- sapply(model.frame(dat)[, sanitizedVarNames], function(x) length(unique(x)))
+    if(is.na(basisDimension)){
+      if (any(uniqueCounts[cont.mask] < 10)) {
+        basisDimension <- out$modOptions$BasisDimension <- min(uniqueCounts[cont.mask]) - 1
+        updateRunLog(paste0(
+          "\nOne or more continuous predictors have fewer than 10 unique values. ",
+          "Setting basis dimension to ", basisDimension, " for all smooth terms."
+        ))
+      }
+    } else if (basisDimension >= min(uniqueCounts[cont.mask])) {
+      basisDimension <- out$modOptions$BasisDimension <- min(uniqueCounts[cont.mask]) - 1
+      updateRunLog(paste0(
+        "\nSpecified basis dimension is greater than or equal to the number of unique values for one or more continuous predictors. ",
+        "Setting basis dimension to ", basisDimension, " for all smooth terms."
+      ))
+    }
+    
+
     if (is.na(basisDimension)) {
 
       # creates formula with smooth terms only
