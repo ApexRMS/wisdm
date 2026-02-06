@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <update comment="Maxent and GAM Updates">
   <action code="Exec" condition="TableExists" criteria="wisdm_Models|wisdm_Maxent">
-    <item>INSERT INTO wisdm_Models(ModelsID, ProjectID, ModelName, ModelType) VALUES(41, 1, "Generalized Additive Model", "gam")</item>
+    <item>INSERT INTO wisdm_Models(ProjectID, ModelName, ModelType) SELECT ProjectID, "Generalized Additive Model", "gam" FROM core_Project WHERE ProjectID NOT IN (SELECT DISTINCT ProjectID FROM wisdm_Models WHERE ModelType = "gam")</item>
     <item>ALTER TABLE wisdm_Maxent ADD COLUMN AutoFeatureSelection INTEGER</item>
     <item>ALTER TABLE wisdm_Maxent ADD COLUMN UseHinge INTEGER</item>
     <item>ALTER TABLE wisdm_Maxent ADD COLUMN UseLinear INTEGER</item>
