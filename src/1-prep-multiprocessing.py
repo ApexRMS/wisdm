@@ -10,9 +10,31 @@
 
 ## Source dependencies --------------------------------------------------------
 
-# Set up environment and load helper functions
+# Set up environment 
 import os
 import sys
+import platform
+
+# Ensure conda environment packages take priority over system Python packages
+if "CONDA_PREFIX" in os.environ:
+    conda_prefix = os.environ["CONDA_PREFIX"]
+
+    # Only proceed if the conda prefix directory actually exists
+    if os.path.exists(conda_prefix):
+        # Remove user site-packages from sys.path to prevent conflicts
+        sys.path = [p for p in sys.path if not ("AppData\\Roaming\\Python" in p or "AppData/Roaming/Python" in p)]
+
+        # Try Windows path structure (Lib)
+        conda_site_packages = os.path.join(conda_prefix, "Lib", "site-packages")
+
+        # If Windows path doesn't exist, try Unix structure (lib)
+        if not os.path.exists(conda_site_packages):
+            python_version = f"python{sys.version_info.major}.{sys.version_info.minor}"
+            conda_site_packages = os.path.join(conda_prefix, "lib", python_version, "site-packages")
+
+        # Only modify sys.path if we found a valid site-packages directory
+        if os.path.exists(conda_site_packages) and conda_site_packages not in sys.path:
+            sys.path.insert(0, conda_site_packages)
 
 # import modules
 import rasterio
@@ -44,7 +66,13 @@ mySession = ps.Session()
 
 if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
     conda_env_path = os.environ.get("CONDA_PREFIX") or sys.prefix
-    library_folder = os.path.join(conda_env_path, "Library")
+
+    # Platform-specific paths: Windows uses Library subdirectory, Unix doesn't
+    if platform.system() == "Windows":
+        library_folder = os.path.join(conda_env_path, "Library")
+    else:
+        library_folder = conda_env_path
+
     gdal_folder = os.path.join(library_folder, "share", "gdal")
     proj_folder = os.path.join(library_folder, "share", "proj")
     certifi_folder = os.path.join(library_folder, "ssl", "cacert.pem")
@@ -113,17 +141,14 @@ def resample_grid(input_grid_filepath, template_grid_filepath, output_filename, 
       
       return resampled_grid_filepath
 
-# Load data ---------------------------------------------------------------
-
-# Load template raster
-templatePath = templateRasterSheet.RasterFilePath.item()
-templateRaster = rioxarray.open_rasterio(templatePath)
-
 # Error handling ----------------------------------------------------------
 
-# check that template raster was provided and tile count is valid
+# check that template raster was provided and valid
 if templateRasterSheet.RasterFilePath.isnull().item():
     raise ValueError("No template raster provided for spatial multiprocessing.")
+# check that template is a tif file
+if not templateRasterSheet.RasterFilePath.item().lower().endswith(".tif"):
+    raise ValueError("Template raster must be a .tif file.")
 
 # stop if tile count is set to 1
 if templateRasterSheet.TileCount.item() == 1:
@@ -131,6 +156,12 @@ if templateRasterSheet.TileCount.item() == 1:
     ps.environment.update_run_log("The tile count for spatial multiprocessing is set to 1. Spatial multiprocessing grid not created.")
     ps.environment.progress_bar(report_type = "end")
 else:
+    # Load data ---------------------------------------------------------------
+
+    # Load template raster
+    templatePath = templateRasterSheet.RasterFilePath.item()
+    templateRaster = rioxarray.open_rasterio(templatePath)
+
     # Set defaults -------------------------------------------------------------
 
     # Set desired number of cells per tile 
