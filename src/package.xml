@@ -254,7 +254,7 @@
   programArguments="1-prep-multiprocessing.py"
   isMultiprocessing="False"
   condaEnv="wisdm-conda.yml"
-  condaEnvVersion="5">
+  condaEnvVersion="6">
 	<dataSheet name="TemplateRaster" type="Input"/>
 	<dataSheet name="core_SpatialMultiprocessing" type="Output"/>		
 </transformer>	
