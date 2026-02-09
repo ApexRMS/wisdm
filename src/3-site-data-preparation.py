@@ -88,7 +88,6 @@ import dask
 import pyproj
 # import spatialUtils
 
-from dask.distributed import Client, Lock
 from shapely.geometry import Point #, shape
 from rasterio.enums import Resampling #, MergeAlg
 
@@ -148,19 +147,16 @@ multiprocessingSheet = myScenario.datasheets("core_Multiprocessing")
 steps = 5 + len(covariateDataSheet.CovariatesID)
 ps.environment.progress_bar(report_type = "begin", total_steps = steps)
 
-# Set up dask client -------------------------------------------------------
+# Set up dask configuration -------------------------------------------------------
 
 if multiprocessingSheet.EnableMultiprocessing.item() == "Yes":
     num_threads = multiprocessingSheet.MaximumJobs.item()
 else:
     num_threads = 1
 
-# Note: Follow link in output to view progress
 dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space'),
                    'distributed.scheduler.worker-ttl': None},
                    scheduler='threads', serializers=['dask'], deserializers=['dask'])
-# client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
-# client
 
 
 # Check inputs and set defaults ---------------------------------------------

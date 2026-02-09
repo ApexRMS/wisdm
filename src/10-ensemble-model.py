@@ -82,7 +82,7 @@ import numpy as np
 import rioxarray
 import xarray as xr
 import dask
-from dask.distributed import Client, Lock
+from dask.distributed import Client, LocalCluster
 import pandas as pd   
 import pyproj
 
@@ -149,7 +149,12 @@ else:
 
 # Note: Follow link in output to view progress
 dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space')})
-client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
+
+cluster = LocalCluster(
+    n_workers=num_threads,
+    memory_limit='auto',
+    processes=True)
+client = Client(cluster)
 # client
 
 #%% Check inputs and set defaults ---------------------------------------------
@@ -210,7 +215,7 @@ if ensembleOptionsSheet.NormalizeProbability.item() == "Yes":
         
         # save normalized raster to temp folder
         fname = "norm_map_" + str(i) + ".tif"
-        rOut.rio.to_raster(os.path.join(ssimTempDir, fname), tiled=True, lock=Lock("rio", client=client), windowed = True, overwrite= True, compress = 'lzw')
+        rOut.rio.to_raster(os.path.join(ssimTempDir, fname), tiled=True, windowed=True, overwrite=True, compress='lzw')
 
 #%% Set ensemble functions 
 if ensembleOptionsSheet.IgnoreNA.item() == "Yes":
@@ -279,7 +284,7 @@ if ensembleOptionsSheet.MakeProbabilityEnsemble.item() == "Yes":
         # Set nodata flag
         outputStack.rio.write_nodata(-9999, inplace = True)
         
-        outputStack.rio.to_raster(os.path.join(ssimTempDir, 'prob_mean.tif'), tiled=True, lock=Lock("rio", client=client), windowed = True, overwrite= True, compress = 'lzw')
+        outputStack.rio.to_raster(os.path.join(ssimTempDir, 'prob_mean.tif'), tiled=True, windowed=True, overwrite=True, compress='lzw')
 
         if len(ensembleOutputSheet) == 0:
             newRow = pd.DataFrame({'ProbabilityRasterMean': [os.path.join(ssimTempDir, 'prob_mean.tif')]})
@@ -295,7 +300,7 @@ if ensembleOptionsSheet.MakeProbabilityEnsemble.item() == "Yes":
         # Set nodata flag
         outputStack.rio.write_nodata(-9999, inplace = True)
         
-        outputStack.rio.to_raster(os.path.join(ssimTempDir, 'prob_sum.tif'), tiled=True, lock=Lock("rio", client=client), windowed = True, overwrite= True, compress = 'lzw')
+        outputStack.rio.to_raster(os.path.join(ssimTempDir, 'prob_sum.tif'), tiled=True, windowed=True, overwrite=True, compress='lzw')
 
         if len(ensembleOutputSheet) == 0:
             newRow = pd.DataFrame({'ProbabilityRasterSum': [os.path.join(ssimTempDir, 'prob_sum.tif')]})
@@ -320,7 +325,7 @@ if ensembleOptionsSheet.MakeBinaryEnsemble.item() == "Yes":
             # Set nodata flag
             outputStack.rio.write_nodata(-9999, inplace = True)
             
-            outputStack.rio.to_raster(os.path.join(ssimTempDir, 'bin_mean.tif'), tiled=True, lock=Lock("rio", client=client), windowed = True, overwrite= True, compress = 'lzw')
+            outputStack.rio.to_raster(os.path.join(ssimTempDir, 'bin_mean.tif'), tiled=True, windowed=True, overwrite=True, compress='lzw')
     
             if len(ensembleOutputSheet) == 0:
                 newRow = pd.DataFrame({'BinaryRasterMean': [os.path.join(ssimTempDir, 'bin_mean.tif')]})
@@ -336,7 +341,7 @@ if ensembleOptionsSheet.MakeBinaryEnsemble.item() == "Yes":
             # Set nodata flag
             outputStack.rio.write_nodata(-9999, inplace = True)
             
-            outputStack.rio.to_raster(os.path.join(ssimTempDir, 'bin_sum.tif'), tiled=True, lock=Lock("rio", client=client), windowed = True, overwrite= True, compress = 'lzw')
+            outputStack.rio.to_raster(os.path.join(ssimTempDir, 'bin_sum.tif'), tiled=True, windowed=True, overwrite=True, compress='lzw')
     
             if len(ensembleOutputSheet) == 0:
                 newRow = pd.DataFrame({'BinaryRasterSum': [os.path.join(ssimTempDir, 'bin_sum.tif')]})

@@ -46,9 +46,6 @@ import numpy as np
 import math
 import pyproj
 
-import dask
-from dask.distributed import Client
-
 # Set progress bar ---------------------------------------------------------
 
 steps = 6
@@ -100,17 +97,6 @@ spatialMultiprocessingSheet = myScenario.datasheets("core_SpatialMultiprocessing
 
 # update progress bar
 ps.environment.progress_bar()
-
-# Set up dask client ------------------------------------------------------
-if multiprocessingSheet.EnableMultiprocessing.item() == "Yes":
-    num_threads = multiprocessingSheet.MaximumJobs.item()
-else:
-    num_threads = 1
-
-# Note: Follow link in output to view progress
-dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space')})
-client = Client(threads_per_worker = num_threads, n_workers = 1, processes=False)
-# client
 
 ## Functions -----------------------------------------------------------------
 # Resample a raster
