@@ -34,25 +34,34 @@ if conda_prefix and os.path.exists(conda_prefix):
     print(f"[DEBUG] conda_prefix exists: {conda_prefix}", file=sys.stderr)
     # CRITICAL: Set up DLL search paths for Windows BEFORE importing any packages
     if platform.system() == "Windows":
-        # Add conda environment's Library\bin to PATH for DLL loading
-        library_bin = os.path.join(conda_prefix, "Library", "bin")
-        print(f"[DEBUG] library_bin path: {library_bin}", file=sys.stderr)
-        if os.path.exists(library_bin):
-            print(f"[DEBUG] library_bin exists! Adding to PATH", file=sys.stderr)
-            # Prepend to PATH so conda env DLLs take priority
-            os.environ["PATH"] = library_bin + os.pathsep + os.environ.get("PATH", "")
+        # Add ALL conda paths like conda activation does (not just Library\bin)
+        # This mimics what 'conda activate' does to ensure DLLs are found
+        paths_to_add = [
+            os.path.join(conda_prefix, "Library", "mingw-w64", "bin"),
+            os.path.join(conda_prefix, "Library", "usr", "bin"),
+            os.path.join(conda_prefix, "Library", "bin"),
+            os.path.join(conda_prefix, "Scripts"),
+            os.path.join(conda_prefix, "bin"),
+            conda_prefix,
+        ]
 
-            # Set CONDA_PREFIX if not already set (some packages expect it)
-            if "CONDA_PREFIX" not in os.environ:
-                os.environ["CONDA_PREFIX"] = conda_prefix
-                print(f"[DEBUG] Set CONDA_PREFIX env var", file=sys.stderr)
+        print(f"[DEBUG] Adding ALL conda paths (mimicking conda activate)", file=sys.stderr)
+        for path in paths_to_add:
+            if os.path.exists(path):
+                os.environ["PATH"] = path + os.pathsep + os.environ.get("PATH", "")
+                print(f"[DEBUG]   - Added to PATH: {path}", file=sys.stderr)
+                # Use os.add_dll_directory for Python 3.8+ (more reliable)
+                if hasattr(os, "add_dll_directory"):
+                    try:
+                        os.add_dll_directory(path)
+                        print(f"[DEBUG]   - add_dll_directory: {path}", file=sys.stderr)
+                    except (FileNotFoundError, OSError) as e:
+                        print(f"[DEBUG]   - add_dll_directory failed: {e}", file=sys.stderr)
 
-            # Also use os.add_dll_directory for Python 3.8+ (more reliable on Windows)
-            if hasattr(os, "add_dll_directory"):
-                os.add_dll_directory(library_bin)
-                print(f"[DEBUG] Called os.add_dll_directory", file=sys.stderr)
-        else:
-            print(f"[DEBUG] ERROR: library_bin does NOT exist!", file=sys.stderr)
+        # Set CONDA_PREFIX if not already set (some packages expect it)
+        if "CONDA_PREFIX" not in os.environ:
+            os.environ["CONDA_PREFIX"] = conda_prefix
+            print(f"[DEBUG] Set CONDA_PREFIX env var", file=sys.stderr)
 
     # Remove user site-packages from sys.path to prevent conflicts
     sys.path = [p for p in sys.path if not ("AppData\\Roaming\\Python" in p or "AppData/Roaming/Python" in p)]
