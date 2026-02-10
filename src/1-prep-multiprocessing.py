@@ -18,29 +18,41 @@ import platform
 # Ensure conda environment packages take priority over system Python packages
 # Detect conda prefix from CONDA_PREFIX env var OR derive from sys.executable
 conda_prefix = os.environ.get("CONDA_PREFIX")
+print(f"[DEBUG] Initial CONDA_PREFIX: {conda_prefix}", file=sys.stderr)
+print(f"[DEBUG] sys.executable: {sys.executable}", file=sys.stderr)
+
 if not conda_prefix:
     # CONDA_PREFIX not set (happens when Python is called directly without activation)
     # Derive it from sys.executable path
     python_path = os.path.dirname(sys.executable)
+    print(f"[DEBUG] Derived path from executable: {python_path}", file=sys.stderr)
     if "envs" in python_path or "conda" in python_path.lower():
         conda_prefix = python_path
+        print(f"[DEBUG] Set conda_prefix to: {conda_prefix}", file=sys.stderr)
 
 if conda_prefix and os.path.exists(conda_prefix):
+    print(f"[DEBUG] conda_prefix exists: {conda_prefix}", file=sys.stderr)
     # CRITICAL: Set up DLL search paths for Windows BEFORE importing any packages
     if platform.system() == "Windows":
         # Add conda environment's Library\bin to PATH for DLL loading
         library_bin = os.path.join(conda_prefix, "Library", "bin")
+        print(f"[DEBUG] library_bin path: {library_bin}", file=sys.stderr)
         if os.path.exists(library_bin):
+            print(f"[DEBUG] library_bin exists! Adding to PATH", file=sys.stderr)
             # Prepend to PATH so conda env DLLs take priority
             os.environ["PATH"] = library_bin + os.pathsep + os.environ.get("PATH", "")
 
             # Set CONDA_PREFIX if not already set (some packages expect it)
             if "CONDA_PREFIX" not in os.environ:
                 os.environ["CONDA_PREFIX"] = conda_prefix
+                print(f"[DEBUG] Set CONDA_PREFIX env var", file=sys.stderr)
 
             # Also use os.add_dll_directory for Python 3.8+ (more reliable on Windows)
             if hasattr(os, "add_dll_directory"):
                 os.add_dll_directory(library_bin)
+                print(f"[DEBUG] Called os.add_dll_directory", file=sys.stderr)
+        else:
+            print(f"[DEBUG] ERROR: library_bin does NOT exist!", file=sys.stderr)
 
     # Remove user site-packages from sys.path to prevent conflicts
     sys.path = [p for p in sys.path if not ("AppData\\Roaming\\Python" in p or "AppData/Roaming/Python" in p)]
