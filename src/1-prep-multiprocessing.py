@@ -16,25 +16,46 @@ import sys
 import platform
 
 # Ensure conda environment packages take priority over system Python packages
-if "CONDA_PREFIX" in os.environ:
-    conda_prefix = os.environ["CONDA_PREFIX"]
+# Detect conda prefix from CONDA_PREFIX env var OR derive from sys.executable
+conda_prefix = os.environ.get("CONDA_PREFIX")
+if not conda_prefix:
+    # CONDA_PREFIX not set (happens when Python is called directly without activation)
+    # Derive it from sys.executable path
+    python_path = os.path.dirname(sys.executable)
+    if "envs" in python_path or "conda" in python_path.lower():
+        conda_prefix = python_path
 
-    # Only proceed if the conda prefix directory actually exists
-    if os.path.exists(conda_prefix):
-        # Remove user site-packages from sys.path to prevent conflicts
-        sys.path = [p for p in sys.path if not ("AppData\\Roaming\\Python" in p or "AppData/Roaming/Python" in p)]
+if conda_prefix and os.path.exists(conda_prefix):
+    # CRITICAL: Set up DLL search paths for Windows BEFORE importing any packages
+    if platform.system() == "Windows":
+        # Add conda environment's Library\bin to PATH for DLL loading
+        library_bin = os.path.join(conda_prefix, "Library", "bin")
+        if os.path.exists(library_bin):
+            # Prepend to PATH so conda env DLLs take priority
+            os.environ["PATH"] = library_bin + os.pathsep + os.environ.get("PATH", "")
 
-        # Try Windows path structure (Lib)
-        conda_site_packages = os.path.join(conda_prefix, "Lib", "site-packages")
+            # Set CONDA_PREFIX if not already set (some packages expect it)
+            if "CONDA_PREFIX" not in os.environ:
+                os.environ["CONDA_PREFIX"] = conda_prefix
 
-        # If Windows path doesn't exist, try Unix structure (lib)
-        if not os.path.exists(conda_site_packages):
-            python_version = f"python{sys.version_info.major}.{sys.version_info.minor}"
-            conda_site_packages = os.path.join(conda_prefix, "lib", python_version, "site-packages")
+            # Also use os.add_dll_directory for Python 3.8+ (more reliable on Windows)
+            if hasattr(os, "add_dll_directory"):
+                os.add_dll_directory(library_bin)
 
-        # Only modify sys.path if we found a valid site-packages directory
-        if os.path.exists(conda_site_packages) and conda_site_packages not in sys.path:
-            sys.path.insert(0, conda_site_packages)
+    # Remove user site-packages from sys.path to prevent conflicts
+    sys.path = [p for p in sys.path if not ("AppData\\Roaming\\Python" in p or "AppData/Roaming/Python" in p)]
+
+    # Try Windows path structure (Lib)
+    conda_site_packages = os.path.join(conda_prefix, "Lib", "site-packages")
+
+    # If Windows path doesn't exist, try Unix structure (lib)
+    if not os.path.exists(conda_site_packages):
+        python_version = f"python{sys.version_info.major}.{sys.version_info.minor}"
+        conda_site_packages = os.path.join(conda_prefix, "lib", python_version, "site-packages")
+
+    # Only modify sys.path if we found a valid site-packages directory
+    if os.path.exists(conda_site_packages) and conda_site_packages not in sys.path:
+        sys.path.insert(0, conda_site_packages)
 
 # import modules
 import rasterio
