@@ -403,6 +403,12 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
       }
     }
 
+    # Ensure file is accessible after rename (Windows file system sync)
+    Sys.sleep(0.1)
+    if (!file.exists(prob_path)) {
+      stop("Probability map file not found after rename: ", prob_path)
+    }
+
     progressBar()
     updateRunLog(
       "Finished Probability Map for ",
@@ -425,10 +431,17 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
       residSmooth <- readRDS(modelOutputsSheet$ResidualSmoothRDS[i])
 
       prob_path <- file.path(ssimTempDir, paste0(modType, "_prob_map.tif"))
-      prob_r <- terra::rast(prob_path)
+
+      # Materialize cropped prob_r to disk if needed (virtual crops don't work with readValues)
       if (!is.null(maskValues)) {
-        prob_r <- terra::crop(prob_r, tileExt)
+        tmp_prob_crop <- file.path(ssimTempDir, "prob_crop_for_resid.tif")
+        prob_r_full <- rastSafe(prob_path)
+        prob_r <- terra::crop(prob_r_full, tileExt, filename = tmp_prob_crop, overwrite = TRUE)
+        rm(prob_r_full)
+        prob_path <- tmp_prob_crop  # Use cropped version as source
       }
+
+      prob_r <- rastSafe(prob_path)
 
       out_path <- file.path(ssimTempDir, paste0(modType, "_resid_map.tif"))
       tmp_res <- file.path(ssimTempDir, "resid_stage1.tif")
@@ -446,8 +459,14 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
       x_cols <- terra::xFromCol(prob_r, 1:ncols) # length = ncols
       y_rows <- terra::yFromRow(prob_r, 1:nrows) # length = nrows
 
+      # Read all prob values into memory BEFORE starting write stream
+      # This avoids file handle conflicts during streaming writes
+      prob_vals <- terra::values(prob_r, mat = FALSE)
+      rm(prob_r)  # Close the file handle
+      gc()
+
       # Stage-1: open a streaming writer (no datatype/compression here)
-      wr <- terra::rast(prob_r)
+      wr <- terra::rast(rastSafe(prob_path))
       terra::writeStart(wr, filename = tmp_res, overwrite = TRUE)
 
       block_rows <- if (!is.null(sessionDetails$BLOCK_ROWS)) {
@@ -470,16 +489,12 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
           data.frame(x = xvec, y = yvec)
         ))
 
-        # Apply NA mask from probability map (preserve NA semantics)
-        pv <- terra::readValues(
-          prob_r,
-          row = start_row,
-          nrows = nrb,
-          dataframe = FALSE
-        )
-        if (!is.null(dim(pv))) {
-          pv <- as.vector(pv)
-        }
+        # Apply NA mask from probability values (preserve NA semantics)
+        # Extract block from pre-loaded values
+        block_start <- (start_row - 1L) * ncols + 1L
+        block_end <- block_start + (nrb * ncols) - 1L
+        pv <- prob_vals[block_start:block_end]
+
         predv[is.na(pv)] <- NA_real_
 
         # Write this block
@@ -487,6 +502,8 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
 
         start_row <- start_row + nrb
       }
+
+      rm(prob_vals)  # Free memory
 
       terra::writeStop(wr) # flush tmp_res
 
@@ -523,7 +540,7 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
       for (p in c(
         tmp_res,
         if (!is.null(maskValues)) {
-          src_for_final
+          c(src_for_final, file.path(ssimTempDir, "prob_crop_for_resid.tif"))
         }
       )) {
         if (!is.null(p) && file.exists(p) && !identical(p, out_path)) {
