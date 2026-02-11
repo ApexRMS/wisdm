@@ -333,7 +333,7 @@ predict_block_int <- function(
   data, # data.frame of covariate values for this block
   factor_levels, # named list of factor levels (NULL for auto)
   predictFct, # prediction function (model, x, ...)
-  restrict_col = NULL, # optional column name in data for restriction (0/1/NA)
+  restrict_col = NULL, # optional column name in data for restriction (binary 0/1 or probability 0-100/0-1)
   ...
 ) {
   # 1) Force base data.frame with atomic vectors (no S4/list columns)
@@ -374,8 +374,31 @@ predict_block_int <- function(
   if (!is.null(restr)) {
     restr <- as.vector(restr)
     p[is.na(restr)] <- NA_real_
+
     if (is.numeric(restr)) {
-      p[restr == 0] <- NA_real_
+      # Fast check using min/max (O(n), optimized C code)
+      min_val <- min(restr, na.rm = TRUE)
+      max_val <- max(restr, na.rm = TRUE)
+
+      # Determine type based on range
+      if (max_val > 1) {
+        # Probability 0-100 scale: weight predictions
+        p <- p * (restr / 100)
+        p[restr == 0] <- NA_real_
+      } else {
+        # max_val <= 1: could be binary (0/1) or probability (0-1)
+        # Check if any values fall strictly between 0 and 1
+        has_intermediate <- any(restr > 0 & restr < 1, na.rm = TRUE)
+
+        if (has_intermediate) {
+          # Probability 0-1 scale: weight predictions
+          p <- p * restr
+          p[restr == 0] <- NA_real_
+        } else {
+          # Binary 0/1: exclude where 0
+          p[restr == 0] <- NA_real_
+        }
+      }
     }
   }
 
