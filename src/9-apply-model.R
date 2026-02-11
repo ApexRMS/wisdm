@@ -141,9 +141,13 @@ updateRunLog("Finished loading inputs in ", updateBreakpoint())
 wopt_int <- list(
   datatype = "INT4S",
   NAflag = -9999,
-  gdal = c("COMPRESS=LZW", "PREDICTOR=2")
+  gdal = c("COMPRESS=LZW", "PREDICTOR=2", "TILED=YES", "BLOCKXSIZE=512", "BLOCKYSIZE=512")
 )
-wopt_flt <- list(datatype = "FLT4S", NAflag = -9999, gdal = c("COMPRESS=LZW"))
+wopt_flt <- list(
+  datatype = "FLT4S",
+  NAflag = -9999,
+  gdal = c("COMPRESS=LZW", "TILED=YES", "BLOCKXSIZE=512", "BLOCKYSIZE=512")
+)
 
 # Set up spatial multiprocessing -----------------------------------------------
 
@@ -240,9 +244,8 @@ if (nrow((restrictionSheet)) > 0) {
       tileExt,
       filename = tmp_restrict,
       overwrite = TRUE,
-      datatype = "INT2S",
       NAflag = -9999,
-      gdal = c("COMPRESS=LZW", "PREDICTOR=2")
+      gdal = c("COMPRESS=LZW", "TILED=YES", "BLOCKXSIZE=512", "BLOCKYSIZE=512")
     )
   } else {
     NAflag(restrictRaster) <- -9999
@@ -321,7 +324,7 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
       filename = tmp_covs,
       overwrite = TRUE,
       NAflag = -9999,
-      gdal = c("COMPRESS=LZW", "PREDICTOR=2")
+      gdal = c("COMPRESS=LZW", "TILED=YES", "BLOCKXSIZE=512", "BLOCKYSIZE=512")
     )
   }
 
@@ -373,10 +376,8 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
       r_ext <- writeRaster(
         r_ext,
         filename = tmp_ext2,
-        datatype = "INT4S",
-        NAflag = -9999,
         overwrite = TRUE,
-        gdal = c("COMPRESS=LZW", "PREDICTOR=2")
+        wopt = wopt_int
       )
 
       final_tmp <- tmp_ext2
