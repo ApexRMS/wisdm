@@ -27,6 +27,11 @@ print(f"[DEBUG] sys.executable: {sys.executable}", file=sys.stderr)
 # CONDA_SHLVL >= 1 means conda activate or conda run was used
 conda_activated = conda_shlvl != "0"
 
+# ALWAYS remove user site-packages to prevent conflicts (even with conda run!)
+# This is critical - user site-packages can shadow conda packages
+sys.path = [p for p in sys.path if not ("AppData\\Roaming\\Python" in p or "AppData/Roaming/Python" in p)]
+print(f"[DEBUG] Removed user site-packages from sys.path", file=sys.stderr)
+
 if conda_activated:
     print(f"[DEBUG] Conda environment already activated (SHLVL={conda_shlvl}), skipping PATH manipulation", file=sys.stderr)
 elif not conda_prefix:
@@ -71,9 +76,6 @@ if conda_prefix and os.path.exists(conda_prefix) and not conda_activated:
         if "CONDA_PREFIX" not in os.environ:
             os.environ["CONDA_PREFIX"] = conda_prefix
             print(f"[DEBUG] Set CONDA_PREFIX env var", file=sys.stderr)
-
-    # Remove user site-packages from sys.path to prevent conflicts
-    sys.path = [p for p in sys.path if not ("AppData\\Roaming\\Python" in p or "AppData/Roaming/Python" in p)]
 
     # Try Windows path structure (Lib)
     conda_site_packages = os.path.join(conda_prefix, "Lib", "site-packages")
