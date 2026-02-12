@@ -34,6 +34,15 @@ print(f"[DEBUG] Removed user site-packages from sys.path", file=sys.stderr)
 
 if conda_activated:
     print(f"[DEBUG] Conda environment already activated (SHLVL={conda_shlvl}), skipping PATH manipulation", file=sys.stderr)
+    # Debug: Print PATH to see what conda run set up
+    import glob
+    print(f"[DEBUG] Checking for GDAL DLLs in PATH...", file=sys.stderr)
+    for path_dir in os.environ.get("PATH", "").split(os.pathsep)[:10]:  # Check first 10 PATH entries
+        if path_dir and os.path.exists(path_dir):
+            gdal_dlls = glob.glob(os.path.join(path_dir, "gdal*.dll"))
+            if gdal_dlls:
+                print(f"[DEBUG] Found GDAL DLL in: {path_dir}", file=sys.stderr)
+                print(f"[DEBUG]   DLLs: {[os.path.basename(d) for d in gdal_dlls]}", file=sys.stderr)
 elif not conda_prefix:
     # CONDA_PREFIX not set (happens when Python is called directly without activation)
     # Derive it from sys.executable path
