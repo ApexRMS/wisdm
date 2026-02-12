@@ -18,10 +18,18 @@ import platform
 # Ensure conda environment packages take priority over system Python packages
 # Detect conda prefix from CONDA_PREFIX env var OR derive from sys.executable
 conda_prefix = os.environ.get("CONDA_PREFIX")
+conda_shlvl = os.environ.get("CONDA_SHLVL", "0")
 print(f"[DEBUG] Initial CONDA_PREFIX: {conda_prefix}", file=sys.stderr)
+print(f"[DEBUG] CONDA_SHLVL: {conda_shlvl}", file=sys.stderr)
 print(f"[DEBUG] sys.executable: {sys.executable}", file=sys.stderr)
 
-if not conda_prefix:
+# Only manipulate PATH if conda hasn't already activated the environment
+# CONDA_SHLVL >= 1 means conda activate or conda run was used
+conda_activated = conda_shlvl != "0"
+
+if conda_activated:
+    print(f"[DEBUG] Conda environment already activated (SHLVL={conda_shlvl}), skipping PATH manipulation", file=sys.stderr)
+elif not conda_prefix:
     # CONDA_PREFIX not set (happens when Python is called directly without activation)
     # Derive it from sys.executable path
     python_path = os.path.dirname(sys.executable)
@@ -30,9 +38,10 @@ if not conda_prefix:
         conda_prefix = python_path
         print(f"[DEBUG] Set conda_prefix to: {conda_prefix}", file=sys.stderr)
 
-if conda_prefix and os.path.exists(conda_prefix):
+if conda_prefix and os.path.exists(conda_prefix) and not conda_activated:
     print(f"[DEBUG] conda_prefix exists: {conda_prefix}", file=sys.stderr)
-    # CRITICAL: Set up DLL search paths for Windows BEFORE importing any packages
+    print(f"[DEBUG] Manually setting up conda paths (backwards compatibility mode)", file=sys.stderr)
+    # Set up DLL search paths for Windows BEFORE importing any packages
     if platform.system() == "Windows":
         # Add ALL conda paths like conda activation does (not just Library\bin)
         # This mimics what 'conda activate' does to ensure DLLs are found
