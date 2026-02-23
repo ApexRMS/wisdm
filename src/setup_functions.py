@@ -12,6 +12,13 @@ import os
 import platform
 import sys
 
+# Execute immediately on import: remove user site-packages before any
+# non-stdlib packages are imported. This is critical on Windows where a
+# user-installed pysyncrosim or rasterio (e.g. for a different Python version)
+# can shadow the conda env packages and cause DLL version conflicts.
+sys.path[:] = [p for p in sys.path if not (
+    "AppData\\Roaming\\Python" in p or "AppData/Roaming/Python" in p)]
+
 
 def setup_conda_env():
     """Ensure the active conda environment's packages take priority over system
@@ -25,10 +32,6 @@ def setup_conda_env():
     - CONDA_PREFIX is not set: attempts to derive the conda prefix from
       sys.executable (e.g. when Python is invoked directly by SyncroSim).
     """
-    # Always remove user site-packages — they can shadow conda packages even
-    # when conda run is used.
-    sys.path = [p for p in sys.path if not (
-        "AppData\\Roaming\\Python" in p or "AppData/Roaming/Python" in p)]
 
     # If conda already activated the environment, its PATH is correct; leave it.
     conda_shlvl = os.environ.get("CONDA_SHLVL", "0")

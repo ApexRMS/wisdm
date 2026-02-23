@@ -10,24 +10,26 @@
 
 # Source dependencies --------------------------------------------------------
 
-# Set up environment (must run before importing non-stdlib packages)
-import pysyncrosim as ps
-from rasterio import enums
-import xarray
-import rioxarray
-import rasterio
-import pyproj
-import numpy as np
-import math
+# IMPORTANT: setup_functions must be imported before any non-stdlib packages.
+# It removes user site-packages on import and setup_conda_env() configures
+# conda DLL paths. Linters must not reorder these imports.  # noqa: E402
 import os
 import sys
 import platform
-from setup_functions import setup_conda_env, check_gdal_version, setup_gdal_proj
+from setup_functions import setup_conda_env, check_gdal_version, setup_gdal_proj  # noqa: E402
 
 setup_conda_env()
 check_gdal_version()
 
-# import modules
+# Non-stdlib imports (must follow setup calls above)
+import math  # noqa: E402
+import numpy as np  # noqa: E402
+import pyproj  # noqa: E402
+import rasterio  # noqa: E402
+import rioxarray  # noqa: E402
+import xarray  # noqa: E402
+from rasterio import enums  # noqa: E402
+import pysyncrosim as ps  # noqa: E402
 
 # Set progress bar ---------------------------------------------------------
 
