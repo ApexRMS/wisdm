@@ -11,73 +11,19 @@
 
 # Source dependencies ----------------------------------------------------------
 
-# Modify os path if multiple GDAL installations ----
+# IMPORTANT: setup_functions must be imported before any non-stdlib packages.
+# It removes user site-packages on import and setupCondaEnv() configures
+# conda DLL paths. Linters must not reorder these imports.  # noqa: E402
+from setup_functions import setupCondaEnv, checkGdalVersion, setupGdalProj  # noqa: E402
+
+
 def prep_spatial_data():
 
-    import os, sys
-    import platform
+    setupCondaEnv()
+    checkGdalVersion()
 
-    # Ensure conda environment packages take priority over system Python packages
-    if "CONDA_PREFIX" in os.environ:
-        conda_prefix = os.environ["CONDA_PREFIX"]
-
-        # Only proceed if the conda prefix directory actually exists
-        if os.path.exists(conda_prefix):
-            # Remove user site-packages from sys.path to prevent conflicts
-            sys.path = [p for p in sys.path if not ("AppData\\Roaming\\Python" in p or "AppData/Roaming/Python" in p)]
-
-            # Try Windows path structure (Lib)
-            conda_site_packages = os.path.join(conda_prefix, "Lib", "site-packages")
-
-            # If Windows path doesn't exist, try Unix structure (lib)
-            if not os.path.exists(conda_site_packages):
-                python_version = f"python{sys.version_info.major}.{sys.version_info.minor}"
-                conda_site_packages = os.path.join(conda_prefix, "lib", python_version, "site-packages")
-
-            # Only modify sys.path if we found a valid site-packages directory
-            if os.path.exists(conda_site_packages) and conda_site_packages not in sys.path:
-                sys.path.insert(0, conda_site_packages)
-
-    import glob
-
-    # GDAL version check (Windows only)
-    if platform.system() == "Windows":
-        try:
-            from win32api import GetFileVersionInfo, LOWORD, HIWORD
-
-            gdal_installations = []
-            if "PATH" in os.environ:
-                for p in os.environ["PATH"].split(os.pathsep):
-                    if p and glob.glob(os.path.join(p, "gdal*.dll")):
-                        gdal_installations.append(os.path.abspath(p))
-
-            if len(gdal_installations) > 0:
-                for folder in gdal_installations:
-                    filenames = [f for f in os.listdir(
-                        folder) if f.startswith("gdal") & f.endswith(".dll")]
-
-                    for filename in filenames:
-                        filename = os.path.join(folder, filename)
-
-                        if not os.path.exists(filename):
-                            print("no gdal dlls found in " + folder)
-                            os.environ['PATH'] = os.pathsep.join(
-                                [p for p in os.environ['PATH'].split(os.pathsep) if folder not in p])
-                            continue
-                        try:
-                            info = GetFileVersionInfo(filename, "\\")
-                        except:
-                            continue
-
-                        major_version = HIWORD(info['FileVersionMS'])
-                        minor_version = LOWORD(info['FileVersionMS'])
-
-                        if (major_version < 3) | (minor_version < 6):
-                            os.environ['PATH'] = os.pathsep.join(
-                                [p for p in os.environ['PATH'].split(os.pathsep) if folder not in p])
-        except ImportError:
-            # win32api not available, skip GDAL version check
-            pass
+    import os
+    import sys
 
     # dependencies
     # from osgeo import gdal
@@ -111,39 +57,7 @@ def prep_spatial_data():
     # Modify the os PROJ path (when running with Conda) ----
     myLibrary = ps.Library()
     
-    worker_env = None
-    if myLibrary.datasheets("core_Option").UseConda.item() == "Yes":
-        conda_env_path = os.environ.get("CONDA_PREFIX") or sys.prefix
-
-        # Platform-specific paths: Windows uses Library subdirectory, Unix doesn't
-        if platform.system() == "Windows":
-            library_folder = os.path.join(conda_env_path, "Library")
-        else:
-            library_folder = conda_env_path
-
-        gdal_folder = os.path.join(library_folder, "share", "gdal")
-        proj_folder = os.path.join(library_folder, "share", "proj")
-        certifi_folder = os.path.join(library_folder, "ssl", "cacert.pem")
-        ps.environment.update_run_log("GDAL path: " + gdal_folder)
-        ps.environment.update_run_log("PROJ path: " + proj_folder)
-        os.environ['GDAL_DATA'] = gdal_folder
-        os.environ['GDAL_CURL_CA_BUNDLE'] = certifi_folder
-        os.environ["PROJ_DATA"] = proj_folder
-        os.environ['PROJ_CURL_CA_BUNDLE'] = certifi_folder
-        os.environ["PROJ_LIB"] = proj_folder
-        pyproj.datadir.set_data_dir(proj_folder)
-        pyproj.network.set_ca_bundle_path(certifi_folder)
-        ps.environment.update_run_log(
-            "pyproj data directory: " + pyproj.datadir.get_data_dir())
-        
-        # What future Dask workers should inherit:
-        worker_env = {
-            "GDAL_DATA": gdal_folder,
-            "PROJ_LIB": proj_folder,
-        }
-        if os.path.exists(certifi_folder):
-            worker_env["GDAL_CURL_CA_BUNDLE"] = certifi_folder
-            worker_env["PROJ_CURL_CA_BUNDLE"] = certifi_folder
+    worker_env = setupGdalProj(myLibrary)
 
     # Connect to SyncroSim library ------------------------------------------------
 

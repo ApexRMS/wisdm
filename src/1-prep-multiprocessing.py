@@ -11,15 +11,15 @@
 # Source dependencies --------------------------------------------------------
 
 # IMPORTANT: setup_functions must be imported before any non-stdlib packages.
-# It removes user site-packages on import and setup_conda_env() configures
+# It removes user site-packages on import and setupCondaEnv() configures
 # conda DLL paths. Linters must not reorder these imports.  # noqa: E402
 import os
 import sys
 import platform
-from setup_functions import setup_conda_env, check_gdal_version, setup_gdal_proj  # noqa: E402
+from setup_functions import setupCondaEnv, checkGdalVersion, setupGdalProj  # noqa: E402
 
-setup_conda_env()
-check_gdal_version()
+setupCondaEnv()
+checkGdalVersion()
 
 # Non-stdlib imports (must follow setup calls above)
 import math  # noqa: E402
@@ -46,7 +46,7 @@ mySession = ps.Session()
 
 # Set GDAL/PROJ paths if using conda environment ---------------------------
 
-setup_gdal_proj(myLibrary)
+setupGdalProj(myLibrary)
 
 # Create a temporary folder for storing rasters
 # ssimTempDir = myLibrary.info["Value"][myLibrary.info.Property == "Temporary files:"].item()

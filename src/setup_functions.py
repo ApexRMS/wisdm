@@ -13,14 +13,14 @@ import platform
 import sys
 
 # ---- Temporary debug flag -- set to False to silence debug output ----------
-_DEBUG = True
+debug = True
 
 # Buffer for messages that arrive before pysyncrosim is importable.
-_debug_messages = []
+debugMessages = []
 
 
-def _dbg(msg):
-    if not _DEBUG:
+def dbg(msg):
+    if not debug:
         return
     formatted = f"[setup_functions] {msg}"
     ps = sys.modules.get("pysyncrosim")
@@ -30,24 +30,24 @@ def _dbg(msg):
             return
         except Exception:
             pass
-    _debug_messages.append(formatted)
+    debugMessages.append(formatted)
 
 
 # Execute immediately on import: remove user site-packages before any
 # non-stdlib packages are imported. This is critical on Windows where a
 # user-installed pysyncrosim or rasterio (e.g. for a different Python version)
 # can shadow the conda env packages and cause DLL version conflicts.
-_before = [p for p in sys.path if "AppData\\Roaming\\Python" in p
+before = [p for p in sys.path if "AppData\\Roaming\\Python" in p
            or "AppData/Roaming/Python" in p]
 sys.path[:] = [p for p in sys.path if not (
     "AppData\\Roaming\\Python" in p or "AppData/Roaming/Python" in p)]
-if _before:
-    _dbg(f"Removed user site-packages from sys.path: {_before}")
+if before:
+    dbg(f"Removed user site-packages from sys.path: {before}")
 else:
-    _dbg("No user site-packages found in sys.path")
+    dbg("No user site-packages found in sys.path")
 
 
-def setup_conda_env():
+def setupCondaEnv():
     """Ensure the active conda environment's packages take priority over system
     Python packages. Must be called before importing any non-stdlib packages.
 
@@ -59,16 +59,16 @@ def setup_conda_env():
     - CONDA_PREFIX is not set: attempts to derive the conda prefix from
       sys.executable (e.g. when Python is invoked directly by SyncroSim).
     """
-    _dbg(f"CONDA_PREFIX: {os.environ.get('CONDA_PREFIX')}")
-    _dbg(f"CONDA_SHLVL:  {os.environ.get('CONDA_SHLVL', '(not set)')}")
-    _dbg(f"sys.executable: {sys.executable}")
+    dbg(f"CONDA_PREFIX: {os.environ.get('CONDA_PREFIX')}")
+    dbg(f"CONDA_SHLVL:  {os.environ.get('CONDA_SHLVL', '(not set)')}")
+    dbg(f"sys.executable: {sys.executable}")
 
     # If conda already activated the environment, its PATH is correct; leave it.
     conda_shlvl = os.environ.get("CONDA_SHLVL", "0")
     if conda_shlvl != "0":
-        _dbg(f"CONDA_SHLVL={conda_shlvl}: conda already activated -- "
+        dbg(f"CONDA_SHLVL={conda_shlvl}: conda already activated -- "
              "skipping PATH and sys.path manipulation")
-        _log_gdal_on_path()
+        logGdalOnPath()
         return
 
     # Detect conda prefix from env var, or fall back to deriving from sys.executable
@@ -76,25 +76,25 @@ def setup_conda_env():
     conda_prefix = os.environ.get("CONDA_PREFIX")
     if not conda_prefix:
         python_path = os.path.dirname(sys.executable)
-        _dbg(
+        dbg(
             f"CONDA_PREFIX not set, checking sys.executable path: {python_path}")
         if "envs" in python_path or "conda" in python_path.lower():
             conda_prefix = python_path
-            _dbg(f"Derived conda_prefix from sys.executable: {conda_prefix}")
+            dbg(f"Derived conda_prefix from sys.executable: {conda_prefix}")
         else:
-            _dbg("Could not derive conda_prefix from sys.executable")
+            dbg("Could not derive conda_prefix from sys.executable")
 
     if not conda_prefix or not os.path.exists(conda_prefix):
-        _dbg(
+        dbg(
             f"conda_prefix not found or does not exist: {conda_prefix!r} -- skipping setup")
         return
 
     # Ensure CONDA_PREFIX is set in the environment (some packages expect it).
     if "CONDA_PREFIX" not in os.environ:
         os.environ["CONDA_PREFIX"] = conda_prefix
-        _dbg(f"Set CONDA_PREFIX env var to: {conda_prefix}")
+        dbg(f"Set CONDA_PREFIX env var to: {conda_prefix}")
 
-    _dbg("Running manual conda path setup (conda not activated via shell)")
+    dbg("Running manual conda path setup (conda not activated via shell)")
 
     if platform.system() == "Windows":
         paths_to_add = [
@@ -112,11 +112,11 @@ def setup_conda_env():
                 if hasattr(os, "add_dll_directory"):
                     try:
                         os.add_dll_directory(path)
-                        _dbg(f"  add_dll_directory: {path}")
+                        dbg(f"  add_dll_directory: {path}")
                     except (FileNotFoundError, OSError) as e:
-                        _dbg(f"  add_dll_directory FAILED for {path}: {e}")
+                        dbg(f"  add_dll_directory FAILED for {path}: {e}")
             else:
-                _dbg(f"  path does not exist, skipping: {path}")
+                dbg(f"  path does not exist, skipping: {path}")
 
     # Add the conda environment's site-packages to sys.path.
     # Try Windows layout (Lib) first, then Unix layout (lib/pythonX.Y).
@@ -128,18 +128,18 @@ def setup_conda_env():
 
     if os.path.exists(conda_site_packages) and conda_site_packages not in sys.path:
         sys.path.insert(0, conda_site_packages)
-        _dbg(
+        dbg(
             f"Inserted conda site-packages into sys.path: {conda_site_packages}")
     else:
-        _dbg(
+        dbg(
             f"conda site-packages already in sys.path or not found: {conda_site_packages}")
 
-    _log_gdal_on_path()
+    logGdalOnPath()
 
 
-def _log_gdal_on_path():
+def logGdalOnPath():
     """Log which directories on PATH contain GDAL DLLs."""
-    if not _DEBUG or platform.system() != "Windows":
+    if not debug or platform.system() != "Windows":
         return
     gdal_dirs = []
     for p in os.environ.get("PATH", "").split(os.pathsep):
@@ -148,17 +148,18 @@ def _log_gdal_on_path():
                     for f in glob.glob(os.path.join(p, "gdal*.dll"))]
             gdal_dirs.append((p, dlls))
     if gdal_dirs:
-        _dbg(f"GDAL DLLs found in PATH ({len(gdal_dirs)} location(s)):")
+        dbg(f"GDAL DLLs found in PATH ({len(gdal_dirs)} location(s)):")
         for path, dlls in gdal_dirs:
-            _dbg(f"  {path}: {dlls}")
+            dbg(f"  {path}: {dlls}")
     else:
-        _dbg("No GDAL DLLs found in PATH")
+        dbg("No GDAL DLLs found in PATH")
 
 
-def check_gdal_version():
+def checkGdalVersion():
     """On Windows, when multiple GDAL DLL installations are detected on PATH,
-    remove any paths that contain a GDAL version older than 3.6 to prevent
-    conflicts. No-op on non-Windows platforms or if win32api is unavailable.
+    remove non-conda GDAL paths to prevent conflicts. If no conda environment
+    is detected, falls back to keeping only the newest GDAL version found.
+    No-op on non-Windows platforms or if win32api is unavailable.
     """
     if platform.system() != "Windows":
         return
@@ -171,43 +172,73 @@ def check_gdal_version():
             if p and glob.glob(os.path.join(p, "gdal*.dll")):
                 gdal_installations.append(os.path.abspath(p))
 
-        _dbg(
-            f"check_gdal_version: {len(gdal_installations)} GDAL installation(s) on PATH")
+        dbg(
+            f"checkGdalVersion: {len(gdal_installations)} GDAL installation(s) on PATH")
 
-        if len(gdal_installations) > 1:
-            for folder in gdal_installations:
-                filenames = [f for f in os.listdir(folder)
-                             if f.startswith("gdal") and f.endswith(".dll")]
-                for filename in filenames:
-                    filepath = os.path.join(folder, filename)
-                    if not os.path.exists(filepath):
+        if len(gdal_installations) <= 1:
+            if len(gdal_installations) == 1:
+                dbg(f"  Single GDAL installation, no conflict check needed: "
+                     f"{gdal_installations[0]}")
+            return
+
+        # Prefer conda env's GDAL when running in a conda environment.
+        # Derive conda_prefix from env var, or fall back to sys.executable.
+        conda_prefix = os.environ.get("CONDA_PREFIX", "")
+        if not conda_prefix:
+            python_path = os.path.dirname(sys.executable)
+            if "envs" in python_path or "conda" in python_path.lower():
+                conda_prefix = python_path
+
+        if conda_prefix:
+            conda_gdal_dirs = [f for f in gdal_installations
+                               if f.startswith(conda_prefix)]
+            if conda_gdal_dirs:
+                # Conda env's GDAL is on PATH: remove all non-conda GDALs.
+                for folder in gdal_installations:
+                    if folder.startswith(conda_prefix):
+                        dbg(f"  keeping conda GDAL: {folder}")
+                    else:
+                        dbg(f"  -> removing non-conda GDAL from PATH: {folder}")
                         os.environ["PATH"] = os.pathsep.join(
                             [p for p in os.environ["PATH"].split(os.pathsep)
                              if folder not in p])
-                        continue
-                    try:
-                        info = GetFileVersionInfo(filepath, "\\")
-                    except Exception:
-                        continue
-                    major_version = HIWORD(info["FileVersionMS"])
-                    minor_version = LOWORD(info["FileVersionMS"])
-                    _dbg(f"  {filename}: version {major_version}.{minor_version} "
-                         f"in {folder}")
-                    if major_version < 3 or minor_version < 6:
-                        _dbg(
-                            f"  -> removing outdated GDAL path from PATH: {folder}")
-                        os.environ["PATH"] = os.pathsep.join(
-                            [p for p in os.environ["PATH"].split(os.pathsep)
-                             if folder not in p])
-        elif len(gdal_installations) == 1:
-            _dbg(f"  Single GDAL installation, no conflict check needed: "
-                 f"{gdal_installations[0]}")
+                return
+
+        # Fallback for non-conda use: get version of each installation,
+        # then remove all but the newest.
+        dbg("  no conda GDAL identified -- keeping newest, removing older")
+        versions = {}
+        for folder in gdal_installations:
+            for filename in os.listdir(folder):
+                if not (filename.startswith("gdal") and filename.endswith(".dll")):
+                    continue
+                filepath = os.path.join(folder, filename)
+                try:
+                    info = GetFileVersionInfo(filepath, "\\")
+                except Exception:
+                    continue
+                major = HIWORD(info["FileVersionMS"])
+                minor = LOWORD(info["FileVersionMS"])
+                dbg(f"  {filename}: version {major}.{minor} in {folder}")
+                versions[folder] = (major, minor)
+                break  # one DLL per folder is enough to determine version
+
+        if versions:
+            newest = max(versions.values())
+            for folder, ver in versions.items():
+                if ver < newest:
+                    dbg(f"  -> removing older GDAL {ver} from PATH: {folder}")
+                    os.environ["PATH"] = os.pathsep.join(
+                        [p for p in os.environ["PATH"].split(os.pathsep)
+                         if folder not in p])
+                else:
+                    dbg(f"  keeping newest GDAL {ver}: {folder}")
 
     except ImportError:
-        _dbg("win32api not available; skipping GDAL version check")
+        dbg("win32api not available; skipping GDAL version check")
 
 
-def setup_gdal_proj(myLibrary):
+def setupGdalProj(myLibrary):
     """Set GDAL and PROJ environment variables for the active conda environment.
     Must be called after connecting to SyncroSim (myLibrary must be available).
 
@@ -218,20 +249,20 @@ def setup_gdal_proj(myLibrary):
     import pyproj
 
     # Flush messages buffered before pysyncrosim was available.
-    global _debug_messages
-    for msg in _debug_messages:
+    global debugMessages
+    for msg in debugMessages:
         try:
             ps.environment.update_run_log(msg)
         except Exception:
             pass
-    _debug_messages = []
+    debugMessages = []
 
     if myLibrary.datasheets("core_Option").UseConda.item() != "Yes":
-        _dbg("UseConda=No -- skipping GDAL/PROJ env var setup")
+        dbg("UseConda=No -- skipping GDAL/PROJ env var setup")
         return None
 
     conda_env_path = os.environ.get("CONDA_PREFIX") or sys.prefix
-    _dbg(f"setup_gdal_proj: conda_env_path={conda_env_path}")
+    dbg(f"setupGdalProj: conda_env_path={conda_env_path}")
 
     if platform.system() == "Windows":
         library_folder = os.path.join(conda_env_path, "Library")
