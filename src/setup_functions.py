@@ -13,7 +13,7 @@ import platform
 import sys
 
 # ---- Temporary debug flag -- set to False to silence debug output ----------
-debug = True
+debug = False
 
 # Buffer for messages that arrive before pysyncrosim is importable.
 debugMessages = []
@@ -38,7 +38,7 @@ def dbg(msg):
 # user-installed pysyncrosim or rasterio (e.g. for a different Python version)
 # can shadow the conda env packages and cause DLL version conflicts.
 before = [p for p in sys.path if "AppData\\Roaming\\Python" in p
-           or "AppData/Roaming/Python" in p]
+          or "AppData/Roaming/Python" in p]
 sys.path[:] = [p for p in sys.path if not (
     "AppData\\Roaming\\Python" in p or "AppData/Roaming/Python" in p)]
 if before:
@@ -67,7 +67,7 @@ def setupCondaEnv():
     conda_shlvl = os.environ.get("CONDA_SHLVL", "0")
     if conda_shlvl != "0":
         dbg(f"CONDA_SHLVL={conda_shlvl}: conda already activated -- "
-             "skipping PATH and sys.path manipulation")
+            "skipping PATH and sys.path manipulation")
         logGdalOnPath()
         return
 
@@ -178,7 +178,7 @@ def checkGdalVersion():
         if len(gdal_installations) <= 1:
             if len(gdal_installations) == 1:
                 dbg(f"  Single GDAL installation, no conflict check needed: "
-                     f"{gdal_installations[0]}")
+                    f"{gdal_installations[0]}")
             return
 
         # Prefer conda env's GDAL when running in a conda environment.
@@ -198,7 +198,8 @@ def checkGdalVersion():
                     if folder.startswith(conda_prefix):
                         dbg(f"  keeping conda GDAL: {folder}")
                     else:
-                        dbg(f"  -> removing non-conda GDAL from PATH: {folder}")
+                        dbg(
+                            f"  -> removing non-conda GDAL from PATH: {folder}")
                         os.environ["PATH"] = os.pathsep.join(
                             [p for p in os.environ["PATH"].split(os.pathsep)
                              if folder not in p])
