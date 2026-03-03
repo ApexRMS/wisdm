@@ -74,7 +74,7 @@ if (nrow(fieldDataSheet) == 0L) {
     "No Field Data found; please ensure that the Field Data datasheet is populated before continuing."
   )
 }
-if (!any(fieldDataSheet$Response == -9998)) {
+if (!any(fieldDataSheet$Response == backgroundValue)) {
   if (any(siteDataSheet$Response == 0)) {
     stop(
       "Maxent is a presence-background method; please select a method suitable for presence-absence data before continuing."
@@ -231,12 +231,12 @@ if (all(is.na(siteDataWide$Weight))) {
 }
 
 # set pseudo absences to zero
-if (any(siteDataWide$Response == -9998)) {
+if (any(siteDataWide$Response == backgroundValue)) {
   pseudoAbs <- TRUE
 } else {
   pseudoAbs <- FALSE
 }
-siteDataWide$Response[siteDataWide$Response == -9998] <- 0
+siteDataWide$Response[siteDataWide$Response == backgroundValue] <- 0
 
 # set categorical variable to factor
 factorInputVars <- covariatesSheet$CovariateName[which(

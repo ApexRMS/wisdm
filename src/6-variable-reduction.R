@@ -94,10 +94,10 @@ if(sum(covariatesSheet$IsCategorical, na.rm = T)>0){
 modelFamily <- "binomial"
 
 # Ignore background data if present
-siteData <- siteData[!siteData$Response == -9999,]
+siteData <- siteData[!siteData$Response == nodataValue,]
 
 # update response for pseudo-absence sites
-siteData$Response[siteData$Response == -9998] <- 0
+siteData$Response[siteData$Response == backgroundValue] <- 0
 
 # covariate site data
 covData <- select(siteData, -Response)

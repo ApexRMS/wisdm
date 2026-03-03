@@ -434,7 +434,7 @@ mess_fun <- function(prep, data, ...) {
 mod_fun <- function(prep, data, name_to_id, ...) {
   res <- CalcMESS(data, prep)
   ids <- unname(as.integer(name_to_id[res$Indx]))
-  ids[is.na(ids)] <- -9999L
+  ids[is.na(ids)] <- as.integer(nodataValue)
   ids
 }
 

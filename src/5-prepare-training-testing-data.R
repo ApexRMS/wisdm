@@ -48,11 +48,11 @@ if(sum(covariatesSheet$IsCategorical, na.rm = T)>0){
 } else { factorVars <- NULL }
 
 # drop no data (-9999) sites that resulted from spatial aggregation 
-fieldDataSheet <- fieldDataSheet[!fieldDataSheet$Response == -9999,] 
+fieldDataSheet <- fieldDataSheet[!fieldDataSheet$Response == nodataValue,] 
 
 # set response for background sites to zero
-bgSiteIds <- fieldDataSheet$SiteID[fieldDataSheet$Response == -9998]
-fieldDataSheet$Response[fieldDataSheet$Response == -9998] <- 0
+bgSiteIds <- fieldDataSheet$SiteID[fieldDataSheet$Response == backgroundValue]
+fieldDataSheet$Response[fieldDataSheet$Response == backgroundValue] <- 0
 
 # preserve field data column names
 fieldDataColNames <- names(fieldDataSheet)
@@ -139,7 +139,7 @@ updateFieldData <- dplyr::select(inputData, all_of(fieldDataColNames))
 rm(inputData); gc()
 
 if(length(bgSiteIds) > 0){
-  updateFieldData$Response[which(updateFieldData$SiteID %in% bgSiteIds)] <- -9998
+  updateFieldData$Response[which(updateFieldData$SiteID %in% bgSiteIds)] <- backgroundValue
 }
 updateFieldData$SiteID <- format(updateFieldData$SiteID, scientific = F)
 

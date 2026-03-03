@@ -140,12 +140,12 @@ updateRunLog("Finished loading inputs in ", updateBreakpoint())
 # terra output options
 wopt_int <- list(
   datatype = "INT4S",
-  NAflag = -9999,
+  NAflag = nodataValue,
   gdal = c("COMPRESS=LZW", "PREDICTOR=2", "TILED=YES", "BLOCKXSIZE=512", "BLOCKYSIZE=512")
 )
 wopt_flt <- list(
   datatype = "FLT4S",
-  NAflag = -9999,
+  NAflag = nodataValue,
   gdal = c("COMPRESS=LZW", "TILED=YES", "BLOCKXSIZE=512", "BLOCKYSIZE=512")
 )
 
@@ -244,11 +244,11 @@ if (nrow((restrictionSheet)) > 0) {
       tileExt,
       filename = tmp_restrict,
       overwrite = TRUE,
-      NAflag = -9999,
+      NAflag = nodataValue,
       gdal = c("COMPRESS=LZW", "TILED=YES", "BLOCKXSIZE=512", "BLOCKYSIZE=512")
     )
   } else {
-    NAflag(restrictRaster) <- -9999
+    NAflag(restrictRaster) <- nodataValue
   }
 }
 
@@ -323,7 +323,7 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
       tileExt,
       filename = tmp_covs,
       overwrite = TRUE,
-      NAflag = -9999,
+      NAflag = nodataValue,
       gdal = c("COMPRESS=LZW", "TILED=YES", "BLOCKXSIZE=512", "BLOCKYSIZE=512")
     )
   }
