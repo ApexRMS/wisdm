@@ -477,9 +477,11 @@ def prep_spatial_data():
                                     overwrite=True,
                                     compress='lzw')
 
-        # Tornado's ioloop.py occasionally throws an attribute error looking for an f_code attribute, but the output is still produced correctly
-        except AttributeError:
-            pass
+        # Tornado's ioloop.py occasionally raises AttributeError for f_code during
+        # distributed shutdown; the output file is still written correctly in that case.
+        except AttributeError as e:
+            if "f_code" not in str(e):
+                raise
 
         # Update restriction raster in output dataframe
         restrictionRasterSheet.RasterFilePath = outputRestrictionPath
