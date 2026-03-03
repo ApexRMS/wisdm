@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<update comment="Maxent and GAM Updates">
+  <action code="Exec" condition="TableExists" criteria="wisdm_Models|wisdm_Maxent">
+    <item>INSERT INTO wisdm_Models(ProjectID, ModelName, ModelType) SELECT ProjectID, "Generalized Additive Model", "gam" FROM core_Project WHERE ProjectID NOT IN (SELECT DISTINCT ProjectID FROM wisdm_Models WHERE ModelType = "gam")</item>
+    <item>ALTER TABLE wisdm_Maxent ADD COLUMN AutoFeatureSelection INTEGER</item>
+    <item>ALTER TABLE wisdm_Maxent ADD COLUMN UseHinge INTEGER</item>
+    <item>ALTER TABLE wisdm_Maxent ADD COLUMN UseLinear INTEGER</item>
+    <item>ALTER TABLE wisdm_Maxent ADD COLUMN UseQuadratic INTEGER</item>
+    <item>ALTER TABLE wisdm_Maxent ADD COLUMN UseProduct INTEGER</item>
+    <item>ALTER TABLE wisdm_Maxent ADD COLUMN UseThreshold INTEGER</item>
+    <item>ALTER TABLE wisdm_Maxent ADD COLUMN RegularizationMultiplier DOUBLE</item>
+    <item>ALTER TABLE wisdm_Maxent ADD COLUMN EnableClamping INTEGER</item>
+    <item>ALTER TABLE wisdm_Maxent DROP COLUMN MaximumBackgroundPoints</item>
+  </action>
+  <action code="Exec" condition="TableNotExists" criteria="wisdm_GAM">
+    <item>CREATE TABLE wisdm_GAM(GAMID INTEGER, ScenarioID INTEGER, SmoothingMethod INTEGER, BasisDimension INTEGER, PenaltySelectionMethod INTEGER, PRIMARY KEY (GAMID))</item>
+  </action>
+</update>
