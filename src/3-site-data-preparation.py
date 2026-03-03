@@ -15,7 +15,9 @@
 # conda DLL paths. Linters must not reorder these imports.  # noqa: E402
 import os  # noqa: E402
 import sys  # noqa: E402
-from setup_functions import setupCondaEnv, checkGdalVersion, setupGdalProj  # noqa: E402
+from setup_functions import (  # noqa: E402
+    setupCondaEnv, checkGdalVersion, setupGdalProj,
+    nodataValue, defaultChunkDims, getNumThreads)
 
 setupCondaEnv()
 checkGdalVersion()
@@ -75,10 +77,7 @@ ps.environment.progress_bar(report_type="begin", total_steps=steps)
 
 # Set up dask configuration -------------------------------------------------------
 
-if multiprocessingSheet.EnableMultiprocessing.item() == "Yes":
-    num_threads = multiprocessingSheet.MaximumJobs.item()
-else:
-    num_threads = 1
+num_threads = getNumThreads(multiprocessingSheet)
 
 dask.config.set(**{'temporary-directory': os.path.join(ssimTempDir, 'dask-worker-space'),
                    'distributed.scheduler.worker-ttl': None},
@@ -124,12 +123,9 @@ if len(fieldDataOptions) == 0:
 
 # Load template raster ----------------------------------------------------------------
 
-# set defualt chunk dimensions
-chunkDims = 4096  # 1024
-
 templatePath = templateRasterSheet.RasterFilePath.item()
 templateRaster = rioxarray.open_rasterio(
-    templatePath, chunks={'x': chunkDims, 'y': chunkDims}, masked=True)
+    templatePath, chunks=defaultChunkDims, masked=True)
 templateMask = templateRaster.to_masked_array().mask[0]
 
 # Get information about template
@@ -283,21 +279,21 @@ if fieldDataOptions.AggregateAndWeight[0] != "None":
                     sitesInd = sites.index[sites.RasterCellID == d].to_list()
                     resp_d = sites.Response[sitesInd].to_list()
                     if sum(resp_d) == 0 or np.mean(resp_d) == 1:  # if all absence or all presence
-                        sites.loc[sitesInd[1:], "Response"] = -9999
+                        sites.loc[sitesInd[1:], "Response"] = nodataValue
                     else:  # if response is mix of presence/absence
                         # keep a presence and convert rest of repeat sites to background points
                         keep_d = (sites.Response[sitesInd] == 1).index[0]
                         sitesInd.remove(keep_d)
-                        sites.loc[sitesInd, "Response"] = -9999
+                        sites.loc[sitesInd, "Response"] = nodataValue
             else:  # if count data
                 for d in dupes:
                     sitesInd = sites.index[sites.RasterCellID == d].to_list()
                     resp_d = sites.Response[sitesInd].to_list()
                     if sum(resp_d) == 0:  # if all counts are zero
-                        sites.loc[sitesInd[1:], "Response"] = -9999
+                        sites.loc[sitesInd[1:], "Response"] = nodataValue
                     else:  # if any counts are greater then zero
                         sites.loc[sitesInd[0], "Response"] = sum(resp_d)
-                        sites.loc[sitesInd[1:], "Response"] = -9999
+                        sites.loc[sitesInd[1:], "Response"] = nodataValue
         else:  # if weight sites is selected
             if all(sites.Weight.isna()):  # check for user defined weights;
                 sites.Weight = 1
@@ -325,7 +321,7 @@ ps.environment.progress_bar()
 del outputFieldDataSheet
 
 # Drop sites with repeat cell repeats
-dropInd = sites.index[sites.Response == -9999].tolist()
+dropInd = sites.index[sites.Response == nodataValue].tolist()
 sites = sites.drop(dropInd)
 
 # Write sites to file (for testing)
@@ -341,7 +337,7 @@ sitesOut = sites[["SiteID"]]  # , "RasterCellID"
 for i in range(len(covariateDataSheet.CovariatesID)):
     # Load processed covariate rasters and extract site values
     outputCovariatePath = covariateDataSheet.RasterFilePath[i]
-    covariateRaster = rioxarray.open_rasterio(outputCovariatePath, chunks=True)
+    covariateRaster = rioxarray.open_rasterio(outputCovariatePath, chunks=defaultChunkDims)
 
     if covariateRaster.rio.width < templateRaster.rio.width or \
             covariateRaster.rio.height < templateRaster.rio.height:

@@ -17,7 +17,10 @@ import os  # noqa: E402
 import sys  # noqa: E402
 import time  # noqa: E402
 import warnings  # noqa: E402
-from setup_functions import setupCondaEnv, checkGdalVersion, setupGdalProj  # noqa: E402
+from setup_functions import (  # noqa: E402
+    setupCondaEnv, checkGdalVersion, setupGdalProj,
+    nodataValue, rasterCompression, rasterTiled, defaultChunkDims,
+    getNumThreads, createDaskCluster)
 
 setupCondaEnv()
 checkGdalVersion()
@@ -28,8 +31,6 @@ import pysyncrosim as ps  # noqa: E402
 import numpy as np  # noqa: E402
 import rioxarray  # noqa: E402
 import xarray as xr  # noqa: E402
-import dask  # noqa: E402
-from dask.distributed import Client, LocalCluster  # noqa: E402
 import pandas as pd  # noqa: E402
 import pyproj  # noqa: E402
 
@@ -49,10 +50,9 @@ def run():
 
     # Create a temporary folder for storing rasters
     ssimTempDir = ps.runtime_temp_folder(
-        "DataTransfer\\Scenario-" + str(myScenario.sid))
-    # ssimTempDir = myLibrary.info["Value"][myLibrary.info.Property == "Temporary files:"].item()
+        os.path.join("DataTransfer", "Scenario-" + str(myScenario.sid)))
 
-    # Get path to scnario inputs
+    # Get path to scenario inputs
     ssimInputDir = myScenario.library.location + \
         ".input\\Scenario-" + str(myScenario.sid)
 
@@ -74,36 +74,14 @@ def run():
     ps.environment.progress_bar(report_type="begin", total_steps=steps)
 
     # %% Set up dask client -------------------------------------------------------
-    if multiprocessingSheet.EnableMultiprocessing.item() == "Yes":
-        num_threads = multiprocessingSheet.MaximumJobs.item()
-    else:
-        num_threads = 1
 
-    # Set up Dask temporary directory
+    num_threads = getNumThreads(multiprocessingSheet)
     dask_temp = os.path.join(ssimTempDir, 'dask-worker-space')
-    os.makedirs(dask_temp, exist_ok=True)
-
-    conf = {
-        'temporary-directory': dask_temp,
-        'distributed.scheduler.worker-ttl': None,
-    }
-    if worker_env:
-        conf['distributed.nanny.environ'] = worker_env
-
-    dask.config.set(conf)
 
     ps.environment.update_run_log(
         f'Initializing Dask cluster with {num_threads} workers...')
 
-    cluster = LocalCluster(
-        n_workers=num_threads,
-        memory_limit='auto',
-        processes=True)
-
-    ps.environment.update_run_log('Cluster created, connecting client...')
-
-    # Connect client with timeout
-    client = Client(cluster, timeout='60s')
+    client, cluster = createDaskCluster(num_threads, dask_temp, worker_env)
 
     ps.environment.update_run_log(
         f'Dask client ready: {num_threads} workers')
@@ -136,26 +114,21 @@ def run():
     ps.environment.progress_bar()
 
     # %% Load maps ---------------------------------------------------------------------------
-    # Use auto chunking to respect native tiling from input rasters
-    chunkDims = 'auto'
 
     ps.environment.update_run_log('Starting raster processing...')
 
-    # if normalze probability is yes, normalize probability rasters
+    # if normalize probability is yes, normalize probability rasters
     if ensembleOptionsSheet.NormalizeProbability.item() == "Yes":
         ps.environment.update_run_log('Normalizing probability rasters...')
-        # normalize function
 
         def norm(dx, min, max):
             dn = dx.to_numpy()
-            dn = np.where(dn == -9999, np.nan, dn)
-            dn = dn/100
+            dn = np.where(dn == nodataValue, np.nan, dn)
+            dn = dn / 100
             dnOut = (dn - min) / (max - min)
             dnOut = dnOut * 100
-            dnOut = np.where(np.isnan(dnOut), -9999, dnOut)
-            dxOut = xr.DataArray(
-                dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
-            return dxOut
+            dnOut = np.where(np.isnan(dnOut), nodataValue, dnOut)
+            return xr.DataArray(dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
 
         inputFiles = spatialOutputSheet.ProbabilityRaster.tolist()
         ps.environment.update_run_log(
@@ -164,89 +137,60 @@ def run():
         for i in range(len(inputFiles)):
             ps.environment.update_run_log(
                 f'  Processing raster {i+1}/{len(inputFiles)}...')
-
-            # Get min and max value of raster using chunked computation (memory efficient)
             ps.environment.update_run_log(f'  Computing min/max statistics...')
-            r = rioxarray.open_rasterio(inputFiles[i], chunks={
-                                        'y': chunkDims, 'x': chunkDims}, lock=False)
-            r_masked = r.where(r != -9999)  # Mask nodata values
+            r = rioxarray.open_rasterio(
+                inputFiles[i], chunks=defaultChunkDims, lock=False)
+            r_masked = r.where(r != nodataValue)
             minVal = float(r_masked.min().compute()) / 100
             maxVal = float(r_masked.max().compute()) / 100
             ps.environment.update_run_log(
                 f'    Min: {minVal:.4f}, Max: {maxVal:.4f}')
 
-            # Normalize raster (reuse already-opened raster)
             ps.environment.update_run_log(f'  Normalizing raster {i+1}...')
             rOut = r.map_blocks(norm, args=[minVal, maxVal], template=r)
 
-            # Save normalized raster to temp folder
             fname = "norm_map_" + str(i) + ".tif"
             ps.environment.update_run_log(
                 f'  Writing normalized raster {i+1}...')
             start_time = time.time()
             rOut.rio.to_raster(os.path.join(ssimTempDir, fname),
-                               tiled=True, overwrite=True, compress='lzw')
+                               tiled=rasterTiled, overwrite=True, compress=rasterCompression)
             elapsed = (time.time() - start_time) / 60
             ps.environment.update_run_log(
                 f'  Completed raster {i+1} in {elapsed:.1f} minutes')
 
     # %% Set ensemble functions
-    if ensembleOptionsSheet.IgnoreNA.item() == "Yes":
-        # mean function
-        def mean(dx, axis=0):
-            dn = dx.to_numpy()
-            dn = np.where(dn == -9999, np.nan, dn)
-            # Suppress "mean of empty slice" warnings - we handle the NaN result correctly
+    ignore_na = ensembleOptionsSheet.IgnoreNA.item() == "Yes"
+
+    def mean(dx, axis=0):
+        dn = dx.to_numpy()
+        dn = np.where(dn == nodataValue, np.nan, dn)
+        if ignore_na:
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                     'ignore', message='Mean of empty slice')
                 dnOut = np.nanmean(dn, axis=axis)
-            dnOut = np.where(np.isnan(dnOut), -9999, dnOut)
-            dnOut = np.expand_dims(dnOut, axis=0)
-            dxOut = xr.DataArray(
-                dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
-            return dxOut
-
-        # sum function
-        def sum(dx, axis=0):
-            dn = dx.to_numpy()
-            dnNan = np.sum(dn, axis=axis)
-            dnNan = dnNan == len(dn)*-9999
-            dnNan = dnNan.astype(int)
-            dnNan = np.where(dnNan == 1, np.nan, dnNan)
-
-            dn = np.where(dn == -9999, np.nan, dn)
-            # nansum will treat nan values as zero - output will have zeros where all inputs are nan
-            dnOut = np.nansum(dn, axis=axis)
-
-            dnOut = np.sum([dnNan, dnOut], axis=0)
-            dnOut = np.where(np.isnan(dnOut), -9999, dnOut)
-            dnOut = np.expand_dims(dnOut, axis=0)
-            dxOut = xr.DataArray(
-                dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
-            return dxOut
-    else:
-        # mean function
-        def mean(dx, axis=0):
-            dn = dx.to_numpy()
-            dn = np.where(dn == -9999, np.nan, dn)
+        else:
             dnOut = np.mean(dn, axis=axis)
-            dnOut = np.where(np.isnan(dnOut), -9999, dnOut)
-            dnOut = np.expand_dims(dnOut, axis=0)
-            dxOut = xr.DataArray(
-                dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
-            return dxOut
+        dnOut = np.where(np.isnan(dnOut), nodataValue, dnOut)
+        dnOut = np.expand_dims(dnOut, axis=0)
+        return xr.DataArray(dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
 
-        # sum function
-        def sum(dx, axis=0):
-            dn = dx.to_numpy()
-            dn = np.where(dn == -9999, np.nan, dn)
+    def sum(dx, axis=0):
+        dn = dx.to_numpy()
+        if ignore_na:
+            # Detect pixels where all inputs are nodata before converting to nan
+            all_nodata = np.all(dn == nodataValue, axis=axis)
+            dn = np.where(dn == nodataValue, np.nan, dn)
+            dnOut = np.nansum(dn, axis=axis)
+            # nansum returns 0 where all inputs are nodata; restore to nodata
+            dnOut = np.where(all_nodata, np.nan, dnOut)
+        else:
+            dn = np.where(dn == nodataValue, np.nan, dn)
             dnOut = np.sum(dn, axis=axis)
-            dnOut = np.where(np.isnan(dnOut), -9999, dnOut)
-            dnOut = np.expand_dims(dnOut, axis=0)
-            dxOut = xr.DataArray(
-                dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
-            return dxOut
+        dnOut = np.where(np.isnan(dnOut), nodataValue, dnOut)
+        dnOut = np.expand_dims(dnOut, axis=0)
+        return xr.DataArray(dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
 
     # %% if ensemble probability is yes, load probability rasters
     if ensembleOptionsSheet.MakeProbabilityEnsemble.item() == "Yes":
@@ -260,23 +204,19 @@ def run():
 
         ps.environment.update_run_log(
             f'Loading {len(inputFiles)} probability rasters...')
-        inputStack = xr.concat([rioxarray.open_rasterio(f, chunks={'y': chunkDims, 'x': chunkDims}, lock=False)
-                               for f in inputFiles], dim="band").chunk({'band': -1, 'y': chunkDims, 'x': chunkDims})
+        inputStack = xr.concat([rioxarray.open_rasterio(f, chunks=defaultChunkDims, lock=False)
+                               for f in inputFiles], dim="band").chunk({'band': -1, 'y': defaultChunkDims, 'x': defaultChunkDims})
 
         if ensembleOptionsSheet.ProbabilityMethod.item() == "Mean":
             ps.environment.update_run_log('Calculating mean ensemble...')
-
-            # Calculate mean values block-by-block
             outputStack = inputStack.map_blocks(
                 mean, template=inputStack[range(1)])
-
-            # Set nodata flag
-            outputStack.rio.write_nodata(-9999, inplace=True)
+            outputStack.rio.write_nodata(nodataValue, inplace=True)
 
             ps.environment.update_run_log('Writing mean ensemble raster...')
             write_start = time.time()
-            outputStack.rio.to_raster(os.path.join(
-                ssimTempDir, 'prob_mean.tif'), tiled=True, overwrite=True, compress='lzw')
+            outputStack.rio.to_raster(os.path.join(ssimTempDir, 'prob_mean.tif'),
+                                      tiled=rasterTiled, overwrite=True, compress=rasterCompression)
             ps.environment.update_run_log(
                 f'Mean ensemble complete in {(time.time() - write_start)/60:.1f} minutes')
 
@@ -291,18 +231,14 @@ def run():
 
         if ensembleOptionsSheet.ProbabilityMethod.item() == "Sum":
             ps.environment.update_run_log('Calculating sum ensemble...')
-
-            # Calculate sum values block-by-block
             outputStack = inputStack.map_blocks(
                 sum, template=inputStack[range(1)])
-
-            # Set nodata flag
-            outputStack.rio.write_nodata(-9999, inplace=True)
+            outputStack.rio.write_nodata(nodataValue, inplace=True)
 
             ps.environment.update_run_log('Writing sum ensemble raster...')
             write_start = time.time()
-            outputStack.rio.to_raster(os.path.join(
-                ssimTempDir, 'prob_sum.tif'), tiled=True, overwrite=True, compress='lzw')
+            outputStack.rio.to_raster(os.path.join(ssimTempDir, 'prob_sum.tif'),
+                                      tiled=rasterTiled, overwrite=True, compress=rasterCompression)
             ps.environment.update_run_log(
                 f'Sum ensemble complete in {(time.time() - write_start)/60:.1f} minutes')
 
@@ -325,26 +261,22 @@ def run():
         inputFiles = spatialOutputSheet.BinaryRaster.tolist()
         ps.environment.update_run_log(
             f'Loading {len(inputFiles)} binary rasters...')
-        inputStack = xr.concat([rioxarray.open_rasterio(f, chunks={'y': chunkDims, 'x': chunkDims}, lock=False)
-                               for f in inputFiles], dim="band").chunk({'band': -1, 'y': chunkDims, 'x': chunkDims})
+        inputStack = xr.concat([rioxarray.open_rasterio(f, chunks=defaultChunkDims, lock=False)
+                               for f in inputFiles], dim="band").chunk({'band': -1, 'y': defaultChunkDims, 'x': defaultChunkDims})
 
         if ensembleOptionsSheet.BinaryMethod.item() == "Mean":
             ps.environment.update_run_log(
                 'Calculating binary mean ensemble...')
-
-            # Calculate mean values block-by-block
             # Cast template to float so the 0-1 probability values aren't truncated to integer
             outputStack = inputStack.map_blocks(
                 mean, template=inputStack[range(1)].astype(float))
-
-            # Set nodata flag
-            outputStack.rio.write_nodata(-9999, inplace=True)
+            outputStack.rio.write_nodata(nodataValue, inplace=True)
 
             ps.environment.update_run_log(
                 'Writing binary mean ensemble raster...')
             write_start = time.time()
-            outputStack.rio.to_raster(os.path.join(
-                ssimTempDir, 'bin_mean.tif'), tiled=True, overwrite=True, compress='lzw')
+            outputStack.rio.to_raster(os.path.join(ssimTempDir, 'bin_mean.tif'),
+                                      tiled=rasterTiled, overwrite=True, compress=rasterCompression)
             ps.environment.update_run_log(
                 f'Binary mean ensemble complete in {(time.time() - write_start)/60:.1f} minutes')
 
@@ -359,19 +291,15 @@ def run():
 
         if ensembleOptionsSheet.BinaryMethod.item() == "Sum":
             ps.environment.update_run_log('Calculating binary sum ensemble...')
-
-            # Calculate sum values block-by-block
             outputStack = inputStack.map_blocks(
                 sum, template=inputStack[range(1)])
-
-            # Set nodata flag
-            outputStack.rio.write_nodata(-9999, inplace=True)
+            outputStack.rio.write_nodata(nodataValue, inplace=True)
 
             ps.environment.update_run_log(
                 'Writing binary sum ensemble raster...')
             write_start = time.time()
-            outputStack.rio.to_raster(os.path.join(
-                ssimTempDir, 'bin_sum.tif'), tiled=True, overwrite=True, compress='lzw')
+            outputStack.rio.to_raster(os.path.join(ssimTempDir, 'bin_sum.tif'),
+                                      tiled=rasterTiled, overwrite=True, compress=rasterCompression)
             ps.environment.update_run_log(
                 f'Binary sum ensemble complete in {(time.time() - write_start)/60:.1f} minutes')
 
