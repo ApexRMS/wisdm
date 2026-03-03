@@ -65,7 +65,8 @@ def run():
     multiprocessingSheet = myScenario.datasheets("core_Multiprocessing")
 
     # outputs
-    ensembleOutputSheet = myScenario.datasheets("wisdm_OutputEnsemble", empty=True)
+    ensembleOutputSheet = myScenario.datasheets(
+        "wisdm_OutputEnsemble", empty=True)
 
     # %% Set progress bar ---------------------------------------------------------
 
@@ -157,7 +158,8 @@ def run():
             return dxOut
 
         inputFiles = spatialOutputSheet.ProbabilityRaster.tolist()
-        ps.environment.update_run_log(f'Normalizing {len(inputFiles)} rasters...')
+        ps.environment.update_run_log(
+            f'Normalizing {len(inputFiles)} rasters...')
 
         for i in range(len(inputFiles)):
             ps.environment.update_run_log(
@@ -179,7 +181,8 @@ def run():
 
             # Save normalized raster to temp folder
             fname = "norm_map_" + str(i) + ".tif"
-            ps.environment.update_run_log(f'  Writing normalized raster {i+1}...')
+            ps.environment.update_run_log(
+                f'  Writing normalized raster {i+1}...')
             start_time = time.time()
             rOut.rio.to_raster(os.path.join(ssimTempDir, fname),
                                tiled=True, overwrite=True, compress='lzw')
@@ -195,7 +198,8 @@ def run():
             dn = np.where(dn == -9999, np.nan, dn)
             # Suppress "mean of empty slice" warnings - we handle the NaN result correctly
             with warnings.catch_warnings():
-                warnings.filterwarnings('ignore', message='Mean of empty slice')
+                warnings.filterwarnings(
+                    'ignore', message='Mean of empty slice')
                 dnOut = np.nanmean(dn, axis=axis)
             dnOut = np.where(np.isnan(dnOut), -9999, dnOut)
             dnOut = np.expand_dims(dnOut, axis=0)
@@ -289,7 +293,8 @@ def run():
             ps.environment.update_run_log('Calculating sum ensemble...')
 
             # Calculate sum values block-by-block
-            outputStack = inputStack.map_blocks(sum, template=inputStack[range(1)])
+            outputStack = inputStack.map_blocks(
+                sum, template=inputStack[range(1)])
 
             # Set nodata flag
             outputStack.rio.write_nodata(-9999, inplace=True)
@@ -324,7 +329,8 @@ def run():
                                for f in inputFiles], dim="band").chunk({'band': -1, 'y': chunkDims, 'x': chunkDims})
 
         if ensembleOptionsSheet.BinaryMethod.item() == "Mean":
-            ps.environment.update_run_log('Calculating binary mean ensemble...')
+            ps.environment.update_run_log(
+                'Calculating binary mean ensemble...')
 
             # Calculate mean values block-by-block
             # Cast template to float so the 0-1 probability values aren't truncated to integer
@@ -334,7 +340,8 @@ def run():
             # Set nodata flag
             outputStack.rio.write_nodata(-9999, inplace=True)
 
-            ps.environment.update_run_log('Writing binary mean ensemble raster...')
+            ps.environment.update_run_log(
+                'Writing binary mean ensemble raster...')
             write_start = time.time()
             outputStack.rio.to_raster(os.path.join(
                 ssimTempDir, 'bin_mean.tif'), tiled=True, overwrite=True, compress='lzw')
@@ -354,12 +361,14 @@ def run():
             ps.environment.update_run_log('Calculating binary sum ensemble...')
 
             # Calculate sum values block-by-block
-            outputStack = inputStack.map_blocks(sum, template=inputStack[range(1)])
+            outputStack = inputStack.map_blocks(
+                sum, template=inputStack[range(1)])
 
             # Set nodata flag
             outputStack.rio.write_nodata(-9999, inplace=True)
 
-            ps.environment.update_run_log('Writing binary sum ensemble raster...')
+            ps.environment.update_run_log(
+                'Writing binary sum ensemble raster...')
             write_start = time.time()
             outputStack.rio.to_raster(os.path.join(
                 ssimTempDir, 'bin_sum.tif'), tiled=True, overwrite=True, compress='lzw')
