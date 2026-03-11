@@ -256,61 +256,65 @@ def run():
 
     # %% if ensemble binary is yes, load binary rasters
     if ensembleOptionsSheet.MakeBinaryEnsemble.item() == "Yes":
-        ps.environment.update_run_log('Creating binary ensemble...')
-
-        inputFiles = spatialOutputSheet.BinaryRaster.tolist()
-        ps.environment.update_run_log(
-            f'Loading {len(inputFiles)} binary rasters...')
-        inputStack = xr.concat([rioxarray.open_rasterio(f, chunks=defaultChunkDims, lock=False)
-                               for f in inputFiles], dim="band").chunk({'band': -1, 'y': defaultChunkDims, 'x': defaultChunkDims})
-
-        if ensembleOptionsSheet.BinaryMethod.item() == "Mean":
+        inputFiles = spatialOutputSheet.BinaryRaster.dropna().tolist()
+        if len(inputFiles) == 0:
             ps.environment.update_run_log(
-                'Calculating binary mean ensemble...')
-            # Cast template to float so the 0-1 probability values aren't truncated to integer
-            outputStack = inputStack.map_blocks(
-                mean, template=inputStack[range(1)].astype(float))
-            outputStack.rio.write_nodata(nodataValue, inplace=True)
-
+                '\nWarning: Binary ensemble requested but no binary maps were found in Apply Model outputs. Skipping binary ensemble.\n')
+        else:
+            ps.environment.update_run_log('Creating binary ensemble...')
             ps.environment.update_run_log(
-                'Writing binary mean ensemble raster...')
-            write_start = time.time()
-            outputStack.rio.to_raster(os.path.join(ssimTempDir, 'bin_mean.tif'),
-                                      tiled=rasterTiled, overwrite=True, compress=rasterCompression)
-            ps.environment.update_run_log(
-                f'Binary mean ensemble complete in {(time.time() - write_start)/60:.1f} minutes')
+                f'Loading {len(inputFiles)} binary rasters...')
+            inputStack = xr.concat([rioxarray.open_rasterio(f, chunks=defaultChunkDims, lock=False)
+                                   for f in inputFiles], dim="band").chunk({'band': -1, 'y': defaultChunkDims, 'x': defaultChunkDims})
 
-            if len(ensembleOutputSheet) == 0:
-                newRow = pd.DataFrame(
-                    {'BinaryRasterMean': [os.path.join(ssimTempDir, 'bin_mean.tif')]})
-                ensembleOutputSheet = pd.concat(
-                    [ensembleOutputSheet, newRow], ignore_index=True)
-            else:
-                ensembleOutputSheet['BinaryRasterMean'] = os.path.join(
-                    ssimTempDir, 'bin_mean.tif')
+            if ensembleOptionsSheet.BinaryMethod.item() == "Mean":
+                ps.environment.update_run_log(
+                    'Calculating binary mean ensemble...')
+                # Cast template to float so the 0-1 probability values aren't truncated to integer
+                outputStack = inputStack.map_blocks(
+                    mean, template=inputStack[range(1)].astype(float))
+                outputStack.rio.write_nodata(nodataValue, inplace=True)
 
-        if ensembleOptionsSheet.BinaryMethod.item() == "Sum":
-            ps.environment.update_run_log('Calculating binary sum ensemble...')
-            outputStack = inputStack.map_blocks(
-                sum, template=inputStack[range(1)])
-            outputStack.rio.write_nodata(nodataValue, inplace=True)
+                ps.environment.update_run_log(
+                    'Writing binary mean ensemble raster...')
+                write_start = time.time()
+                outputStack.rio.to_raster(os.path.join(ssimTempDir, 'bin_mean.tif'),
+                                          tiled=rasterTiled, overwrite=True, compress=rasterCompression)
+                ps.environment.update_run_log(
+                    f'Binary mean ensemble complete in {(time.time() - write_start)/60:.1f} minutes')
 
-            ps.environment.update_run_log(
-                'Writing binary sum ensemble raster...')
-            write_start = time.time()
-            outputStack.rio.to_raster(os.path.join(ssimTempDir, 'bin_sum.tif'),
-                                      tiled=rasterTiled, overwrite=True, compress=rasterCompression)
-            ps.environment.update_run_log(
-                f'Binary sum ensemble complete in {(time.time() - write_start)/60:.1f} minutes')
+                if len(ensembleOutputSheet) == 0:
+                    newRow = pd.DataFrame(
+                        {'BinaryRasterMean': [os.path.join(ssimTempDir, 'bin_mean.tif')]})
+                    ensembleOutputSheet = pd.concat(
+                        [ensembleOutputSheet, newRow], ignore_index=True)
+                else:
+                    ensembleOutputSheet['BinaryRasterMean'] = os.path.join(
+                        ssimTempDir, 'bin_mean.tif')
 
-            if len(ensembleOutputSheet) == 0:
-                newRow = pd.DataFrame(
-                    {'BinaryRasterSum': [os.path.join(ssimTempDir, 'bin_sum.tif')]})
-                ensembleOutputSheet = pd.concat(
-                    [ensembleOutputSheet, newRow], ignore_index=True)
-            else:
-                ensembleOutputSheet['BinaryRasterSum'] = os.path.join(
-                    ssimTempDir, 'bin_sum.tif')
+            if ensembleOptionsSheet.BinaryMethod.item() == "Sum":
+                ps.environment.update_run_log(
+                    'Calculating binary sum ensemble...')
+                outputStack = inputStack.map_blocks(
+                    sum, template=inputStack[range(1)])
+                outputStack.rio.write_nodata(nodataValue, inplace=True)
+
+                ps.environment.update_run_log(
+                    'Writing binary sum ensemble raster...')
+                write_start = time.time()
+                outputStack.rio.to_raster(os.path.join(ssimTempDir, 'bin_sum.tif'),
+                                          tiled=rasterTiled, overwrite=True, compress=rasterCompression)
+                ps.environment.update_run_log(
+                    f'Binary sum ensemble complete in {(time.time() - write_start)/60:.1f} minutes')
+
+                if len(ensembleOutputSheet) == 0:
+                    newRow = pd.DataFrame(
+                        {'BinaryRasterSum': [os.path.join(ssimTempDir, 'bin_sum.tif')]})
+                    ensembleOutputSheet = pd.concat(
+                        [ensembleOutputSheet, newRow], ignore_index=True)
+                else:
+                    ensembleOutputSheet['BinaryRasterSum'] = os.path.join(
+                        ssimTempDir, 'bin_sum.tif')
 
     # update progress bar
     ps.environment.progress_bar()
