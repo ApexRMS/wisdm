@@ -449,9 +449,9 @@ def prep_spatial_data():
                                     outputRestrictionPath,
                                     dtype=signed_dtype,
                                     nodata=nodataValue,
-                                    tiled=True,
+                                    tiled=rasterTiled,
                                     overwrite=True,
-                                    compress='lzw')
+                                    compress=rasterCompression)
 
         # Tornado's ioloop.py occasionally raises AttributeError for f_code during
         # distributed shutdown; the output file is still written correctly in that case.
