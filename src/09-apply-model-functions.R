@@ -8,19 +8,28 @@
 
 rastSafe <- function(path, max_attempts = 3, wait_sec = 0.2) {
   for (attempt in 1:max_attempts) {
-    tryCatch({
-      r <- terra::rast(path)
-      # Verify the raster can actually be read
-      terra::ncell(r)
-      return(r)
-    }, error = function(e) {
-      if (attempt < max_attempts) {
-        Sys.sleep(wait_sec)
-      } else {
-        stop("Failed to open raster after ", max_attempts, " attempts: ", path,
-             "\nLast error: ", e$message)
+    tryCatch(
+      {
+        r <- terra::rast(path)
+        # Verify the raster can actually be read
+        terra::ncell(r)
+        return(r)
+      },
+      error = function(e) {
+        if (attempt < max_attempts) {
+          Sys.sleep(wait_sec)
+        } else {
+          stop(
+            "Failed to open raster after ",
+            max_attempts,
+            " attempts: ",
+            path,
+            "\nLast error: ",
+            e$message
+          )
+        }
       }
-    })
+    )
   }
 }
 
@@ -507,4 +516,38 @@ percent_rank_distance <- function(x_mat, sorted_cols, n) {
     2 * pmin(p, 100 - p)
   })
   do.call(cbind, mats)
+}
+
+# Write restricted tile function -----------------------------------------------
+# Writes an NA-filled raster to outPath, extended to fullExt if in SMP mode.
+# Used when a tile falls entirely outside the restriction zone.
+
+writeRestrictedTile <- function(
+  template,
+  fullExt,
+  outPath,
+  wopt,
+  ssimDir,
+  prefix
+) {
+  rEmpty <- terra::rast(template)
+  terra::values(rEmpty) <- NA
+  if (!is.null(fullExt)) {
+    tmpExt <- file.path(ssimDir, paste0(prefix, "_restricted.tif"))
+    terra::extend(
+      rEmpty,
+      fullExt,
+      filename = tmpExt,
+      overwrite = TRUE,
+      wopt = wopt
+    )
+    if (file.exists(outPath)) {
+      unlink(outPath, force = TRUE)
+    }
+    file.rename(tmpExt, outPath)
+  } else {
+    terra::writeRaster(rEmpty, outPath, overwrite = TRUE, wopt = wopt)
+  }
+  rm(rEmpty)
+  gc()
 }
