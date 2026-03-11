@@ -552,3 +552,34 @@ safe_rbind <- function(df, row) {
   rownames(df) <- NULL # reset row names
   return(df)
 }
+
+# Launch a Shiny app with browser detection ------------------------------------
+
+launchShinyApp <- function(appPath) {
+  # TO DO: find better way to access default web browser
+  browser.path <- NULL
+  if (file.exists("C:/Program Files/Google/Chrome/Application/chrome.exe")) {
+    browser.path <- "C:/Program Files/Google/Chrome/Application/chrome.exe"
+  } else if (file.exists("C:/Program Files(x86)/Google/Chrome/Application/chrome.exe")) {
+    browser.path <- "C:/Program Files(x86)/Google/Chrome/Application/chrome.exe"
+  } else if (file.exists("C:/Program Files/Mozilla Firefox/firefox.exe")) {
+    browser.path <- "C:/Program Files/Mozilla Firefox/firefox.exe"
+  }
+
+  if (is.null(browser.path)) {
+    shiny::runApp(appDir = appPath, launch.browser = TRUE)
+  } else {
+    shiny::runApp(appDir = appPath,
+                  launch.browser = function(shinyurl) {
+                    system(paste0("\"", browser.path, "\" --app=", shinyurl, " -incognito"), wait = FALSE)
+                  })
+  }
+}
+
+# Calculate presence-weighted case weights -------------------------------------
+
+calcSiteWeights <- function(response) {
+  prNum <- as.numeric(table(response)["1"])
+  bgNum <- as.numeric(table(response)["0"])
+  ifelse(response == 1, 1, prNum / bgNum)
+}

@@ -195,29 +195,7 @@ if(covariateSelectionSheet$SelectionMethod == "Interactive (Correlation Viewer)"
   # covsDE
   options <- covariateSelectionSheet
   
-  # TO DO: find better way to access default web app 
-  browser.path <- NULL
-  if(file.exists("C:/Program Files/Google/Chrome/Application/chrome.exe")){
-   browser.path <- "C:/Program Files/Google/Chrome/Application/chrome.exe"
-  } else if(file.exists("C:/Program Files(x86)/Google/Chrome/Application/chrome.exe")){
-    browser.path <- "C:/Program Files(x86)/Google/Chrome/Application/chrome.exe"
-  } else if(file.exists("C:/Program Files/Mozilla Firefox/firefox.exe")){
-    browser.path <- "C:/Program Files/Mozilla Firefox/firefox.exe"
-   # } else if(file.exists("C:/Program Files/Internet Explorer/iexplore.exe")){
-   # browser.path <- "C:/Program Files/Internet Explorer/iexplore.exe"
-  }
-  
-  # portable chrome - to large to store on git 
-  # browser.path = file.path(packageDir,"Apps/chrome/chrome.exe")
-  
-  if(is.null(browser.path)){
-    runApp(appDir = file.path(packageDir, "06-covariate-correlation-app.R"),
-           launch.browser = TRUE)  
-  } else {
-    runApp(appDir = file.path(packageDir, "06-covariate-correlation-app.R"),
-         launch.browser = function(shinyurl) {
-           system(paste0("\"", browser.path, "\" --app=", shinyurl, " -incognito"), wait = F)
-          })
+  launchShinyApp(file.path(packageDir, "06-covariate-correlation-app.R"))
   }
   
   # save image files
