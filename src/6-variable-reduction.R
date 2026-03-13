@@ -244,6 +244,7 @@ if (
       silent = TRUE
     )
   }
+  devExp <- sapply(devExp, function(x) if (inherits(x, "try-error")) NA else x)
   devExp <- round(devExp, 2)
   devInfo <- as.data.frame(devExp)
   devInfo$covs <- names(covData)

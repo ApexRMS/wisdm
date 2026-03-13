@@ -106,6 +106,26 @@ saveDatasheet(
   "wisdm_BackgroundDataOptions"
 )
 
+# Error handling ---------------------------------------------------------------
+
+if (nrow(fieldDataSheet) == 0L) {
+  stop(
+    "No Field Data found; please ensure that the Field Data datasheet is populated before continuing."
+  )
+}
+if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
+  if (nrow(templateSheet) == 0L || is.na(templateSheet$RasterFilePath)) {
+    stop(
+      "No Template Raster found; please ensure that the Template Raster datasheet is populated before generating background sites."
+    )
+  }
+  if (nrow(covariateDataSheet) == 0L) {
+    stop(
+      "No Covariate Data found; please ensure that the Covariate Data datasheet is populated before generating background sites."
+    )
+  }
+}
+
 # Generate pseudo-absences (if applicable) -------------------------------------
 
 if (
@@ -316,10 +336,10 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
     fieldDataSheet$SiteID <- format(fieldDataSheet$SiteID, scientific = F)
     rm(bgData, bgPts)
     gc()
-
-    # save updated field data to scenario
-    saveDatasheet(myScenario, fieldDataSheet, "wisdm_FieldData", append = F)
   } # end bgPts check
+
+  # save updated field data to scenario
+  saveDatasheet(myScenario, fieldDataSheet, "wisdm_FieldData", append = F)
 }
 
 progressBar(type = "end")
