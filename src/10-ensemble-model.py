@@ -130,7 +130,15 @@ def run():
             dnOut = np.where(np.isnan(dnOut), nodataValue, dnOut)
             return xr.DataArray(dnOut, dims=dx[range(1)].dims, coords=dx[range(1)].coords)
 
-        inputFiles = spatialOutputSheet.ProbabilityRaster.tolist()
+        inputFiles = spatialOutputSheet.ProbabilityRaster.dropna().tolist()
+        missing = len(spatialOutputSheet) - len(inputFiles)
+        if missing > 0:
+            ps.environment.update_run_log(
+                f'\nWarning: {missing} probability raster(s) are missing and will be excluded '
+                f'from normalization — this may indicate a failure in the Apply Model stage.\n')
+        if len(inputFiles) == 0:
+            raise ValueError(
+                'No probability rasters found. Ensure the Apply Model stage completed successfully before running the ensemble.')
         ps.environment.update_run_log(
             f'Normalizing {len(inputFiles)} rasters...')
 
@@ -209,7 +217,15 @@ def run():
             inputFiles = [os.path.join(ssimTempDir, f) for f in os.listdir(
                 ssimTempDir) if f.startswith("norm_map_")]
         else:
-            inputFiles = spatialOutputSheet.ProbabilityRaster.tolist()
+            inputFiles = spatialOutputSheet.ProbabilityRaster.dropna().tolist()
+            missing = len(spatialOutputSheet) - len(inputFiles)
+            if missing > 0:
+                ps.environment.update_run_log(
+                    f'\nWarning: {missing} probability raster(s) are missing and will be excluded '
+                    f'from the ensemble — this may indicate a failure in the Apply Model stage.\n')
+            if len(inputFiles) == 0:
+                raise ValueError(
+                    'No probability rasters found. Ensure the Apply Model stage completed successfully before running the ensemble.')
 
         ps.environment.update_run_log(
             f'Loading {len(inputFiles)} probability rasters...')
