@@ -191,7 +191,7 @@ backgroundPointGeneration <- function(sp,                           # species na
       
       # convert to spatVector and write out
       v <- as.data.frame(terra::xyFromCell(r, pts[[2]]))
-      v$Response <- c(rep(-9998, n))
+      v$Response <- c(rep(backgroundValue, n))
       colnames(v) <- c("X", "Y", "Response")
       write.csv(v, kde_pts_out, row.names = F)
       
@@ -220,7 +220,7 @@ backgroundPointGeneration <- function(sp,                           # species na
       
       pts <- as.data.frame(pts)
       names(pts) <- c("X", "Y")
-      pts$Response <- -9998
+      pts$Response <- backgroundValue
       write.csv(pts, kde_pts_out, row.names = F)
       
       cat(nrow(pts), 'pseudoabsence points generated for binary KDE surface\n')
@@ -236,7 +236,7 @@ backgroundPointGeneration <- function(sp,                           # species na
     
     pts <- as.data.frame(pts)
     names(pts) <- c("X", "Y")
-    pts$Response <- -9998
+    pts$Response <- backgroundValue
     write.csv(pts, mcp_pts_out, row.names = F)
     
     cat(nrow(pts), 'pseudoabsence points generated for MCP surface\n')

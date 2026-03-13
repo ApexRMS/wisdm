@@ -307,7 +307,7 @@ fitModel <- function(
         cat("java -mx", out$modOptions$MemoryLimit, "m", sep = ""),
         file = out$batchPath
       )
-      
+
       # core executable
       cat(
         " -jar",
@@ -327,8 +327,8 @@ fitModel <- function(
       if (!out$modOptions$VisibleInterface) {
         cat(" -z", file = out$batchPath, append = T)
       }
-      
-      # input files  
+
+      # input files
       cat(
         paste0(' samplesfile="', out$swdPath, '"'),
         file = out$batchPath,
@@ -373,23 +373,46 @@ fitModel <- function(
         append = T
       )
       # model complexity settings
-      cat(" autofeature=", tolower(out$modOptions$AutoFeatureSelection), sep = "",
-      file = out$batchPath, append = TRUE)
-      cat(" betamultiplier=", out$modOptions$RegularizationMultiplier, sep = "",
-      file = out$batchPath, append = TRUE)
-      cat(" doclamp=", tolower(out$modOptions$EnableClamping), sep = "",
-      file = out$batchPath, append = TRUE)
+      cat(
+        " autofeature=",
+        tolower(out$modOptions$AutoFeatureSelection),
+        sep = "",
+        file = out$batchPath,
+        append = TRUE
+      )
+      cat(
+        " betamultiplier=",
+        out$modOptions$RegularizationMultiplier,
+        sep = "",
+        file = out$batchPath,
+        append = TRUE
+      )
+      cat(
+        " doclamp=",
+        tolower(out$modOptions$EnableClamping),
+        sep = "",
+        file = out$batchPath,
+        append = TRUE
+      )
 
       # Explicit feature toggles (if auto feature selection is off)
-      if (!out$modOptions$AutoFeatureSelection){
-        cat(paste0(
-          " linear=", tolower(out$modOptions$UseLinear),
-          " quadratic=", tolower(out$modOptions$UseQuadratic),
-          " product=", tolower(out$modOptions$UseProduct),
-          " hinge=", tolower(out$modOptions$UseHinge),
-          " threshold=", tolower(out$modOptions$UseThreshold)
-        ),
-        file = out$batchPath, append = TRUE)
+      if (!out$modOptions$AutoFeatureSelection) {
+        cat(
+          paste0(
+            " linear=",
+            tolower(out$modOptions$UseLinear),
+            " quadratic=",
+            tolower(out$modOptions$UseQuadratic),
+            " product=",
+            tolower(out$modOptions$UseProduct),
+            " hinge=",
+            tolower(out$modOptions$UseHinge),
+            " threshold=",
+            tolower(out$modOptions$UseThreshold)
+          ),
+          file = out$batchPath,
+          append = TRUE
+        )
       }
 
       # output and diagnostics
@@ -397,8 +420,8 @@ fitModel <- function(
         " responsecurves jackknife writeclampgrid writemess warnings prefixes",
         file = out$batchPath,
         append = T
-      ) 
-      
+      )
+
       # execution controls
       cat(" redoifexists autorun", file = out$batchPath, append = T)
 
@@ -484,23 +507,46 @@ fitModel <- function(
       )
 
       # model complexity settings
-      cat(" autofeature=", tolower(out$modOptions$AutoFeatureSelection), sep = "",
-      file = out$batchPath, append = TRUE)
-      cat(" betamultiplier=", out$modOptions$RegularizationMultiplier, sep = "",
-      file = out$batchPath, append = TRUE)
-      cat(" doclamp=", tolower(out$modOptions$EnableClamping), sep = "",
-      file = out$batchPath, append = TRUE)
+      cat(
+        " autofeature=",
+        tolower(out$modOptions$AutoFeatureSelection),
+        sep = "",
+        file = out$batchPath,
+        append = TRUE
+      )
+      cat(
+        " betamultiplier=",
+        out$modOptions$RegularizationMultiplier,
+        sep = "",
+        file = out$batchPath,
+        append = TRUE
+      )
+      cat(
+        " doclamp=",
+        tolower(out$modOptions$EnableClamping),
+        sep = "",
+        file = out$batchPath,
+        append = TRUE
+      )
 
       # Explicit feature toggles (if auto feature selection is off)
-      if (!out$modOptions$AutoFeatureSelection){
-        cat(paste0(
-          " linear=", tolower(out$modOptions$UseLinear),
-          " quadratic=", tolower(out$modOptions$UseQuadratic),
-          " product=", tolower(out$modOptions$UseProduct),
-          " hinge=", tolower(out$modOptions$UseHinge),
-          " threshold=", tolower(out$modOptions$UseThreshold)
-        ),
-        file = out$batchPath, append = TRUE)
+      if (!out$modOptions$AutoFeatureSelection) {
+        cat(
+          paste0(
+            " linear=",
+            tolower(out$modOptions$UseLinear),
+            " quadratic=",
+            tolower(out$modOptions$UseQuadratic),
+            " product=",
+            tolower(out$modOptions$UseProduct),
+            " hinge=",
+            tolower(out$modOptions$UseHinge),
+            " threshold=",
+            tolower(out$modOptions$UseThreshold)
+          ),
+          file = out$batchPath,
+          append = TRUE
+        )
       }
 
       cat(
@@ -545,9 +591,8 @@ fitModel <- function(
     }
 
     # calculating the case weights
-    prNum <- as.numeric(table(dat$Response)["1"]) # number of presences
-    bgNum <- as.numeric(table(dat$Response)["0"]) # number of backgrounds
-    wt <- ifelse(dat$Response == 1, 1, prNum / bgNum)
+    prNum <- as.numeric(table(dat$Response)["1"]) # number of presences (also used for tree complexity)
+    wt <- calcSiteWeights(dat$Response)
 
     # tmp <- Sys.time()
     modelBRT <- tryCatch(
@@ -604,11 +649,9 @@ fitModel <- function(
   #=================================================================
 
   if (out$modType == "gam") {
-    # calculating the case weights (equal weights)
+    # calculating the case weights
     # the order of weights should be the same as presences and backgrounds in the training data
-    prNum <- as.numeric(table(dat$Response)["1"]) # number of presences
-    bgNum <- as.numeric(table(dat$Response)["0"]) # number of backgrounds
-    wt <- ifelse(dat$Response == 1, 1, prNum / bgNum)
+    wt <- calcSiteWeights(dat$Response)
 
     factor.mask <- na.omit(match(out$factorInputVars, sanitizedVarNames))
     cont.mask <- seq(1:length(sanitizedVarNames))
@@ -616,60 +659,96 @@ fitModel <- function(
       cont.mask <- cont.mask[-c(factor.mask)]
     }
 
-    smoothTerm <- out$constants$gamSmoothingMethodCW$codeTerm[out$constants$gamSmoothingMethodCW$displayTerm == out$modOptions$SmoothingMethod]
+    smoothTerm <- out$constants$gamSmoothingMethodCW$codeTerm[
+      out$constants$gamSmoothingMethodCW$displayTerm ==
+        out$modOptions$SmoothingMethod
+    ]
     basisDimension <- out$modOptions$BasisDimension
     PenaltySelectionMethod <- out$modOptions$PenaltySelectionMethod
 
     # build factor formula section if factors are present
-    if(length(factor.mask) > 0){
-      if(length(cont.mask) > 0){
-        factorFormula <- paste(" +", paste(sanitizedVarNames[factor.mask], collapse = " + "))
+    if (length(factor.mask) > 0) {
+      if (length(cont.mask) > 0) {
+        factorFormula <- paste(
+          " +",
+          paste(sanitizedVarNames[factor.mask], collapse = " + ")
+        )
       } else {
         factorFormula <- paste(sanitizedVarNames[factor.mask], collapse = " + ")
       }
     } else {
       factorFormula <- ""
     }
-    
+
     # check if basis dimension can be used adjust if necessary
-    uniqueCounts <- sapply(model.frame(dat)[, sanitizedVarNames], function(x) length(unique(x)))
-    if(is.na(basisDimension)){
+    uniqueCounts <- sapply(model.frame(dat)[, sanitizedVarNames], function(x) {
+      length(unique(x))
+    })
+    if (is.na(basisDimension)) {
       if (any(uniqueCounts[cont.mask] < 10)) {
-        basisDimension <- out$modOptions$BasisDimension <- min(uniqueCounts[cont.mask]) - 1
+        basisDimension <- out$modOptions$BasisDimension <- min(uniqueCounts[
+          cont.mask
+        ]) -
+          1
         updateRunLog(paste0(
           "\nOne or more continuous predictors have fewer than 10 unique values. ",
-          "Setting basis dimension to ", basisDimension, " for all smooth terms."
+          "Setting basis dimension to ",
+          basisDimension,
+          " for all smooth terms."
         ))
       }
     } else if (basisDimension >= min(uniqueCounts[cont.mask])) {
-      basisDimension <- out$modOptions$BasisDimension <- min(uniqueCounts[cont.mask]) - 1
+      basisDimension <- out$modOptions$BasisDimension <- min(uniqueCounts[
+        cont.mask
+      ]) -
+        1
       updateRunLog(paste0(
         "\nSpecified basis dimension is greater than or equal to the number of unique values for one or more continuous predictors. ",
-        "Setting basis dimension to ", basisDimension, " for all smooth terms."
+        "Setting basis dimension to ",
+        basisDimension,
+        " for all smooth terms."
       ))
     }
-    
 
     if (is.na(basisDimension)) {
-
       # creates formula with smooth terms only
       startModel = as.formula(paste(
         "Response",
         "~",
-        if(length(cont.mask) > 0) {
-          paste0("s(", sanitizedVarNames[cont.mask], ", bs='", smoothTerm, "')", collapse = " + ")
-          } else {""},
+        if (length(cont.mask) > 0) {
+          paste0(
+            "s(",
+            sanitizedVarNames[cont.mask],
+            ", bs='",
+            smoothTerm,
+            "')",
+            collapse = " + "
+          )
+        } else {
+          ""
+        },
         factorFormula,
         sep = ""
-        ))
+      ))
     } else {
       # creates formula with smooth terms and basis dimension
       startModel = as.formula(paste(
         "Response",
         "~",
-        if(length(cont.mask) > 0) {
-          paste0("s(", sanitizedVarNames[cont.mask], ", bs='", smoothTerm, "', k=", basisDimension, ")", collapse = " + ")
-        } else {""},
+        if (length(cont.mask) > 0) {
+          paste0(
+            "s(",
+            sanitizedVarNames[cont.mask],
+            ", bs='",
+            smoothTerm,
+            "', k=",
+            basisDimension,
+            ")",
+            collapse = " + "
+          )
+        } else {
+          ""
+        },
         factorFormula,
         sep = ""
       ))
@@ -697,14 +776,17 @@ checkJava <- function() {
   cmd <- "java -version"
 
   # run the command and capture exit code
-  status <- tryCatch({
-    if (os == "Windows") {
-      shell(cmd, intern = FALSE, ignore.stdout = TRUE, ignore.stderr = TRUE)
-    } else {
-      system(cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
-    }
-  }, error = function(e) 1L)
-  
+  status <- tryCatch(
+    {
+      if (os == "Windows") {
+        shell(cmd, intern = FALSE, ignore.stdout = TRUE, ignore.stderr = TRUE)
+      } else {
+        system(cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
+      }
+    },
+    error = function(e) 1L
+  )
+
   # evaluate exit status
   if (is.numeric(status) && status == 0L) {
     message("Java is installed and available on PATH.")
@@ -776,6 +858,14 @@ read.maxent <- function(lambdas) {
     Thresh.cnst <- Thresh.val[, 2]
   }
 
+  # Extract categorical variable names from threshold features.
+  # Categorical features are encoded as "(varname=value)" in the lambdas file.
+  catVars <- if (!is.null(Thresh.val)) {
+    unique(sub("^\\(([^=]+)=.*", "\\1", trimws(as.character(Thresh.val[, 1]))))
+  } else {
+    NULL
+  }
+
   retn.lst <- list(
     Raw.coef = Raw.coef,
     Quad.coef = Quad.coef,
@@ -792,7 +882,8 @@ read.maxent <- function(lambdas) {
     Rev.cnst = Rev.cnst,
     Thresh.cnst = Thresh.cnst,
     normalizers = normalizers,
-    entropy = entropy
+    entropy = entropy,
+    catVars = catVars
   )
 
   return(retn.lst)
@@ -822,9 +913,8 @@ est.lr <- function(dat, out) {
   }
 
   # calculating the case weights
-  prNum <- as.numeric(table(dat$Response)["1"]) # number of presences
-  bgNum <- as.numeric(table(dat$Response)["0"]) # number of backgrounds
-  wt <- ifelse(dat$Response == 1, 1, prNum / bgNum)
+  prNum <- as.numeric(table(dat$Response)["1"]) # number of presences (also used for tree complexity)
+  wt <- calcSiteWeights(dat$Response)
 
   # learning rates to test
   lrs <- c(.1, .05, .02, .01, .005, .0025, .001, .0005, .0001)
@@ -1186,7 +1276,7 @@ calibration <- function(
     ))
   }
   if (family == "binomial") {
-    pred <- pmin(pmax(preds, 1e-005), 0.99999)  
+    pred <- pmin(pmax(preds, 1e-005), 0.99999)
     lp <- log((pred) / (1 - (pred)))
     mod <- glm(obs ~ lp, family = binomial)
     a0b1 <- glm(obs ~ offset(lp) - 1, family = binomial)

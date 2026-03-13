@@ -3,6 +3,9 @@
 ## ApexRMS, March 2022
 ## -------------------------
 
+packageDir <- Sys.getenv("ssim_package_directory")
+source(file.path(packageDir, "00-constants.R"))
+
 # Calculate Deviance function --------------------------------------------------
 
 calc.deviance <- function(
@@ -548,4 +551,98 @@ safe_rbind <- function(df, row) {
   df <- rbind(df, row)
   rownames(df) <- NULL # reset row names
   return(df)
+}
+
+# Launch a Shiny app with browser detection ------------------------------------
+
+launchShinyApp <- function(appPath) {
+  # Search PATH first — works on all platforms (Linux, macOS, Windows)
+  chrome.names <- c(
+    "google-chrome",
+    "google-chrome-stable",
+    "chromium-browser",
+    "chromium",
+    "brave-browser",
+    "microsoft-edge",
+    "msedge"
+  )
+  firefox.names <- c("firefox")
+
+  find.in.path <- function(candidates) {
+    for (candidate in candidates) {
+      found <- Sys.which(candidate)
+      if (nzchar(found)) return(found)
+    }
+    NULL
+  }
+
+  browser.path <- find.in.path(chrome.names)
+  browser.type <- if (!is.null(browser.path)) "chrome" else NULL
+
+  if (is.null(browser.path)) {
+    browser.path <- find.in.path(firefox.names)
+    browser.type <- if (!is.null(browser.path)) "firefox" else NULL
+  }
+
+  # Windows fallback: browsers are often not on PATH, check common install dirs
+  if (is.null(browser.path) && .Platform$OS.type == "windows") {
+    local.app <- Sys.getenv("LOCALAPPDATA")
+    prog.files <- c(Sys.getenv("ProgramFiles"), Sys.getenv("ProgramFiles(x86)"))
+    chrome.paths <- c(
+      file.path(local.app, "Google/Chrome/Application/chrome.exe"),
+      file.path(prog.files, "Google/Chrome/Application/chrome.exe"),
+      file.path(
+        prog.files,
+        "BraveSoftware/Brave-Browser/Application/brave.exe"
+      ),
+      file.path(prog.files, "Microsoft/Edge/Application/msedge.exe")
+    )
+    firefox.paths <- file.path(prog.files, "Mozilla Firefox/firefox.exe")
+
+    for (path in chrome.paths) {
+      if (file.exists(path)) {
+        browser.path <- path
+        browser.type <- "chrome"
+        break
+      }
+    }
+    if (is.null(browser.path)) {
+      for (path in firefox.paths) {
+        if (file.exists(path)) {
+          browser.path <- path
+          browser.type <- "firefox"
+          break
+        }
+      }
+    }
+  }
+
+  # Final fallback: let Shiny use the OS default (xdg-open / open / shell.exec)
+  if (is.null(browser.path)) {
+    shiny::runApp(appDir = appPath, launch.browser = TRUE)
+  } else {
+    shiny::runApp(appDir = appPath, launch.browser = function(shinyurl) {
+      if (browser.type == "chrome") {
+        system2(
+          browser.path,
+          args = c(paste0("--app=", shinyurl), "--incognito"),
+          wait = FALSE
+        )
+      } else {
+        system2(
+          browser.path,
+          args = c("--private-window", shinyurl),
+          wait = FALSE
+        )
+      }
+    })
+  }
+}
+
+# Calculate presence-weighted case weights -------------------------------------
+
+calcSiteWeights <- function(response) {
+  prNum <- as.numeric(table(response)["1"])
+  bgNum <- as.numeric(table(response)["0"])
+  ifelse(response == 1, 1, prNum / bgNum)
 }

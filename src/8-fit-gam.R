@@ -147,12 +147,12 @@ if (all(is.na(siteDataWide$Weight))) {
 }
 
 # set pseudo absences to zero
-if (any(siteDataWide$Response == -9998)) {
+if (any(siteDataWide$Response == backgroundValue)) {
   pseudoAbs <- TRUE
 } else {
   pseudoAbs <- FALSE
 }
-siteDataWide$Response[siteDataWide$Response == -9998] <- 0
+siteDataWide$Response[siteDataWide$Response == backgroundValue] <- 0
 
 # set categorical variable to factor
 factorInputVars <- covariatesSheet$CovariateName[which(

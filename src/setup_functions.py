@@ -12,11 +12,32 @@ import os
 import platform
 import sys
 
-# ---- Temporary debug flag -- set to False to silence debug output ----------
-debug = True
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
 
-# Buffer for messages that arrive before pysyncrosim is importable.
+#: Raster nodata sentinel value used throughout wisdm transformers.
+nodataValue = -9999
+
+#: Default compression algorithm for output rasters.
+rasterCompression = 'lzw'
+
+#: Write output rasters with internal tiling for efficient partial reads.
+rasterTiled = True
+
+#: Default Dask chunk dimensions. 'auto' lets rioxarray/Dask select optimal
+#: chunk sizes based on the native tiling of each raster.
+defaultChunkDims = 'auto'
+
+#: Temporary debug flag -- set to False to silence debug output
+debug = False
+
+#: Buffer for messages that arrive before pysyncrosim is importable.
 debugMessages = []
+
+# ---------------------------------------------------------------------------
+# Conda environment and GDAL/PROJ setup functions
+# ---------------------------------------------------------------------------
 
 
 def dbg(msg):
@@ -38,7 +59,7 @@ def dbg(msg):
 # user-installed pysyncrosim or rasterio (e.g. for a different Python version)
 # can shadow the conda env packages and cause DLL version conflicts.
 before = [p for p in sys.path if "AppData\\Roaming\\Python" in p
-           or "AppData/Roaming/Python" in p]
+          or "AppData/Roaming/Python" in p]
 sys.path[:] = [p for p in sys.path if not (
     "AppData\\Roaming\\Python" in p or "AppData/Roaming/Python" in p)]
 if before:
@@ -67,7 +88,7 @@ def setupCondaEnv():
     conda_shlvl = os.environ.get("CONDA_SHLVL", "0")
     if conda_shlvl != "0":
         dbg(f"CONDA_SHLVL={conda_shlvl}: conda already activated -- "
-             "skipping PATH and sys.path manipulation")
+            "skipping PATH and sys.path manipulation")
         logGdalOnPath()
         return
 
@@ -178,7 +199,7 @@ def checkGdalVersion():
         if len(gdal_installations) <= 1:
             if len(gdal_installations) == 1:
                 dbg(f"  Single GDAL installation, no conflict check needed: "
-                     f"{gdal_installations[0]}")
+                    f"{gdal_installations[0]}")
             return
 
         # Prefer conda env's GDAL when running in a conda environment.
@@ -198,7 +219,8 @@ def checkGdalVersion():
                     if folder.startswith(conda_prefix):
                         dbg(f"  keeping conda GDAL: {folder}")
                     else:
-                        dbg(f"  -> removing non-conda GDAL from PATH: {folder}")
+                        dbg(
+                            f"  -> removing non-conda GDAL from PATH: {folder}")
                         os.environ["PATH"] = os.pathsep.join(
                             [p for p in os.environ["PATH"].split(os.pathsep)
                              if folder not in p])
@@ -292,3 +314,74 @@ def setupGdalProj(myLibrary):
         worker_env["PROJ_CURL_CA_BUNDLE"] = certifi_folder
 
     return worker_env
+
+
+# ---------------------------------------------------------------------------
+# Shared utility functions
+# ---------------------------------------------------------------------------
+
+def getNumThreads(multiprocessingSheet):
+    """Return the configured number of Dask workers from the multiprocessing datasheet."""
+    if multiprocessingSheet.EnableMultiprocessing.item() == "Yes":
+        return multiprocessingSheet.MaximumJobs.item()
+    return 1
+
+
+def createDaskCluster(num_workers, dask_temp, worker_env=None):
+    """Create a configured Dask LocalCluster and Client for raster processing.
+
+    Uses process-based workers for true parallelism and GDAL thread safety.
+    Returns (client, cluster). Caller is responsible for closing both when done.
+
+    Parameters
+    ----------
+    num_workers : int
+        Number of worker processes.
+    dask_temp : str
+        Path to the directory used for Dask temporary/spill files.
+    worker_env : dict or None
+        Environment variables to forward to worker processes (e.g. GDAL_DATA,
+        PROJ_LIB). Typically the return value of setupGdalProj().
+    """
+    import dask
+    from dask.distributed import Client, LocalCluster
+
+    os.makedirs(dask_temp, exist_ok=True)
+
+    conf = {
+        'temporary-directory': dask_temp,
+        'distributed.scheduler.worker-ttl': None,
+    }
+    if worker_env:
+        conf['distributed.nanny.environ'] = worker_env
+    dask.config.set(conf)
+
+    cluster = LocalCluster(
+        n_workers=num_workers,
+        memory_limit='auto',
+        processes=True)
+    client = Client(cluster, timeout='60s')
+    return client, cluster
+
+
+def signedDtype(dtype):
+    """Return the smallest signed dtype that can hold values of the given dtype.
+
+    For unsigned integer dtypes, returns the next larger signed integer type to
+    avoid overflow when a negative nodata value (nodataValue) must be stored.
+    For signed or float dtypes, returns the dtype string unchanged.
+    """
+    import numpy as np
+    if np.issubdtype(dtype, np.unsignedinteger):
+        if dtype == np.uint8:
+            return 'int16'
+        elif dtype == np.uint16:
+            return 'int32'
+        elif dtype == np.uint32:
+            return 'int64'
+        else:
+            raise ValueError(
+                "uint64 rasters are not supported. Please convert the raster to "
+                "a signed dtype (int16, int32, int64, or float32) before continuing."
+            )
+    return str(dtype)
