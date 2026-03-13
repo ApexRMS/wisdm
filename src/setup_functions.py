@@ -380,5 +380,8 @@ def signedDtype(dtype):
         elif dtype == np.uint32:
             return 'int64'
         else:
-            return 'float32'  # fallback for uint64
+            raise ValueError(
+                "uint64 rasters are not supported. Please convert the raster to "
+                "a signed dtype (int16, int32, int64, or float32) before continuing."
+            )
     return str(dtype)
