@@ -180,10 +180,10 @@ if (
     length(dropCovs),
     " of the ",
     length(allCovs),
-    " input variables were removed from the covartite list due to collinarity:\n\n",
+    " input variables were removed from the covariate list due to collinarity:\n\n",
     paste(dropCovs, collapse = "\n")
   )
-  updateRunLog("VIFs of remaining varaibles")
+  updateRunLog("VIFs of remaining variables")
   updateRunLog(pander::pandoc.table.return(
     colin@results,
     style = "simple",
