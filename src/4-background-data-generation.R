@@ -108,6 +108,20 @@ saveDatasheet(
 
 # Generate pseudo-absences (if applicable) -------------------------------------
 
+if (
+  backgroundDataOptionsSheet$GenerateBackgroundSites &&
+    any(fieldDataSheet$Response == backgroundValue)
+) {
+  updateRunLog(paste0(
+    "\nWarning: ",
+    sum(fieldDataSheet$Response == backgroundValue),
+    " existing background site(s) found in ",
+    "Field Data. These will be removed and regenerated based on the current Background Data Options. ",
+    "To use the provided background data instead, disable Generate Background Sites.\n"
+  ))
+  fieldDataSheet <- fieldDataSheet[fieldDataSheet$Response != backgroundValue, ]
+}
+
 if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   if (
     backgroundDataOptionsSheet$BackgroundGenerationMethod ==
@@ -228,78 +242,84 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
 
   progressBar()
 
-  ## Extract covariate data for background sites  -----
+  if (nrow(bgPts) == 0) {
+    updateRunLog(
+      "\nWarning: No background sites remained after filtering against presence pixels. No background data was added to Field Data.\n"
+    )
+  } else {
+    ## Extract covariate data for background sites  -----
 
-  # rasterize bg data
-  rastPts <- rasterize(bgPts, r)
-  matPts <- as.matrix(rastPts, wide = T)
-  keep <- which(!is.na(matPts))
-  rm(rastPts)
-  gc()
-
-  rIDs <- rast(r, vals = 1:(dim(r)[1] * dim(r)[2]))
-  cellPerPt <- terra::extract(rIDs, bgPts)
-  cellPerPt$SiteID <- bgPts$SiteID
-  names(cellPerPt)[2] <- "PixelID"
-  bgPts <- merge(bgPts, cellPerPt[, c("PixelID", "SiteID")])
-  rm(rIDs)
-  gc()
-
-  rPixels <- rasterize(bgPts, r, field = "PixelID")
-  matPixs <- as.matrix(rPixels, wide = T)
-  PixelIDs <- matPixs[keep]
-  PixelData <- data.frame(PixelID = PixelIDs)
-  rm(rPixels, matPixs, PixelIDs)
-  gc()
-
-  for (i in 1:nrow(covariateDataSheet)) {
-    ri <- rast(covariateDataSheet$RasterFilePath[i])
-    mi <- as.matrix(ri, wide = TRUE)
-
-    outMat <- mi * matPts
-    vals <- outMat[keep]
-    rm(ri, mi, outMat)
+    # rasterize bg data
+    rastPts <- rasterize(bgPts, r)
+    matPts <- as.matrix(rastPts, wide = T)
+    keep <- which(!is.na(matPts))
+    rm(rastPts)
     gc()
 
-    PixelData[covariateDataSheet$CovariatesID[i]] <- vals
-    progressBar()
-  }
+    rIDs <- rast(r, vals = 1:(dim(r)[1] * dim(r)[2]))
+    cellPerPt <- terra::extract(rIDs, bgPts)
+    cellPerPt$SiteID <- bgPts$SiteID
+    names(cellPerPt)[2] <- "PixelID"
+    bgPts <- merge(bgPts, cellPerPt[, c("PixelID", "SiteID")])
+    rm(rIDs)
+    gc()
 
-  # convert background site data to long format and add to existing site datasheet
-  bgSiteData <- merge(cellPerPt[, c("PixelID", "SiteID")], PixelData)
-  bgSiteData$PixelID <- NULL
-  bgSiteData <- gather(
-    data = bgSiteData,
-    key = CovariatesID,
-    value = Value,
-    -SiteID
-  )
+    rPixels <- rasterize(bgPts, r, field = "PixelID")
+    matPixs <- as.matrix(rPixels, wide = T)
+    PixelIDs <- matPixs[keep]
+    PixelData <- data.frame(PixelID = PixelIDs)
+    rm(rPixels, matPixs, PixelIDs)
+    gc()
 
-  siteDataSheet <- rbind(siteDataSheet, bgSiteData)
-  siteDataSheet$SiteID <- format(siteDataSheet$SiteID, scientific = F)
-  siteDataSheet <- siteDataSheet %>%
-    distinct(SiteID, CovariatesID, .keep_all = T)
-  rm(bgSiteData)
-  gc()
+    for (i in 1:nrow(covariateDataSheet)) {
+      ri <- rast(covariateDataSheet$RasterFilePath[i])
+      mi <- as.matrix(ri, wide = TRUE)
 
-  # save site data to scenario
-  saveDatasheet(myScenario, siteDataSheet, "wisdm_SiteData")
-  rm(siteDataSheet)
-  gc()
+      outMat <- mi * matPts
+      vals <- outMat[keep]
+      rm(ri, mi, outMat)
+      gc()
 
-  # update field data
-  bgData <- bgData[which(bgData$SiteID %in% bgPts$SiteID), ]
-  if (any(!is.na(fieldDataSheet$Weight))) {
-    bgData$Weight <- 1
-  }
+      PixelData[covariateDataSheet$CovariatesID[i]] <- vals
+      progressBar()
+    }
 
-  fieldDataSheet <- rbind(fieldDataSheet, bgData)
-  fieldDataSheet$SiteID <- format(fieldDataSheet$SiteID, scientific = F)
-  rm(bgData, bgPts)
-  gc()
+    # convert background site data to long format and add to existing site datasheet
+    bgSiteData <- merge(cellPerPt[, c("PixelID", "SiteID")], PixelData)
+    bgSiteData$PixelID <- NULL
+    bgSiteData <- gather(
+      data = bgSiteData,
+      key = CovariatesID,
+      value = Value,
+      -SiteID
+    )
 
-  # save updated field data to scenario
-  saveDatasheet(myScenario, fieldDataSheet, "wisdm_FieldData", append = F)
+    siteDataSheet <- rbind(siteDataSheet, bgSiteData)
+    siteDataSheet$SiteID <- format(siteDataSheet$SiteID, scientific = F)
+    siteDataSheet <- siteDataSheet %>%
+      distinct(SiteID, CovariatesID, .keep_all = T)
+    rm(bgSiteData)
+    gc()
+
+    # save site data to scenario
+    saveDatasheet(myScenario, siteDataSheet, "wisdm_SiteData")
+    rm(siteDataSheet)
+    gc()
+
+    # update field data
+    bgData <- bgData[which(bgData$SiteID %in% bgPts$SiteID), ]
+    if (any(!is.na(fieldDataSheet$Weight))) {
+      bgData$Weight <- 1
+    }
+
+    fieldDataSheet <- rbind(fieldDataSheet, bgData)
+    fieldDataSheet$SiteID <- format(fieldDataSheet$SiteID, scientific = F)
+    rm(bgData, bgPts)
+    gc()
+
+    # save updated field data to scenario
+    saveDatasheet(myScenario, fieldDataSheet, "wisdm_FieldData", append = F)
+  } # end bgPts check
 }
 
 progressBar(type = "end")
