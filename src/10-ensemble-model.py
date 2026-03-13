@@ -147,7 +147,16 @@ def run():
                 f'    Min: {minVal:.4f}, Max: {maxVal:.4f}')
 
             ps.environment.update_run_log(f'  Normalizing raster {i+1}...')
-            rOut = r.map_blocks(norm, args=[minVal, maxVal], template=r)
+            if minVal == maxVal:
+                ps.environment.update_run_log(
+                    f'  WARNING: Raster {i+1} is constant (all values = {minVal:.4f}); '
+                    f'this output has no spatial discriminatory power — this may indicate a model or data preparation issue. '
+                    f'This raster should be removed from the ensemble.')
+                ps.environment.update_run_log(
+                    f'  Skipping normalization for raster {i+1}.')
+                rOut = r
+            else:
+                rOut = r.map_blocks(norm, args=[minVal, maxVal], template=r)
 
             fname = "norm_map_" + str(i) + ".tif"
             ps.environment.update_run_log(
