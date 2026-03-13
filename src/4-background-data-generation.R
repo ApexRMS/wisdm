@@ -58,7 +58,7 @@ progressBar(type = "begin", totalSteps = steps)
 # Prep inputs ------------------------------------------------------------------
 
 # drop no data (-9999) sites that resulted from spatial aggregation
-fieldDataSheet <- fieldDataSheet[!fieldDataSheet$Response == nodataValue, ]
+fieldDataSheet <- fieldDataSheet[fieldDataSheet$Response != nodataValue, ]
 
 #  Set defaults ----------------------------------------------------------------
 
@@ -200,11 +200,12 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
     dups <- pts[which(duplicated(pts$PixelID)), ]
     dropSites <- dups$SiteID[which(dups$Response == backgroundValue)]
     pts <- pts[!pts$SiteID %in% dropSites, ]
+    rm(dups, dropSites)
   }
 
   bgPts <- pts[pts$Response == backgroundValue]
   bgPts$PixelID <- NULL
-  rm(pts, dups, dropSites)
+  rm(pts)
   gc()
 
   # remove extra bg sites

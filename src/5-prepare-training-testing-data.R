@@ -48,7 +48,7 @@ if(sum(covariatesSheet$IsCategorical, na.rm = T)>0){
 } else { factorVars <- NULL }
 
 # drop no data (-9999) sites that resulted from spatial aggregation 
-fieldDataSheet <- fieldDataSheet[!fieldDataSheet$Response == nodataValue,] 
+fieldDataSheet <- fieldDataSheet[fieldDataSheet$Response != nodataValue,] 
 
 # set response for background sites to zero
 bgSiteIds <- fieldDataSheet$SiteID[fieldDataSheet$Response == backgroundValue]
