@@ -720,17 +720,23 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
   # ------------------------------------------------------------------
 
   if (outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap) {
-    if (length(factorVars)) {
+    contVars <- setdiff(modVars, factorVars)
+    if (length(contVars) == 0L) {
       updateRunLog(
-        "\nWarning: MESS and MoD maps cannot be generated for models with categorical variables.\n"
+        "\nWarning: MESS and MoD maps cannot be generated because all model variables are categorical.\n"
       )
     } else {
-      # Prep training data order & precompute structures
-      train.dat <- dplyr::select(trainingData, dplyr::all_of(modVars))
-      for (k in modVars) {
+      if (length(factorVars) > 0L) {
+        updateRunLog(
+          "\nWarning: MESS and MoD maps will be computed on continuous variables only; categorical variables are excluded.\n"
+        )
+      }
+      # Prep training data order & precompute structures (continuous vars only)
+      train.dat <- dplyr::select(trainingData, dplyr::all_of(contVars))
+      for (k in contVars) {
         train.dat[, k] <- sort(train.dat[, k])
       }
-      prep <- prepare_mess(train.dat, var_names = modVars)
+      prep <- prepare_mess(train.dat, var_names = contVars)
 
       # ----- MESS -----
       if (outputOptionsSheet$MakeMessMap) {
@@ -754,7 +760,7 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
           tmp_fin <- file.path(ssimTempDir, "mess_finalized.tif")
 
           r_main <- terra::predict(
-            object = covs,
+            object = covs[[contVars]],
             model = prep,
             fun = mess_fun,
             filename = tmp_mess,
@@ -763,7 +769,8 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
 
           # Apply restriction mask and update tmp_mess so src_for_final is correct
           if (!is.null(restrictRaster)) {
-            r_main <- terra::mask(r_main, restrictRaster, maskvalues = 0)
+            restrict_aligned <- terra::resample(restrictRaster, r_main, method = "near")
+            r_main <- terra::mask(r_main, restrict_aligned, maskvalues = 0)
             terra::writeRaster(r_main, tmp_mess, overwrite = TRUE)
           }
 
@@ -842,7 +849,7 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
           )
 
           r_main <- terra::predict(
-            object = covs,
+            object = covs[[contVars]],
             model = prep,
             fun = mod_fun,
             name_to_id = name_to_id,
@@ -852,7 +859,8 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
 
           # Apply restriction mask and update tmp_mod so src_for_final is correct
           if (!is.null(restrictRaster)) {
-            r_main <- terra::mask(r_main, restrictRaster, maskvalues = 0)
+            restrict_aligned <- terra::resample(restrictRaster, r_main, method = "near")
+            r_main <- terra::mask(r_main, restrict_aligned, maskvalues = 0)
             terra::writeRaster(r_main, tmp_mod, overwrite = TRUE)
           }
 
@@ -943,13 +951,17 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
       paste0(modType, "_bin_map.tif")
     )
   }
-  if (outputOptionsSheet$MakeMessMap && length(factorVars) == 0L) {
+  if (
+    outputOptionsSheet$MakeMessMap && length(setdiff(modVars, factorVars)) > 0L
+  ) {
     spatialOutputsSheet$MessRaster[outputRow] <- file.path(
       ssimTempDir,
       paste0(modType, "_mess_map.tif")
     )
   }
-  if (outputOptionsSheet$MakeModMap && length(factorVars) == 0L) {
+  if (
+    outputOptionsSheet$MakeModMap && length(setdiff(modVars, factorVars)) > 0L
+  ) {
     spatialOutputsSheet$ModRaster[outputRow] <- file.path(
       ssimTempDir,
       paste0(modType, "_mod_map.tif")
