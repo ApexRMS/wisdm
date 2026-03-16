@@ -16,7 +16,7 @@
 import os
 import sys
 import platform
-from setup_functions import setupCondaEnv, checkGdalVersion, setupGdalProj  # noqa: E402
+from setup_functions import setupCondaEnv, checkGdalVersion, setupGdalProj, nodataValue  # noqa: E402
 
 setupCondaEnv()
 checkGdalVersion()
@@ -193,7 +193,7 @@ else:
             out_meta = src.meta
             out_meta.update({
                 "dtype": 'int16',
-                "nodata": -9999,
+                "nodata": nodataValue,
                 "height": small_grid.shape[1],
                 "width": small_grid.shape[2],
                 "transform": transform})
@@ -251,7 +251,7 @@ else:
         smp_grid = lookup_array[smp_grid]
 
         # Update 0 to NA Value
-        smp_grid[smp_grid == 0] = -9999
+        smp_grid[smp_grid == 0] = nodataValue
 
         # Convert to int
         smp_grid = smp_grid.astype(np.int16)

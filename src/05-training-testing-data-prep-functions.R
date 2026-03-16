@@ -38,13 +38,13 @@ testTrainSplit <- function(inputData,             # dataframe with field data an
   if(sum(as.numeric(response)==0)==0 && !is.null(ratioPresAbs)) stop("The ratio of presence to absence cannot be set with only presence data")
   
   # Ignore background data if present
-  bg.dat <- dat[response == -9999,]
+  bg.dat <- dat[response == nodataValue,]
   
   if(dim(bg.dat)[1] != 0){
-    dat <- dat[-c(which(response == -9999, arr.ind=TRUE)),]
-    response <- response[-c(which(response==-9999, arr.ind=TRUE))]
+    dat <- dat[-c(which(response == nodataValue, arr.ind=TRUE)),]
+    response <- response[-c(which(response==nodataValue, arr.ind=TRUE))]
   }
-  
+
   ## Warnings section ##
   
   # tagging factors and looking at their levels warning users if their factors have few levels
@@ -201,11 +201,11 @@ crossValidationSplit <- function(inputData,         # dataframe with field data 
   }
     
   # ignore background data (if present)
-  bg.dat <- dat[response ==-9999,]
-  
+  bg.dat <- dat[response == nodataValue,]
+
   if(dim(bg.dat)[1]!=0){
-    dat <- dat[-c(which(response==-9999, arr.ind=TRUE)),]
-    response <- response[-c(which(response==-9999, arr.ind=TRUE))]
+    dat <- dat[-c(which(response==nodataValue, arr.ind=TRUE)),]
+    response <- response[-c(which(response==nodataValue, arr.ind=TRUE))]
   }
   
   

@@ -203,7 +203,7 @@ pairsExplore <- function(inputData,     # dataframe with response and covariate 
           diag.panel = panel.hist, 
           upper.panel = panel.cor,
           pch = 21,
-          bg = c("blue","red","yellow")[factor(for.dev$response,levels=c(0,1,-9999))],
+          bg = c("blue","red","yellow")[factor(for.dev$response,levels=c(0,1,nodataValue))],
           col.smooth = "red",
           cex.mult = cex.mult,
           cor.range = cor.range,

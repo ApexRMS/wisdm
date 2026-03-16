@@ -158,8 +158,8 @@ if(compCases/allCases < 0.9){updateRunLog(paste("\nWarning: ", round((1-compCase
 if(all(is.na(siteDataWide$Weight))){siteDataWide$Weight <- 1}
   
 # set pseudo absences to zero 
-if(any(siteDataWide$Response == -9998)){pseudoAbs <- TRUE} else {pseudoAbs <- FALSE}
-siteDataWide$Response[siteDataWide$Response == -9998] <- 0
+if(any(siteDataWide$Response == backgroundValue)){pseudoAbs <- TRUE} else {pseudoAbs <- FALSE}
+siteDataWide$Response[siteDataWide$Response == backgroundValue] <- 0
   
 # set categorical variable to factor
 factorInputVars <- covariatesSheet$CovariateName[which(covariatesSheet$IsCategorical == T & covariatesSheet$CovariateName %in% names(siteDataWide))]
@@ -490,27 +490,7 @@ combineTxtFiles(filePaths = txtFilePaths, outputPath = file.path(ssimTempDir, "O
   
 # Shiny App --------------------------------------------------------------------
   
-# TO DO: find better way to access default web app 
-browser.path <- NULL
-if(file.exists("C:/Program Files/Google/Chrome/Application/chrome.exe")){
-  browser.path <- "C:/Program Files/Google/Chrome/Application/chrome.exe"
-} else if(file.exists("C:/Program Files(x86)/Google/Chrome/Application/chrome.exe")){
-  browser.path <- "C:/Program Files(x86)/Google/Chrome/Application/chrome.exe"
-} else if(file.exists("C:/Program Files/Mozilla Firefox/firefox.exe")){
-  browser.path <- "C:/Program Files/Mozilla Firefox/firefox.exe"
-  # } else if(file.exists("C:/Program Files/Internet Explorer/iexplore.exe")){
-  # browser.path <- "C:/Program Files/Internet Explorer/iexplore.exe"
-}
-  
-if(is.null(browser.path)){
-  runApp(appDir = file.path(packageDir, "07-hyperparameter-tuning-app.R"),
-         launch.browser = TRUE)  
-} else {
-  runApp(appDir = file.path(packageDir, "07-hyperparameter-tuning-app.R"),
-         launch.browser = function(shinyurl) {
-          system(paste0("\"", browser.path, "\" --app=", shinyurl, " -incognito"), wait = F)
-        })
-}  
+launchShinyApp(file.path(packageDir, "07-hyperparameter-tuning-app.R"))  
     
 selectedComboOutputs <- comboImgs[comboImgs$displayName == comboOut,]
 progressBar()
