@@ -154,7 +154,7 @@
     <column name="Model" dataType="Integer" validationType="List" formula1="1:Boosted Regression Trees|2:Random Forest" />
 </dataSheet>
 
-<dataSheet name="brtTuning" displayName="Boosted Regression Trees" isSingleRow="True">
+<dataSheet name="brtTuning" displayName="Boosted Regression Trees [Tuning]" isSingleRow="True">
 	<column name="Parameter1" displayName="Parameter 1" dataType="Integer" validationType="List"
 	formula1="1:Learning rate|2:Number of trees added per stage|3:Bag fraction|4:Maximum number of trees"/>
 	<column name="Parameter1Values" displayName="Tuning values for parameter 1" dataType="String" />
@@ -163,7 +163,7 @@
 	<column name="Parameter2Values" displayName="Tuning values for parameter 2" dataType="String" /> 
 </dataSheet>
 
-<dataSheet name="rfTuning" displayName="Random Forest" isSingleRow="True">
+<dataSheet name="rfTuning" displayName="Random Forest[Tuning]" isSingleRow="True">
     <column name="Parameter1" displayName="Parameter 1" dataType="Integer" validationType="List" 
 	formula1="1:Number of variables sampled at split|2:Maximum number of nodes|3:Number of trees|4:Node size"/>
 	<column name="Parameter1Values" displayName="Tuning values for parameter 1" dataType="String" />
@@ -194,7 +194,7 @@
 
 <!--Output Datasheets-->
 
-<dataSheet name="OutputCovariateCorrelationMatrix">
+<dataSheet name="OutputCovariateCorrelationMatrix" displayName="Covariate Correlation Matrix Outputs">
 	<column name="InitialMatrix" dataType="String" isExternalFile="True" isImage="True"/>
 	<column name="SelectedMatrix" dataType="String" isExternalFile="True" isImage="True"/>
 </dataSheet>
@@ -216,7 +216,7 @@
 	<column name="MaxentFiles" dataType="String" isExternalFile="True" isVisible="False"/>
 </dataSheet>
 
-<dataSheet name="OutputSpatial" spatialMultiProcessing="True">
+<dataSheet name="OutputSpatial" displayName="Spatial Outputs" spatialMultiProcessing="True">
 	<column name="ModelsID" dataType="Integer" validationType="Datasheet" formula1="Models"/>
 	<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
 	<column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
@@ -226,7 +226,7 @@
 	<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
 </dataSheet>
 
-<dataSheet name="OutputEnsemble">
+<dataSheet name="OutputEnsemble" displayName="Ensemble Outputs">
 	<column name="ProbabilityRasterMean" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
 	<column name="ProbabilityRasterSum" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
 	<column name="BinaryRasterMean" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
@@ -234,7 +234,7 @@
 	<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
 </dataSheet>
 
-<dataSheet name="OutputHyperparameterTuning">
+<dataSheet name="OutputHyperparameterTuning" displayName="Hyperparameter Tuning Outputs">
 	<column name="ModelsID" dataType="Integer" validationType="Datasheet" formula1="Models" isVisible="False"/>						
 	<column name="ResponseCurves" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
 	<column name="ResidualsPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
