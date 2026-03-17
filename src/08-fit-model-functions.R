@@ -1202,6 +1202,7 @@ cv.fct <- function(
   } # end of Cross Validation Fold Loop
 
   data$predicted <- fitted.values
+  data <- data[!is.na(data$predicted), ]
   u_i <- fitted.values
 
   if (family == "binomial" | family == "bernoulli") {

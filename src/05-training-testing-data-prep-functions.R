@@ -285,8 +285,8 @@ crossValidationSplit <- function(
   dat <- inputData
   response <- inputData$Response
 
-  if (sum(as.numeric(response) == 0) == 0 && !is.null(stratify)) {
-    stop("Cross Validation requires absence data.")
+  if (sum(as.numeric(response) == 0) == 0 && stratify) {
+    stop("Stratified cross-validation requires absence data.")
   }
 
   # ignore background data (if present)

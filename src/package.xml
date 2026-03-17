@@ -163,7 +163,7 @@
 	<column name="Parameter2Values" displayName="Tuning values for parameter 2" dataType="String" /> 
 </dataSheet>
 
-<dataSheet name="rfTuning" displayName="Random Forest[Tuning]" isSingleRow="True">
+<dataSheet name="rfTuning" displayName="Random Forest [Tuning]" isSingleRow="True">
     <column name="Parameter1" displayName="Parameter 1" dataType="Integer" validationType="List" 
 	formula1="1:Number of variables sampled at split|2:Maximum number of nodes|3:Number of trees|4:Node size"/>
 	<column name="Parameter1Values" displayName="Tuning values for parameter 1" dataType="String" />

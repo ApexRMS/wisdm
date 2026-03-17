@@ -720,7 +720,14 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
   # ------------------------------------------------------------------
 
   if (outputOptionsSheet$MakeMessMap | outputOptionsSheet$MakeModMap) {
-    contVars <- setdiff(modVars, factorVars)
+    messFactorVars <- intersect(
+      covariatesSheet$CovariateName[covariatesSheet$IsCategorical == TRUE],
+      modVars
+    )
+    if (modType == "maxent") {
+      messFactorVars <- union(messFactorVars, intersect(mod$catVars, modVars))
+    }
+    contVars <- setdiff(modVars, messFactorVars)
     if (length(contVars) == 0L) {
       updateRunLog(
         "\nWarning: MESS and MoD maps cannot be generated because all model variables are categorical.\n"
@@ -769,7 +776,11 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
 
           # Apply restriction mask and update tmp_mess so src_for_final is correct
           if (!is.null(restrictRaster)) {
-            restrict_aligned <- terra::resample(restrictRaster, r_main, method = "near")
+            restrict_aligned <- terra::resample(
+              restrictRaster,
+              r_main,
+              method = "near"
+            )
             r_main <- terra::mask(r_main, restrict_aligned, maskvalues = 0)
             terra::writeRaster(r_main, tmp_mess, overwrite = TRUE)
           }
@@ -859,7 +870,11 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
 
           # Apply restriction mask and update tmp_mod so src_for_final is correct
           if (!is.null(restrictRaster)) {
-            restrict_aligned <- terra::resample(restrictRaster, r_main, method = "near")
+            restrict_aligned <- terra::resample(
+              restrictRaster,
+              r_main,
+              method = "near"
+            )
             r_main <- terra::mask(r_main, restrict_aligned, maskvalues = 0)
             terra::writeRaster(r_main, tmp_mod, overwrite = TRUE)
           }
@@ -951,17 +966,13 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
       paste0(modType, "_bin_map.tif")
     )
   }
-  if (
-    outputOptionsSheet$MakeMessMap && length(setdiff(modVars, factorVars)) > 0L
-  ) {
+  if (outputOptionsSheet$MakeMessMap && length(contVars) > 0L) {
     spatialOutputsSheet$MessRaster[outputRow] <- file.path(
       ssimTempDir,
       paste0(modType, "_mess_map.tif")
     )
   }
-  if (
-    outputOptionsSheet$MakeModMap && length(setdiff(modVars, factorVars)) > 0L
-  ) {
+  if (outputOptionsSheet$MakeModMap && length(contVars) > 0L) {
     spatialOutputsSheet$ModRaster[outputRow] <- file.path(
       ssimTempDir,
       paste0(modType, "_mod_map.tif")
