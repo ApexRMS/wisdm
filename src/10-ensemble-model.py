@@ -157,7 +157,7 @@ def run():
             ps.environment.update_run_log(f'  Normalizing raster {i+1}...')
             if minVal == maxVal:
                 ps.environment.update_run_log(
-                    f'  WARNING: Raster {i+1} is constant (all values = {minVal:.4f}); '
+                    f'1\nWarning: Raster {i+1} is constant (all values = {minVal:.4f}); '
                     f'this output has no spatial discriminatory power — this may indicate a model or data preparation issue. '
                     f'This raster should be removed from the ensemble.')
                 ps.environment.update_run_log(

@@ -256,6 +256,14 @@ progressBar()
 
 finalMod <- fitModel(dat = trainingData, out = out)
 
+if (is.null(finalMod)) {
+  stop(
+    "Unable to fit GAM with provided data and settings. Review the run log for details. ",
+    "Common issues include covariates with rare factor levels, too many predictors relative ",
+    "to the number of observations, or data quality issues. "
+  )
+}
+
 finalMod$trainingData <- trainingData
 
 # add relevant model details to out
