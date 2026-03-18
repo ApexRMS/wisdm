@@ -11,10 +11,8 @@ testTrainSplit <- function(
   inputData, # dataframe with field data and Covariate Values
   trainProp, # proportion of data to use in model training
   factorVars = NULL, # names of categorical variables (if any)
-  ratioPresAbs = NULL
+  ratioPresAbs = NULL # ratio of presence to absence points that should be used
 ) {
-  # ratio of presence to absence points that should be used
-
   # Description:
   # Given a training proportion, each observation is assigned to the
   # test or training split.The split will be balanced with respect to the response
@@ -89,10 +87,10 @@ testTrainSplit <- function(
   }
   if (length(response) < 200) {
     updateRunLog(paste0(
-      "\nThere are less than 200 observations. Cross-validation might be preferable to a test/training split./n",
+      "\nThere are less than 200 observations. Cross-validation might be preferable to a test/training split.\n",
       "Weigh the decision while keeping in mind the number of predictors being considered: ",
       ncol(dat) - 7,
-      "/n"
+      "\n"
     ))
   }
   if (all(na.omit(response) %in% 0:1) & any(table(response) < 10)) {
@@ -295,6 +293,16 @@ crossValidationSplit <- function(
   if (dim(bg.dat)[1] != 0) {
     dat <- dat[-c(which(response == nodataValue, arr.ind = TRUE)), ]
     response <- response[-c(which(response == nodataValue, arr.ind = TRUE))]
+  }
+
+  if (nFolds > nrow(dat)) {
+    stop(paste0(
+      "Number of CV folds (",
+      nFolds,
+      ") exceeds the number of available observations (",
+      nrow(dat),
+      "). Reduce the number of folds before continuing."
+    ))
   }
 
   # tagging factors and looking at their levels warning users if their factors have few levels

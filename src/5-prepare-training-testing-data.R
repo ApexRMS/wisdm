@@ -117,7 +117,7 @@ if (validationDataSheet$SplitData) {
   inputData <- testTrainSplit(
     inputData = inputData,
     trainProp = validationDataSheet$ProportionTrainingData,
-    # ratioPresAbs = validationDataSheet$RatioPresenceAbsence,
+    # ratioPresAbs = validationDataSheet$RatioPresenceAbsence, # disabled; not currently exposed as a UI option in wisdm
     factorVars = factorVars
   )
 } else {
