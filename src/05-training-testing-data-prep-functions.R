@@ -59,8 +59,8 @@ testTrainSplit <- function(
   ## Warnings section ##
 
   # tagging factors and looking at their levels warning users if their factors have few levels
-  if (!is.null(factorVars)) {
-    for (i in 1:length(factorVars)) {
+  if (!is.null(factorVars) && length(factorVars) > 0) {
+    for (i in seq_along(factorVars)) {
       factor.table <- table(dat[, factorVars[i]])
       if (any(factor.table < 10)) {
         updateRunLog(paste0(
@@ -306,8 +306,8 @@ crossValidationSplit <- function(
   }
 
   # tagging factors and looking at their levels warning users if their factors have few levels
-  if (!is.null(factorVars)) {
-    for (i in 1:length(factorVars)) {
+  if (!is.null(factorVars) && length(factorVars) > 0) {
+    for (i in seq_along(factorVars)) {
       factor.table <- table(dat[, factorVars[i]])
       if (any(factor.table < nFolds)) {
         updateRunLog(paste0(
