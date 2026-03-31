@@ -754,12 +754,20 @@ fitModel <- function(
       ))
     }
 
-    modelGAM <- mgcv::gam(
-      formula = startModel,
-      data = dat,
-      family = binomial(link = "logit"),
-      weights = wt,
-      method = PenaltySelectionMethod
+    modelGAM <- tryCatch(
+      {
+        mgcv::gam(
+          formula = startModel,
+          data = dat,
+          family = binomial(link = "logit"),
+          weights = wt,
+          method = PenaltySelectionMethod
+        )
+      },
+      error = function(err) {
+        message("mgcv::gam() failed: ", err$message)
+        NULL
+      }
     )
 
     return(modelGAM)
@@ -1114,6 +1122,14 @@ cv.fct <- function(
       fullFit = F
     )
 
+    if (is.null(cv.final.mod)) {
+      stop(paste0(
+        "CV fold ", i, " model fitting failed. ",
+        "Consider removing or reclassifying rare factor levels, reducing the number of CV folds, ",
+        "or reviewing the data for outliers or class imbalance."
+      ))
+    }
+
     fitted.values[pred.mask] <- pred.fct(
       mod = cv.final.mod,
       x = xdat[pred.mask, ],
@@ -1146,7 +1162,34 @@ cv.fct <- function(
     u_i <- fitted.values[pred.mask]
     weights.subset <- site.weights[pred.mask]
 
+    # filter NA predictions (e.g. from factor levels absent in this fold's training data)
+    valid_i <- !is.na(u_i)
+    if (any(!valid_i)) {
+      updateRunLog(paste0(
+        "\nWarning: ", sum(!valid_i), " site(s) in CV fold ", i,
+        " could not be predicted and will be excluded from fold evaluation.",
+        " This is likely caused by a factor level absent from this fold's training data.\n"
+      ))
+      y_i <- y_i[valid_i]
+      u_i <- u_i[valid_i]
+      weights.subset <- weights.subset[valid_i]
+    }
+
+    if (all(is.na(u_i))) {
+      stop(paste0(
+        "CV fold ", i, " produced no valid predictions. This is likely caused by a categorical ",
+        "variable with a factor level that is absent from this fold's training data. ",
+        "Consider removing or reclassifying rare factor levels, or reducing the number of CV folds."
+      ))
+    }
+
     if (family == "binomial" | family == "bernoulli") {
+      if (length(unique(y_i)) < 2) {
+        stop(paste0(
+          "CV fold ", i, " contains only one response class after excluding unpredictable sites. ",
+          "Consider removing or reclassifying rare factor levels, or reducing the number of CV folds."
+        ))
+      }
       subset.resid.deviance[i] <- calc.deviance(
         y_i,
         u_i,
@@ -1159,17 +1202,20 @@ cv.fct <- function(
   } # end of Cross Validation Fold Loop
 
   data$predicted <- fitted.values
+  data <- data[!is.na(data$predicted), ]
   u_i <- fitted.values
 
   if (family == "binomial" | family == "bernoulli") {
+    # filter NA predictions from pooled CV metrics
+    valid_pooled <- !is.na(u_i)
     cv.resid.deviance <- calc.deviance(
-      obs,
-      u_i,
-      weights = site.weights,
+      obs[valid_pooled],
+      u_i[valid_pooled],
+      weights = site.weights[valid_pooled],
       family = "binomial"
     )
-    cv.test <- roc(obs, u_i)
-    cv.calib <- calibration(obs, u_i)
+    cv.test <- roc(obs[valid_pooled], u_i[valid_pooled])
+    cv.calib <- calibration(obs[valid_pooled], u_i[valid_pooled])
   }
 
   subset.test.mean <- mean(subset.test)
