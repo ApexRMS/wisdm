@@ -305,12 +305,7 @@ dir.create(file.path(ssimTempDir, "Outputs"))
 
 ## training data
 
-out$swdPath <- swdPath <- file.path(
-  ssimTempDir,
-  "Inputs",
-  "training-swd.csv",
-  fsep = "\\"
-)
+out$swdPath <- swdPath <- file.path(ssimTempDir, "Inputs", "training-swd.csv")
 
 trainingData %>%
   mutate(Species = case_when(Response == 1 ~ "species")) %>%
@@ -328,12 +323,7 @@ trainingData %>%
 out$data$train <- trainingData
 
 if (pseudoAbs) {
-  out$backgroundPath <- backgroundPath <- file.path(
-    ssimTempDir,
-    "Inputs",
-    "background-swd.csv",
-    fsep = "\\"
-  )
+  out$backgroundPath <- backgroundPath <- file.path(ssimTempDir, "Inputs", "background-swd.csv")
 
   trainingData %>%
     mutate(Species = case_when(Response != 1 ~ "background")) %>%
@@ -352,12 +342,7 @@ if (pseudoAbs) {
 ## testing data
 
 if (!is.null(testingData)) {
-  out$testDataPath <- testDataPath <- file.path(
-    ssimTempDir,
-    "Inputs",
-    "testing-swd.csv",
-    fsep = "\\"
-  )
+  out$testDataPath <- testDataPath <- file.path(ssimTempDir, "Inputs", "testing-swd.csv")
   testingData %>%
     mutate(Species = case_when(Response == 1 ~ "species")) %>%
     drop_na(Species) %>%
@@ -376,7 +361,6 @@ if (!is.null(testingData)) {
   gc()
 }
 
-out$batchPath <- file.path(ssimTempDir, "Inputs", "runMaxent.bat", fsep = "\\")
 # out$maxJobs <- mulitprocessingSheet$MaximumJobs
 
 # Create output text file ------------------------------------------------------
