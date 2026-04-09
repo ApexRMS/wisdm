@@ -3,6 +3,11 @@
 ## ApexRMS, October 2025
 ## -------------------------
 
+# Use Cairo backend for PNG rendering on Linux to avoid X11 display dependency
+if (.Platform$OS.type == "unix" && capabilities("cairo")) {
+  options(bitmapType = "cairo")
+}
+
 # Raster nodata sentinel value — must match nodataValue in setup_functions.py
 nodataValue <- -9999
 
