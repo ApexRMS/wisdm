@@ -1,0 +1,12 @@
+name: wisdm-py-conda
+channels:
+  - conda-forge
+dependencies:
+  # Python — no R spatial stack in this env so there are no GDAL/GEOS/PROJ
+  # cross-language constraints. Packages are pinned to tested versions.
+  - python=3.12.4
+  - dask=2024.7.0
+  - geopandas=1.0.1
+  - pysyncrosim=2.2.0
+  - rasterio=1.3.10
+  - rioxarray=0.16.0
