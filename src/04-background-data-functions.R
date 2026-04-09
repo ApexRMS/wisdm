@@ -26,7 +26,8 @@ backgroundSurfaceGeneration <- function(sp,         # species
     
     if ('kde' %in% method) { 
       if(tolower(method$surface) == "continuous"){
-        kde_bg_out <- gsub('/', '\\\\', paste0(outputDir, '/', sp, '_kde_bg_surface.tif'))
+        kde_bg_out <- paste0(outputDir, '/', sp, '_kde_bg_surface.tif')
+        if (.Platform$OS.type == "windows") kde_bg_out <- gsub('/', '\\\\', kde_bg_out)
         kde.mat <- matrix(m, nrow = length(unique(ud@coords[, 1])))
       
         t <- terra::rast(raster::raster(ud))

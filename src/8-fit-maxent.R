@@ -400,7 +400,7 @@ finalMod <- fitModel(
 
 # finalMod$trainingData <- trainingData
 # save model to temp storage
-# saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
+# saveRDS(finalMod, file = file.path(ssimTempDir, "Data", paste0(modType, "_model.rds")))
 # finalMod$trainingData <- NULL
 
 # add relevant model details to out
