@@ -180,7 +180,7 @@ def prep_spatial_data():
             tiledTemplatePath = os.path.join(
                 ssimTempDir, base + "_tiled" + ext)
             profile = src.profile.copy()
-            profile.update(tiled=True, compress=rasterCompression)
+            profile.update(tiled=True, compress=rasterCompression, blockxsize=256, blockysize=256)
             with rasterio.open(tiledTemplatePath, 'w', **profile) as dst:
                 for _, window in src.block_windows(1):
                     dst.write(src.read(window=window), window=window)
