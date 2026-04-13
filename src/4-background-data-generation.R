@@ -84,7 +84,7 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   if (is.na(backgroundDataOptionsSheet$KDESurface)) {
     if (
       backgroundDataOptionsSheet$BackgroundGenerationMethod ==
-        "Kernel Density Estimate (KDE)"
+      "Kernel Density Estimate (KDE)"
     ) {
       backgroundDataOptionsSheet$KDESurface <- "Continuous"
     }
@@ -92,8 +92,8 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   if (is.na(backgroundDataOptionsSheet$Isopleth)) {
     if (
       backgroundDataOptionsSheet$KDESurface == "Binary" |
-        backgroundDataOptionsSheet$BackgroundGenerationMethod ==
-          "Minimum Convex Polygon (MCP)"
+      backgroundDataOptionsSheet$BackgroundGenerationMethod ==
+      "Minimum Convex Polygon (MCP)"
     ) {
       backgroundDataOptionsSheet$Isopleth <- 95
     }
@@ -130,7 +130,7 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
 
 if (
   backgroundDataOptionsSheet$GenerateBackgroundSites &&
-    any(fieldDataSheet$Response == backgroundValue)
+  any(fieldDataSheet$Response == backgroundValue)
 ) {
   updateRunLog(paste0(
     "\nWarning: ",
@@ -145,7 +145,7 @@ if (
 if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   if (
     backgroundDataOptionsSheet$BackgroundGenerationMethod ==
-      "Kernel Density Estimate (KDE)"
+    "Kernel Density Estimate (KDE)"
   ) {
     methodInputs <- list(
       "method" = "kde",
@@ -155,7 +155,7 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   }
   if (
     backgroundDataOptionsSheet$BackgroundGenerationMethod ==
-      "Minimum Convex Polygon (MCP)"
+    "Minimum Convex Polygon (MCP)"
   ) {
     methodInputs <- list(
       "method" = "mcp",
@@ -163,180 +163,101 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
       "isopleth" = backgroundDataOptionsSheet$Isopleth
     )
   }
-
+  
+  ### load template raster
   templateRaster <- rast(templateSheet$RasterFilePath)
-
-  # create mask polygon from extent of valid data in template
-  templateVector <- as.polygons(templateRaster)
-
-  # generate background surface
-  backgroundSurfaceGeneration(
+  
+  backgroundSurfacePointGeneration(
     sp = "species",
+    n=backgroundDataOptionsSheet$BackgroundSiteCount+100,
     template = templateRaster,
-    method = methodInputs,
-    mask = templateVector,
     outputDir = ssimTempDir,
-    dat = fieldDataSheet
-  )
-
+    dat = fieldDataSheet,
+    method = methodInputs)
+  
   progressBar()
-  rm(templateVector)
   gc()
-
-  # generate background (psuedo-absence) points
-  backgroundPointGeneration(
-    sp = "species",
-    outputDir = ssimTempDir,
-    n = backgroundDataOptionsSheet$BackgroundSiteCount + 100,
-    method = methodInputs,
-    # target_file = backgroundDataOptionsSheet, # this is an external input...
-    overwrite = T
-  )
-
-  progressBar()
+  
 
   # add background point to field data
-  bgData <- read.csv(file.path(
+  bgData <- data.table::fread(file.path(
     ssimTempDir,
     paste0("species_", methodInputs$method, "_bg_pts.csv")
   ))
 
+
+  ### stop if no background pts were returned
+  if (nrow(bgData) == 0) {
+    updateRunLog(
+      "\nWarning: No background sites remained after filtering against presence pixels. No background data was added to Field Data.\n"
+    )
+    stop("Warning: No background sites remained after filtering against presence pixels. No background data was added to Field Data.")
+  }  
+  
+  progressBar()
+  
+  ### create SiteIDs for background data
   startId <- max(fieldDataSheet$SiteID, siteDataSheet$SiteID) + 1
   bgData$SiteID <- startId:(startId + nrow(bgData) - 1)
+
+  ### create spatvect object for extract
+  vbgPts <- vect(bgData, geom = c("X", "Y"), crs = crs(templateRaster))
+
+  ### add columns for combining with field data. 
   bgData$UseInModelEvaluation <- NA
   bgData$ModelSelectionSplit <- NA
   bgData$Weight <- NA
 
-  fieldData <- rbind(fieldDataSheet, bgData)
+  ### update field data weights. This is a legacy item, and needs to be revisted. Currently set the weights for ALL background data to 1 if any weights were supplied with field data. User options for setting other weights.
+  if (any(!is.na(fieldDataSheet$Weight))) {
+    bgData$Weight <- 1
+  }
 
-  ## Remove background points that occur in pixels with presence points -----
+  ### subset cols
+  sel_cols = names(fieldDataSheet)
+  bgData = bgData[,..sel_cols]; rm(sel_cols)
+  fieldDataSheet <- rbind(fieldDataSheet, bgData)
+  fieldDataSheet$SiteID <- format(fieldDataSheet$SiteID, scientific = F)
 
-  # rasterize points data
-  r <- rast(
-    ext(templateRaster),
-    resolution = res(templateRaster),
-    crs = crs(templateRaster)
+  ## Extract covariate data for background sites  -----
+  ### loop through each 
+  for (i in 1:nrow(covariateDataSheet)) {
+    ri = terra::rast(covariateDataSheet$RasterFilePath[i])
+    vals = terra::extract(
+      ri, vbgPts,
+      method="simple",
+      cells=FALSE,
+      xy=FALSE,
+      ID=TRUE)
+    rm(ri); gc()
+    bgData[,covariateDataSheet$CovariatesID[i]:=vals[,2]]
+    # progressBar()
+  }
+  bgData[, SiteID := as.character(SiteID)]
+
+  CovariatesID = covariateDataSheet$CovariatesID[!covariateDataSheet$CovariatesID %in% "mtpi_10m"] 
+
+  ### trim cols to format and melt to long format
+  keep_cols = c("SiteID", covariateDataSheet$CovariatesID)
+  bgData = bgData[,..keep_cols]
+  bgSiteData <- gather(
+    data = bgData,
+    key = CovariatesID,
+    value = Value,
+    -SiteID
   )
-  pts <- vect(fieldData, geom = c("X", "Y"), crs = crs(templateRaster))
-  rm(templateRaster, fieldData)
+
+  siteDataSheet <- rbind(siteDataSheet, bgSiteData)
+  siteDataSheet$SiteID <- format(siteDataSheet$SiteID, scientific = F)
+  siteDataSheet <- siteDataSheet %>%
+    distinct(SiteID, CovariatesID, .keep_all = T)
+  rm(bgSiteData)
   gc()
 
-  rIDs <- rast(r, vals = 1:(dim(r)[1] * dim(r)[2]))
-  cellPerPt <- terra::extract(rIDs, pts)
-  cellPerPt$SiteID <- pts$SiteID
-  names(cellPerPt)[2] <- "PixelID"
-  pts <- merge(pts, cellPerPt[, c("PixelID", "SiteID")])
-  rm(rIDs, cellPerPt)
+  # save site data to scenario
+  saveDatasheet(myScenario, siteDataSheet, "wisdm_SiteData")
+  rm(siteDataSheet)
   gc()
-
-  # check for duplicate pixel ids
-  if (any(duplicated(pts$PixelID))) {
-    dups <- pts[which(duplicated(pts$PixelID)), ]
-    dropSites <- dups$SiteID[which(dups$Response == backgroundValue)]
-    pts <- pts[!pts$SiteID %in% dropSites, ]
-    rm(dups, dropSites)
-  }
-
-  bgPts <- pts[pts$Response == backgroundValue]
-  bgPts$PixelID <- NULL
-  rm(pts)
-  gc()
-
-  # remove extra bg sites
-  if (nrow(bgPts) > backgroundDataOptionsSheet$BackgroundSiteCount) {
-    bgPts <- sample(
-      x = bgPts,
-      size = backgroundDataOptionsSheet$BackgroundSiteCount,
-      replace = F
-    )
-  }
-  if (nrow(bgPts) < backgroundDataOptionsSheet$BackgroundSiteCount) {
-    updateRunLog(paste0(
-      nrow(bgPts),
-      " psuedoabsence sites added to Field Data when ",
-      backgroundDataOptionsSheet$BackgroundSiteCount,
-      " were requested."
-    ))
-    # backgroundDataOptionsSheet$BackgroundSiteCount <- nrow(bgPts)
-  }
-
-  progressBar()
-
-  if (nrow(bgPts) == 0) {
-    updateRunLog(
-      "\nWarning: No background sites remained after filtering against presence pixels. No background data was added to Field Data.\n"
-    )
-  } else {
-    ## Extract covariate data for background sites  -----
-
-    # rasterize bg data
-    rastPts <- rasterize(bgPts, r)
-    matPts <- as.matrix(rastPts, wide = T)
-    keep <- which(!is.na(matPts))
-    rm(rastPts)
-    gc()
-
-    rIDs <- rast(r, vals = 1:(dim(r)[1] * dim(r)[2]))
-    cellPerPt <- terra::extract(rIDs, bgPts)
-    cellPerPt$SiteID <- bgPts$SiteID
-    names(cellPerPt)[2] <- "PixelID"
-    bgPts <- merge(bgPts, cellPerPt[, c("PixelID", "SiteID")])
-    rm(rIDs)
-    gc()
-
-    rPixels <- rasterize(bgPts, r, field = "PixelID")
-    matPixs <- as.matrix(rPixels, wide = T)
-    PixelIDs <- matPixs[keep]
-    PixelData <- data.frame(PixelID = PixelIDs)
-    rm(rPixels, matPixs, PixelIDs)
-    gc()
-
-    for (i in 1:nrow(covariateDataSheet)) {
-      ri <- rast(covariateDataSheet$RasterFilePath[i])
-      mi <- as.matrix(ri, wide = TRUE)
-
-      outMat <- mi * matPts
-      vals <- outMat[keep]
-      rm(ri, mi, outMat)
-      gc()
-
-      PixelData[covariateDataSheet$CovariatesID[i]] <- vals
-      progressBar()
-    }
-
-    # convert background site data to long format and add to existing site datasheet
-    bgSiteData <- merge(cellPerPt[, c("PixelID", "SiteID")], PixelData)
-    bgSiteData$PixelID <- NULL
-    bgSiteData <- gather(
-      data = bgSiteData,
-      key = CovariatesID,
-      value = Value,
-      -SiteID
-    )
-
-    siteDataSheet <- rbind(siteDataSheet, bgSiteData)
-    siteDataSheet$SiteID <- format(siteDataSheet$SiteID, scientific = F)
-    siteDataSheet <- siteDataSheet %>%
-      distinct(SiteID, CovariatesID, .keep_all = T)
-    rm(bgSiteData)
-    gc()
-
-    # save site data to scenario
-    saveDatasheet(myScenario, siteDataSheet, "wisdm_SiteData")
-    rm(siteDataSheet)
-    gc()
-
-    # update field data
-    bgData <- bgData[which(bgData$SiteID %in% bgPts$SiteID), ]
-    if (any(!is.na(fieldDataSheet$Weight))) {
-      bgData$Weight <- 1
-    }
-
-    fieldDataSheet <- rbind(fieldDataSheet, bgData)
-    fieldDataSheet$SiteID <- format(fieldDataSheet$SiteID, scientific = F)
-    rm(bgData, bgPts)
-    gc()
-  } # end bgPts check
 
   # save updated field data to scenario
   saveDatasheet(myScenario, fieldDataSheet, "wisdm_FieldData", append = F)
