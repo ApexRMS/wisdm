@@ -22,9 +22,7 @@ dependencies:
   - r-sf=1.0_7
   - r-shiny=1.7.4
   - r-sp=2.1_4
-  - r-spatstat=3.0_7
   - r-spatstat.geom=3.2_9
-  - r-spatstat.explore=3.2_6
   - r-terra=1.5_21
   - r-tidyr=1.3.1
   - r-tidyverse=2.0.0
