@@ -9,7 +9,7 @@ library(ROCR)
 library(ggplot2)
 library(splines)
 
-# MODEL FIT FUNCTION -----------------------------------------------------------
+# Model Fit Functions ----------------------------------------------------------
 
 ## Fit model -------------------------------------------------------------------
 
@@ -52,7 +52,7 @@ fitModel <- function(
 
   #================================================================
   #                        GLM
-  #=================================================================
+  #================================================================
 
   if (out$modType == "glm") {
     if (out$pseudoAbs) {
@@ -190,7 +190,7 @@ fitModel <- function(
 
   #================================================================
   #                        RF
-  #=================================================================
+  #================================================================
   if (out$modType == "rf") {
     # set defaults
     n.trees = out$modOptions$NumberOfTrees
@@ -286,294 +286,34 @@ fitModel <- function(
 
   #================================================================
   #                        MAXENT
-  #=================================================================
+  #================================================================
   if (out$modType == "maxent") {
-    # If there are parentheses in the working folder name, then the jar file will not run properly
-    validTempPath <- sum(grepl("\\(", strsplit(out$tempDir, "")[[1]])) +
-      sum(grepl("\\)", strsplit(out$tempDir, "")[[1]])) ==
-      0
-
-    if (!validTempPath) {
-      stop(paste0(
-        "Maxent model will not run if there are parentheses in the",
-        " temporary directory path. Please set a different ",
-        "temporary folder before continuing."
-      ))
-    }
-
     if (fullFit) {
-      # Prepare batch file ----
-      capture.output(
-        cat("java -mx", out$modOptions$MemoryLimit, "m", sep = ""),
-        file = out$batchPath
+      runMaxent(
+        out = out,
+        samplesfile = out$swdPath,
+        envlayers = out$backgroundPath,
+        outputdir = file.path(out$tempDir, "Outputs"),
+        testsamplesfile = out$testDataPath,
+        fullFit = TRUE
       )
-
-      # core executable
-      cat(
-        " -jar",
-        paste0(
-          '"',
-          file.path(
-            ssimEnvironment()$PackageDirectory,
-            "maxent.jar",
-            fsep = "\\"
-          ),
-          '"'
-        ),
-        file = out$batchPath,
-        append = T
-      )
-      # optional visible interface
-      if (!out$modOptions$VisibleInterface) {
-        cat(" -z", file = out$batchPath, append = T)
-      }
-
-      # input files
-      cat(
-        paste0(' samplesfile="', out$swdPath, '"'),
-        file = out$batchPath,
-        append = T
-      )
-      cat(
-        paste0(' environmentallayers="', out$backgroundPath, '"'),
-        file = out$batchPath,
-        append = T
-      )
-      # test data (if provided)
-      if (!is.null(out$testDataPath)) {
-        cat(
-          paste0(' testsamplesfile="', out$testDataPath, '"'),
-          file = out$batchPath,
-          append = T
-        )
-      }
-      # factor (categorical) layers
-      if (length(out$factorInputVars) > 0) {
-        for (i in out$factorInputVars) {
-          cat(paste0(" togglelayertype=", i), file = out$batchPath, append = T)
-        }
-      }
-
-      # output directory
-      cat(
-        paste0(
-          ' outputdirectory="',
-          file.path(out$tempDir, "Outputs", fsep = "\\"),
-          '"'
-        ),
-        file = out$batchPath,
-        append = T
-      )
-      # performance settings
-      cat(
-        " threads=",
-        out$modOptions$MultiprocessingThreads,
-        sep = "",
-        file = out$batchPath,
-        append = T
-      )
-      # model complexity settings
-      cat(
-        " autofeature=",
-        tolower(out$modOptions$AutoFeatureSelection),
-        sep = "",
-        file = out$batchPath,
-        append = TRUE
-      )
-      cat(
-        " betamultiplier=",
-        out$modOptions$RegularizationMultiplier,
-        sep = "",
-        file = out$batchPath,
-        append = TRUE
-      )
-      cat(
-        " doclamp=",
-        tolower(out$modOptions$EnableClamping),
-        sep = "",
-        file = out$batchPath,
-        append = TRUE
-      )
-
-      # Explicit feature toggles (if auto feature selection is off)
-      if (!out$modOptions$AutoFeatureSelection) {
-        cat(
-          paste0(
-            " linear=",
-            tolower(out$modOptions$UseLinear),
-            " quadratic=",
-            tolower(out$modOptions$UseQuadratic),
-            " product=",
-            tolower(out$modOptions$UseProduct),
-            " hinge=",
-            tolower(out$modOptions$UseHinge),
-            " threshold=",
-            tolower(out$modOptions$UseThreshold)
-          ),
-          file = out$batchPath,
-          append = TRUE
-        )
-      }
-
-      # output and diagnostics
-      cat(
-        " responsecurves jackknife writeclampgrid writemess warnings prefixes",
-        file = out$batchPath,
-        append = T
-      )
-
-      # execution controls
-      cat(" redoifexists autorun", file = out$batchPath, append = T)
-
-      # Note than maxent can't handle spaces in the batch file path
-      # - if there are spaces in tempDir, copy the batch file to a system temp file
-      # - also update batchPath location in the local scope
-      if (str_detect(out$tempDir, " ")) {
-        batchTempFile <- tempfile(pattern = "runMaxent", fileext = ".bat")
-        file.copy(out$batchPath, batchTempFile, overwrite = T)
-        out$batchPath <- batchTempFile
-      }
-      # run maxent
-      shell(out$batchPath)
-
-      # read lambdas output
       modelMaxent <- read.maxent(file.path(
         out$tempDir,
         "Outputs",
-        "species.lambdas",
-        fsep = "\\"
+        "species.lambdas"
       ))
     } else {
-      # prepare batch file
-      capture.output(
-        cat("java -mx", out$modOptions$MemoryLimit, "m", sep = ""),
-        file = out$batchPath
+      runMaxent(
+        out = out,
+        samplesfile = file.path(out$tempDir, "CVsplits", "training-swd.csv"),
+        envlayers = file.path(out$tempDir, "CVsplits", "background-swd.csv"),
+        outputdir = file.path(out$tempDir, "CVsplits"),
+        fullFit = FALSE
       )
-      cat(
-        " -jar",
-        paste0(
-          '"',
-          file.path(
-            ssimEnvironment()$PackageDirectory,
-            "maxent.jar",
-            fsep = "\\"
-          ),
-          '"'
-        ),
-        file = out$batchPath,
-        append = T
-      )
-      if (!out$modOptions$VisibleInterface) {
-        cat(" -z", file = out$batchPath, append = T)
-      }
-      cat(
-        paste0(
-          ' samplesfile="',
-          file.path(out$tempDir, "CVsplits", "training-swd.csv", fsep = "\\"),
-          '"'
-        ),
-        file = out$batchPath,
-        append = T
-      )
-      cat(
-        paste0(
-          ' environmentallayers="',
-          file.path(out$tempDir, "CVsplits", "background-swd.csv", fsep = "\\"),
-          '"'
-        ),
-        file = out$batchPath,
-        append = T
-      )
-      if (length(out$factorInputVars) > 0) {
-        for (i in out$factorInputVars) {
-          cat(paste0(" togglelayertype=", i), file = out$batchPath, append = T)
-        }
-      }
-      cat(
-        paste0(
-          ' outputdirectory="',
-          file.path(out$tempDir, "CVsplits", fsep = "\\"),
-          '"'
-        ),
-        file = out$batchPath,
-        append = T
-      )
-      cat(
-        " threads=",
-        out$modOptions$MultiprocessingThreads,
-        sep = "",
-        file = out$batchPath,
-        append = T
-      )
-
-      # model complexity settings
-      cat(
-        " autofeature=",
-        tolower(out$modOptions$AutoFeatureSelection),
-        sep = "",
-        file = out$batchPath,
-        append = TRUE
-      )
-      cat(
-        " betamultiplier=",
-        out$modOptions$RegularizationMultiplier,
-        sep = "",
-        file = out$batchPath,
-        append = TRUE
-      )
-      cat(
-        " doclamp=",
-        tolower(out$modOptions$EnableClamping),
-        sep = "",
-        file = out$batchPath,
-        append = TRUE
-      )
-
-      # Explicit feature toggles (if auto feature selection is off)
-      if (!out$modOptions$AutoFeatureSelection) {
-        cat(
-          paste0(
-            " linear=",
-            tolower(out$modOptions$UseLinear),
-            " quadratic=",
-            tolower(out$modOptions$UseQuadratic),
-            " product=",
-            tolower(out$modOptions$UseProduct),
-            " hinge=",
-            tolower(out$modOptions$UseHinge),
-            " threshold=",
-            tolower(out$modOptions$UseThreshold)
-          ),
-          file = out$batchPath,
-          append = TRUE
-        )
-      }
-
-      cat(
-        " writeclampgrid writemess warnings prefixes",
-        file = out$batchPath,
-        append = T
-      ) # reverse these default settings
-      cat(" redoifexists autorun", file = out$batchPath, append = T)
-
-      # Note than maxent can't handle spaces in the batch file path
-      # - if there are spaces in tempDir, copy the batch file to a system temp file
-      # - also update batchPath location in the local scope
-      if (str_detect(out$tempDir, " ")) {
-        batchTempFile <- tempfile(pattern = "runMaxent", fileext = ".bat")
-        file.copy(out$batchPath, batchTempFile, overwrite = T)
-        out$batchPath <- batchTempFile
-      }
-
-      # run maxent
-      shell(out$batchPath)
-
-      # read lambdas output
       modelMaxent <- read.maxent(file.path(
         out$tempDir,
         "CVsplits",
-        "species.lambdas",
-        fsep = "\\"
+        "species.lambdas"
       ))
     }
     return(modelMaxent)
@@ -581,7 +321,7 @@ fitModel <- function(
 
   #================================================================
   #                        BRT
-  #=================================================================
+  #================================================================
   if (out$modType == "brt") {
     # set n-folds
     if (out$validationOptions$CrossValidate) {
@@ -646,7 +386,7 @@ fitModel <- function(
 
   #================================================================
   #                        GAM
-  #=================================================================
+  #================================================================
 
   if (out$modType == "gam") {
     # calculating the case weights
@@ -774,22 +514,98 @@ fitModel <- function(
   }
 }
 
-### check java installation ----------------------------------------------------
-# function to check if java is installed and available on system path
+## Model Fitting Helper Functions ----------------------------------------------
+
+### Check Java Installation ----------------------------------------------------
+# SyncroSim 3.1.28+ sets a minimal PATH (System32 + conda dirs only) to prevent
+# competing GDAL/GEOS/PROJ DLL conflicts, which can strip Java from PATH. If
+# java is not found on PATH, fall back to JAVA_HOME and patch the R session
+# PATH so all subsequent calls (including system2() for MaxEnt) work.
 
 checkJava <- function() {
   os <- Sys.info()[["sysname"]]
 
-  # set system call
-  cmd <- "java -version"
+  if (nchar(Sys.which("java")) == 0) {
+    javaBinDir <- NULL
+
+    # fallback 1: JAVA_HOME environment variable
+    javaHome <- Sys.getenv("JAVA_HOME")
+    if (nchar(javaHome) > 0) {
+      javaBin <- file.path(
+        javaHome,
+        "bin",
+        if (os == "Windows") "java.exe" else "java"
+      )
+      if (file.exists(javaBin)) javaBinDir <- file.path(javaHome, "bin")
+    }
+
+    # fallback 2: search common installation directories
+    if (is.null(javaBinDir)) {
+      if (os == "Windows") {
+        commonRoots <- Filter(
+          nchar,
+          c(Sys.getenv("ProgramFiles"), Sys.getenv("ProgramFiles(x86)"))
+        )
+        commonVendors <- c(
+          "Java",
+          "Eclipse Adoptium",
+          "Microsoft",
+          "BellSoft",
+          "Zulu",
+          "Amazon Corretto"
+        )
+        for (root in commonRoots) {
+          for (vendor in commonVendors) {
+            for (jdk in list.dirs(file.path(root, vendor), recursive = FALSE)) {
+              if (file.exists(file.path(jdk, "bin", "java.exe"))) {
+                javaBinDir <- file.path(jdk, "bin")
+                break
+              }
+            }
+            if (!is.null(javaBinDir)) break
+          }
+          if (!is.null(javaBinDir)) break
+        }
+      } else {
+        for (d in c(
+          "/usr/bin",
+          "/usr/local/bin",
+          "/usr/lib/jvm/default/bin",
+          "/usr/lib/jvm/java/bin"
+        )) {
+          if (file.exists(file.path(d, "java"))) {
+            javaBinDir <- d
+            break
+          }
+        }
+      }
+    }
+
+    if (!is.null(javaBinDir)) {
+      javaBinDir <- normalizePath(javaBinDir, winslash = "/", mustWork = FALSE)
+      Sys.setenv(
+        PATH = paste(javaBinDir, Sys.getenv("PATH"), sep = .Platform$path.sep)
+      )
+      updateRunLog(paste0(
+        "\nJava found at '",
+        javaBinDir,
+        "' and added to session PATH."
+      ))
+    }
+  }
 
   # run the command and capture exit code
   status <- tryCatch(
     {
       if (os == "Windows") {
-        shell(cmd, intern = FALSE, ignore.stdout = TRUE, ignore.stderr = TRUE)
+        shell(
+          "java -version",
+          intern = FALSE,
+          ignore.stdout = TRUE,
+          ignore.stderr = TRUE
+        )
       } else {
-        system(cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
+        system("java -version", ignore.stdout = TRUE, ignore.stderr = TRUE)
       }
     },
     error = function(e) 1L
@@ -804,6 +620,80 @@ checkJava <- function() {
     FALSE
   }
 }
+
+### Run Maxent -----------------------------------------------------------------
+# Invokes MaxEnt directly via system2("java") — cross-platform, no batch file.
+# system2() handles path quoting so spaces and special characters in paths work.
+
+runMaxent <- function(
+  out,
+  samplesfile,
+  envlayers,
+  outputdir,
+  testsamplesfile = NULL,
+  fullFit = TRUE
+) {
+  jarPath <- file.path(ssimEnvironment()$PackageDirectory, "maxent.jar")
+
+  args <- c(paste0("-mx", out$modOptions$MemoryLimit, "m"), "-jar", jarPath)
+
+  if (!out$modOptions$VisibleInterface) {
+    args <- c(args, "-z")
+  }
+
+  args <- c(
+    args,
+    paste0("samplesfile=", samplesfile),
+    paste0("environmentallayers=", envlayers)
+  )
+
+  if (!is.null(testsamplesfile)) {
+    args <- c(args, paste0("testsamplesfile=", testsamplesfile))
+  }
+
+  if (length(out$factorInputVars) > 0) {
+    args <- c(args, paste0("togglelayertype=", out$factorInputVars))
+  }
+
+  args <- c(
+    args,
+    paste0("outputdirectory=", outputdir),
+    paste0("threads=", out$modOptions$MultiprocessingThreads),
+    paste0("autofeature=", tolower(out$modOptions$AutoFeatureSelection)),
+    paste0("betamultiplier=", out$modOptions$RegularizationMultiplier),
+    paste0("doclamp=", tolower(out$modOptions$EnableClamping))
+  )
+
+  if (!out$modOptions$AutoFeatureSelection) {
+    args <- c(
+      args,
+      paste0("linear=", tolower(out$modOptions$UseLinear)),
+      paste0("quadratic=", tolower(out$modOptions$UseQuadratic)),
+      paste0("product=", tolower(out$modOptions$UseProduct)),
+      paste0("hinge=", tolower(out$modOptions$UseHinge)),
+      paste0("threshold=", tolower(out$modOptions$UseThreshold))
+    )
+  }
+
+  if (fullFit) {
+    args <- c(
+      args,
+      "responsecurves",
+      "jackknife",
+      "writeclampgrid",
+      "writemess",
+      "warnings",
+      "prefixes"
+    )
+  } else {
+    args <- c(args, "writeclampgrid", "writemess", "warnings", "prefixes")
+  }
+
+  args <- c(args, "redoifexists", "autorun")
+
+  system2("java", args = args)
+}
+
 ### Read Maxent ----------------------------------------------------------------
 # function to read in maxent lambdas file and extract coefficients for each feature type
 
@@ -1003,7 +893,7 @@ est.lr <- function(dat, out) {
   }
 }
 
-# MODEL SELECTION AND VALIDATION FUNCTIONS -------------------------------------
+# Model Selection and Validation Functions -------------------------------------
 
 ## Run Cross Validation --------------------------------------------------------
 
@@ -1124,7 +1014,9 @@ cv.fct <- function(
 
     if (is.null(cv.final.mod)) {
       stop(paste0(
-        "CV fold ", i, " model fitting failed. ",
+        "CV fold ",
+        i,
+        " model fitting failed. ",
         "Consider removing or reclassifying rare factor levels, reducing the number of CV folds, ",
         "or reviewing the data for outliers or class imbalance."
       ))
@@ -1166,7 +1058,10 @@ cv.fct <- function(
     valid_i <- !is.na(u_i)
     if (any(!valid_i)) {
       updateRunLog(paste0(
-        "\nWarning: ", sum(!valid_i), " site(s) in CV fold ", i,
+        "\nWarning: ",
+        sum(!valid_i),
+        " site(s) in CV fold ",
+        i,
         " could not be predicted and will be excluded from fold evaluation.",
         " This is likely caused by a factor level absent from this fold's training data.\n"
       ))
@@ -1177,7 +1072,9 @@ cv.fct <- function(
 
     if (all(is.na(u_i))) {
       stop(paste0(
-        "CV fold ", i, " produced no valid predictions. This is likely caused by a categorical ",
+        "CV fold ",
+        i,
+        " produced no valid predictions. This is likely caused by a categorical ",
         "variable with a factor level that is absent from this fold's training data. ",
         "Consider removing or reclassifying rare factor levels, or reducing the number of CV folds."
       ))
@@ -1186,7 +1083,9 @@ cv.fct <- function(
     if (family == "binomial" | family == "bernoulli") {
       if (length(unique(y_i)) < 2) {
         stop(paste0(
-          "CV fold ", i, " contains only one response class after excluding unpredictable sites. ",
+          "CV fold ",
+          i,
+          " contains only one response class after excluding unpredictable sites. ",
           "Consider removing or reclassifying rare factor levels, or reducing the number of CV folds."
         ))
       }
@@ -1263,7 +1162,7 @@ cv.fct <- function(
 }
 
 
-### Calculate Deviance function -----------[see helper functions]---------------
+## Model Evaluation Helper Functions -------------------------------------------
 
 ### ROC Function ---------------------------------------------------------------
 
@@ -1300,7 +1199,7 @@ roc <- function(
   return(round(wilc, 4))
 }
 
-### Calibration function -------------------------------------------------------
+### Calibration Function -------------------------------------------------------
 
 calibration <- function(
   obs, # observed response
@@ -1343,7 +1242,7 @@ calibration <- function(
   return(calibration.result)
 }
 
-### Permute Predict function ---------------------------------------------------
+### Permute Predict Function ---------------------------------------------------
 
 permute.predict <- function(
   inputVars, # input variables for model fitting
@@ -1372,7 +1271,7 @@ permute.predict <- function(
   return(AUC)
 }
 
-# MODEL OUTPUT FUNCTIONS -------------------------------------------------------
+# Model Output Functions -------------------------------------------------------
 
 ## Make Model Evaluation Plots -------------------------------------------------
 
@@ -2070,7 +1969,7 @@ makeModelEvalPlots <- function(out = out) {
   return(out)
 }
 
-### Calculate statistics function ----------------------------------------------
+### Calculate Statistics Function ----------------------------------------------
 
 calcStat <- function(
   x, # x <- out$data[[i]]
@@ -2209,7 +2108,7 @@ calcStat <- function(
   }
 }
 
-### Variable Importance function -----------------------------------------------
+### Variable Importance Function -----------------------------------------------
 
 VariableImportance <- function(
   out, # out list
@@ -2494,7 +2393,7 @@ VariableImportance <- function(
   title(ylab = "Variables", line = 14, cex.lab = 3, font.lab = 2)
 }
 
-### Confusion Matrix function --------------------------------------------------
+### Confusion Matrix Function --------------------------------------------------
 
 confusion.matrix <- function(
   Stats, # output from calcStat function
@@ -2646,7 +2545,7 @@ confusion.matrix <- function(
   )
 }
 
-### Residual Image function ----------------------------------------------------
+### Residual Image Function ----------------------------------------------------
 
 resid.image <- function(dev.contrib, dat, file.name, label, create.image = T) {
   #produces a map of deviance residuals unless we're using independent evaluation data in which case
@@ -2807,7 +2706,7 @@ beachcolours <- function(
 }
 
 
-### Test/Train ROC Plot function -----------------------------------------------
+### Test/Train ROC Plot Function -----------------------------------------------
 
 TestTrainRocPlot <- function(
   dat, # Stats$train$auc.data
@@ -3352,7 +3251,7 @@ TestTrainRocPlot <- function(
   par(op)
 }
 
-### Presence-Only Smoothed Calibration Plot function ---------------------------
+### Presence-Only Smoothed Calibration Plot Function ---------------------------
 
 pocplot <- function(pred, back, linearize = TRUE, ...) {
   ispresence <- c(rep(1, length(pred)), rep(0, length(back)))
@@ -3380,7 +3279,7 @@ pocplot <- function(pred, back, linearize = TRUE, ...) {
   predd
 }
 
-### Presence-Absence Smoothed Calibration Plot function ------------------------
+### Presence-Absence Smoothed Calibration Plot Function ------------------------
 
 pacplot <- function(pred, pa, ...) {
   predd <- smoothdist(preds = pred, obs = pa)
@@ -3394,7 +3293,7 @@ pacplot <- function(pred, pa, ...) {
   )
 }
 
-#### Plotting function for Calibration plots [nested in pocplot/pacplot] -------
+#### Plotting Function for Calibration Plots [nested in pocplot/pacplot] -------
 
 calibplot <- function(
   pred,
@@ -3443,7 +3342,7 @@ calibplot <- function(
   }
 }
 
-#### Smoothing function for Calibration plots [nested in pocplot/pacplot] ------
+#### Smoothing Function for Calibration Plots [nested in pocplot/pacplot] ------
 
 smoothingdf <- 6
 smoothdist <- function(preds, obs) {
@@ -3484,7 +3383,7 @@ smoothdist <- function(preds, obs) {
   data.frame(x = x, y = y$fit, se = y$se.fit)
 }
 
-### Capture Statistics function ------------------------------------------------
+### Capture Statistics Function ------------------------------------------------
 
 capture.stats <- function(
   Stats.lst, # stats or lst output from calcStat function
@@ -3904,7 +3803,7 @@ capture.stats <- function(
   }
 }
 
-## response curves function -----------------------------------------------------
+## Response Curves Function -----------------------------------------------------
 
 response.curves <- function(out) {
   # Desanitize output variable names

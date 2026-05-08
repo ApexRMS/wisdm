@@ -261,7 +261,7 @@ progressBar()
 finalMod <- fitModel(dat = trainingData, out = out)
 
 # save model to temp storage
-# saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
+# saveRDS(finalMod, file = file.path(ssimTempDir, "Data", paste0(modType, "_model.rds")))
 
 # add relevant model details to out
 out$finalMod <- finalMod

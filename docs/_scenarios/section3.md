@@ -151,6 +151,8 @@ The **Field Data Options** *Datasheet* can be found under the **Field Data** tab
 
 The **Background Data Options** *Datasheet* controls some of the *Scenario's* settings relating to the **Field Data**.
 
+> If the *Background Data Generation* stage is re-run (e.g., when running a dependent scenario or re-running an existing scenario), any existing background sites already present in the **Field Data** will be removed and regenerated based on the current **Background Data Options**. To preserve existing background data instead of regenerating it, set *Generate background sites* to "No".
+
 ### **Generate background sites**
 Defines whether background sites should be generated for the *Scenario*. Background sites are also referred to as pseudo-absences and represent absences of a species. This information allows the models to compare environmental spaces where a species can and cannot be found. Background sites are often used when true absence data are not available for a species.
 

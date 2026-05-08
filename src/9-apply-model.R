@@ -176,7 +176,8 @@ if (name(myLibrary) == "Partial") {
   sessionDetails <- setup_session(
     ssim_temp_dir = ssimTempDir,
     concurrent_sessions = maxJobs,
-    total_ram_gb = totalMem
+    total_ram_gb = totalMem,
+    desync_max_sec = 10
   )
   progressBar()
 

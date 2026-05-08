@@ -490,7 +490,7 @@ combineTxtFiles(filePaths = txtFilePaths, outputPath = file.path(ssimTempDir, "O
   
 # Shiny App --------------------------------------------------------------------
   
-launchShinyApp(file.path(packageDir, "07-hyperparameter-tuning-app.R"))  
+launchShinyApp(file.path(packageDir, "07-hyperparameter-tuning-app.R"), appName = "Hyperparameter Tuning App")
     
 selectedComboOutputs <- comboImgs[comboImgs$displayName == comboOut,]
 progressBar()
