@@ -115,6 +115,8 @@ The **Probability Map** is the main output of the fitted model and shows probabi
 ### **MESS Map**
 The **MESS Map** is the Multivariate Environmental Similarity Surface, which represents values as positive, negative, or zero. This map shows how well locations on the **Template Raster** fit into the range of covariate data to which the training data were fit. Positive areas on this map represent areas where the covariate ranges are more similar to those to which the training data of the model were fit. Negative areas on this map represent areas where the covariate ranges are not similar to those to which the training data of the model were fit. Values of zero on this map represent areas where ranges of covariate data at these locations and ranges of covariate data to which the training data of the model were fit are marginally similar [(Elith et al., 2010)](https://doi.org/10.1111/j.2041-210X.2010.00036.x).
 
+> MESS and MoD maps are computed on continuous variables only. If the model includes categorical variables, those variables are excluded from the calculation and a warning is issued. If all model variables are categorical, MESS and MoD maps cannot be generated and will be skipped.
+
 ### **MoD Map**
 The **MoD Map** is a map of the most dissimilar variable. This map is similar to the **MESS Map** in that it shows regions where covariate ranges were most dissimilar from those used to fit the training data. However, this map shows which covariates used in the model was furthest from the range of the observations used for model training and where.
 
