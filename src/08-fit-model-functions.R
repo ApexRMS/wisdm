@@ -691,7 +691,13 @@ runMaxent <- function(
 
   args <- c(args, "redoifexists", "autorun")
 
-  system2("java", args = args)
+  exitCode <- system2("java", args = args)
+  if (exitCode != 0) {
+    stop(paste0(
+      "MaxEnt execution failed with exit code ", exitCode,
+      ". Check Java installation and MaxEnt configuration."
+    ))
+  }
 }
 
 ### Read Maxent ----------------------------------------------------------------
