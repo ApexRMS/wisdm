@@ -597,16 +597,7 @@ checkJava <- function() {
   # run the command and capture exit code
   status <- tryCatch(
     {
-      if (os == "Windows") {
-        shell(
-          "java -version",
-          intern = FALSE,
-          ignore.stdout = TRUE,
-          ignore.stderr = TRUE
-        )
-      } else {
-        system("java -version", ignore.stdout = TRUE, ignore.stderr = TRUE)
-      }
+      system2("java", "-version", stdout = FALSE, stderr = FALSE)
     },
     error = function(e) 1L
   )
