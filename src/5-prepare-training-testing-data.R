@@ -102,7 +102,14 @@ if (validationDataSheet$CrossValidate) {
   }
 }
 
+# Generate random seed if not already set (e.g. transformer 4 did not run)
+if (is.na(validationDataSheet$RandomSeed)) {
+  validationDataSheet$RandomSeed <- sample.int(.Machine$integer.max, 1)
+}
+
 saveDatasheet(myScenario, validationDataSheet, "wisdm_ValidationOptions")
+set.seed(validationDataSheet$RandomSeed)
+
 progressBar()
 
 # Split data for testing/training and validation -------------------------------

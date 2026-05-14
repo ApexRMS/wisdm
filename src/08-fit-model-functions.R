@@ -26,8 +26,9 @@ fitModel <- function(
   # from the post processing steps needed to produce several of the later outputs
   # so the same function call can be used for cross-validation and generic model fit.
 
-  out$seed <- 32639
-  set.seed(out$seed)
+  if (!is.null(out$seed) && !is.na(out$seed)) {
+    set.seed(out$seed)
+  }
 
   # Sanitize output variable names
   sanitizedVarNames <- out$inputVars
@@ -687,6 +688,10 @@ runMaxent <- function(
     )
   } else {
     args <- c(args, "writeclampgrid", "writemess", "warnings", "prefixes")
+  }
+
+  if (!is.null(out$seed) && !is.na(out$seed)) {
+    args <- c(args, paste0("randomseed=", out$seed))
   }
 
   args <- c(args, "redoifexists", "autorun")

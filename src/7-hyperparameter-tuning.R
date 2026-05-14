@@ -203,9 +203,13 @@ out$data$test <- testingData
 out$pseudoAbs <- pseudoAbs
   
 ## Validation options
-out$validationOptions <- validationDataSheet 
-  
-## path to temp ssim storage 
+out$validationOptions <- validationDataSheet
+
+## Random seed
+validationDataSheet <- resolveRandomSeed(myScenario, validationDataSheet)
+out$seed <- validationDataSheet$RandomSeed
+
+## path to temp ssim storage
 out$tempDir <- ssimTempDir
   
 # Review model data ------------------------------------------------------------

@@ -86,6 +86,7 @@
 	<column name="CrossValidate" displayName="Use cross validation for model selection" dataType="Boolean"/>
 	<column name="StratifyFolds" displayName="Stratify cross-validation folds by the response" dataType="Boolean"/>
 	<column name="NumberOfFolds" displayName="Number of cross-validation folds" dataType="Integer"/>
+	<column name="RandomSeed" displayName="Random seed (leave blank for non-reproducible runs)" dataType="Integer"/>
 </dataSheet>
 
 <dataSheet name="TemplateRaster" displayName="Template Raster" isSingleRow="True">
@@ -298,6 +299,7 @@
 		<dataSheet name="TemplateRaster" type="Input"/>
 		<dataSheet name="FieldData" type="Both"/>
 		<dataSheet name="BackgroundDataOptions" type="Input"/>
+		<dataSheet name="ValidationOptions" type="Both"/>
 		<dataSheet name="CovariateData" type="Both"/>
 		<dataSheet name="SiteData" type="Both"/>
 </transformer>
@@ -311,7 +313,7 @@
 	condaEnv="wisdm-r-conda.yml"
   	condaEnvVersion="6">
 		<dataSheet name="FieldData" type="Both"/>
-		<dataSheet name="ValidationOptions" type="Input"/>
+		<dataSheet name="ValidationOptions" type="Both"/>
 		<dataSheet name="SiteData" type="Input"/>
 </transformer>
 
@@ -339,7 +341,7 @@
   condaEnv="wisdm-r-conda.yml"
   condaEnvVersion="6">
 	<dataSheet name="FieldData" type="Input"/>
-	<dataSheet name="ValidationOptions" type="Input"/>
+	<dataSheet name="ValidationOptions" type="Both"/>
 	<dataSheet name="RetainedCovariates" type="Input"/>
 	<dataSheet name="SiteData" type="Input"/>
 	 <dataSheet name="TuningModel" type="Input" />
@@ -360,7 +362,7 @@
 	condaEnv="wisdm-r-conda.yml"
 	condaEnvVersion="6">
 		<dataSheet name="FieldData" type="Input"/>
-		<dataSheet name="ValidationOptions" type="Input"/>
+		<dataSheet name="ValidationOptions" type="Both"/>
 		<dataSheet name="RetainedCovariates" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="GLM" type="Input"/>
@@ -376,7 +378,7 @@
 	condaEnv="wisdm-r-conda.yml"
 	condaEnvVersion="6">
 		<dataSheet name="FieldData" type="Input"/>
-		<dataSheet name="ValidationOptions" type="Input"/>
+		<dataSheet name="ValidationOptions" type="Both"/>
 		<dataSheet name="RetainedCovariates" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="GAM" type="Input"/>
@@ -392,7 +394,7 @@
 	condaEnv="wisdm-r-conda.yml"
 	condaEnvVersion="6">
 		<dataSheet name="FieldData" type="Input"/>
-		<dataSheet name="ValidationOptions" type="Input"/>
+		<dataSheet name="ValidationOptions" type="Both"/>
 		<dataSheet name="RetainedCovariates" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="RF" type="Input"/>
@@ -409,7 +411,7 @@
 	condaEnvVersion="6">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
-		<dataSheet name="ValidationOptions" type="Input"/>
+		<dataSheet name="ValidationOptions" type="Both"/>
 		<dataSheet name="RetainedCovariates" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="Maxent" type="Input"/>
@@ -426,7 +428,7 @@
 	condaEnvVersion="6">
 		<dataSheet name="FieldData" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
-		<dataSheet name="ValidationOptions" type="Input"/>
+		<dataSheet name="ValidationOptions" type="Both"/>
 		<dataSheet name="RetainedCovariates" type="Input"/>
 		<dataSheet name="SiteData" type="Input"/>
 		<dataSheet name="BRT" type="Input"/>
