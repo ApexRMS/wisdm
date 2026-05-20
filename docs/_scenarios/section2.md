@@ -121,10 +121,10 @@ Here are some short descriptions of each stage:
         * Required inputs: Template Raster File, Field Data, Covariate Data. 
         * Outputs: Updated Field Data and Site Data.
 
-4. <u>Background Data Generation</u>: 
-    * Generates background sites (pseudoabsences), extracts covariate data for the pseudoabsence sites and updates the Field Data and Site Data to include pseudoabsence data. 
-        * Required inputs: Template Raster File, Field Data, Covariate Data, Site Data. 
-        * Outputs: Updated Field Data and updated Site Data. 
+4. <u>Background Data Generation</u>:
+    * Generates background sites (pseudoabsences), extracts covariate data for the pseudoabsence sites and updates the Field Data and Site Data to include pseudoabsence data.
+        * Required inputs: Template Raster File, Field Data, Covariate Data, Site Data.
+        * Outputs: Updated Field Data and updated Site Data.
 
 5. <u>Prepare Training/Testing Data</u>: 
     * Divides Field Data into training and testing sets and/or cross validation folds based on the provided Validation Options arguments. 

@@ -54,7 +54,7 @@ def run():
 
     # Get path to scenario inputs
     ssimInputDir = myScenario.library.location + \
-        ".input\\Scenario-" + str(myScenario.sid)
+        ".input/Scenario-" + str(myScenario.sid)
 
     # Load datasheets
     # inputs

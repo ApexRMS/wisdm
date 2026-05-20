@@ -253,7 +253,6 @@ if (
   names(covsDE) <- devInfo$covDE
 
   # run pairs explore with all variables -----------------------------------------
-
   options <- covariateSelectionSheet
   options$NumberOfPlots <- ncol(select(
     siteData,
@@ -278,7 +277,7 @@ if (
   # covsDE
   options <- covariateSelectionSheet
 
-  launchShinyApp(file.path(packageDir, "06-covariate-correlation-app.R"))
+  launchShinyApp(file.path(packageDir, "06-covariate-correlation-app.R"), appName = "Correlation Viewer")
 
   # save image files
   covariateCorrelationSheet <- safe_rbind(

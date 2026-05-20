@@ -555,7 +555,7 @@ safe_rbind <- function(df, row) {
 
 # Launch a Shiny app with browser detection ------------------------------------
 
-launchShinyApp <- function(appPath) {
+launchShinyApp <- function(appPath, appName = "Viewer") {
   # Search PATH first — works on all platforms (Linux, macOS, Windows)
   chrome.names <- c(
     "google-chrome",
@@ -617,8 +617,32 @@ launchShinyApp <- function(appPath) {
     }
   }
 
-  # Final fallback: let Shiny use the OS default (xdg-open / open / shell.exec)
-  if (is.null(browser.path)) {
+  # On headless Unix (Docker or bare Linux server with no DISPLAY), bind to
+  # 0.0.0.0:3838 so the app is reachable via port forwarding from the host.
+  # A browser is still launched if one is found (e.g. via X11 forwarding).
+  # Chrome/Firefox require --no-sandbox when running as root.
+  # On non-headless Unix or Windows, behaviour is unchanged.
+  headless_unix <- .Platform$OS.type == "unix" &&
+    nchar(Sys.getenv("DISPLAY")) == 0
+
+  if (headless_unix) {
+    port <- 3838
+    progressBar(
+      type = "message",
+      message = paste0(
+        "ACTION REQUIRED: Open http://localhost:",
+        port,
+        " in your browser to use the Interactive ",
+        appName
+      )
+    )
+    shiny::runApp(
+      appDir = appPath,
+      host = "0.0.0.0",
+      port = port,
+      launch.browser = FALSE
+    )
+  } else if (is.null(browser.path)) {
     shiny::runApp(appDir = appPath, launch.browser = TRUE)
   } else {
     shiny::runApp(appDir = appPath, launch.browser = function(shinyurl) {
