@@ -670,3 +670,30 @@ calcSiteWeights <- function(response) {
   bgNum <- as.numeric(table(response)["0"])
   ifelse(response == 1, 1, prNum / bgNum)
 }
+
+# Resolve random seed -----------------------------------------------------------
+# Ensures a random seed is always present in ValidationOptions. If none is
+# found, generates one, logs a warning, saves it to the datasheet, and sets
+# the R session seed. Returns the (possibly updated) validationDataSheet.
+
+resolveRandomSeed <- function(myScenario, validationDataSheet) {
+  if (nrow(validationDataSheet) < 1 || is.na(validationDataSheet$RandomSeed)) {
+    updateRunLog(
+      "\nWarning: No random seed found in Validation Options. A seed is being ",
+      "generated and saved automatically. For complete pipeline reproducibility, ",
+      "run from Stage 4 (Background Data Generation) or Stage 5 ",
+      "(Prepare Training/Testing Data).\n"
+    )
+    if (nrow(validationDataSheet) < 1) {
+      validationDataSheet <- safe_rbind(
+        validationDataSheet,
+        data.frame(RandomSeed = sample.int(.Machine$integer.max, 1))
+      )
+    } else {
+      validationDataSheet$RandomSeed <- sample.int(.Machine$integer.max, 1)
+    }
+    saveDatasheet(myScenario, validationDataSheet, "wisdm_ValidationOptions")
+  }
+  set.seed(validationDataSheet$RandomSeed)
+  return(validationDataSheet)
+}

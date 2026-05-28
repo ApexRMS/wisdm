@@ -49,11 +49,27 @@ siteDataSheet <- datasheet(
   optional = T,
   lookupsAsFactors = F
 )
+validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
 
 # Set progress bar -------------------------------------------------------------
 
 steps <- 5 + length(covariateDataSheet$CovariatesID)
 progressBar(type = "begin", totalSteps = steps)
+
+# Generate and save random seed if not already set -----------------------------
+
+if (nrow(validationDataSheet) < 1 || is.na(validationDataSheet$RandomSeed)) {
+  if (nrow(validationDataSheet) < 1) {
+    validationDataSheet <- safe_rbind(
+      validationDataSheet,
+      data.frame(RandomSeed = sample.int(.Machine$integer.max, 1))
+    )
+  } else {
+    validationDataSheet$RandomSeed <- sample.int(.Machine$integer.max, 1)
+  }
+  saveDatasheet(myScenario, validationDataSheet, "wisdm_ValidationOptions")
+}
+set.seed(validationDataSheet$RandomSeed)
 
 # Prep inputs ------------------------------------------------------------------
 
