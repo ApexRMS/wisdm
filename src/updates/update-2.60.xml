@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<update comment="Random Seed Updates">
+  <action code="Exec" condition="TableExists" criteria="wisdm_ValidationOptions">
+    <item>ALTER TABLE wisdm_ValidationOptions ADD COLUMN RandomSeed INTEGER</item>
+  </action>
+</update>
