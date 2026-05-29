@@ -20,6 +20,7 @@ dependencies:
   - r-glmnet=4.1_2
   - r-glmnetutils=1.1.8
   - r-gridextra=2.3
+  - r-lattice=0.22_6
   - r-mgcv=1.8_42
   - r-pander=0.6.5
   - r-png=0.1_8
