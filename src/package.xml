@@ -86,6 +86,8 @@
   <column name="CrossValidate" displayName="Use cross validation for model selection" dataType="Boolean"/>
   <column name="StratifyFolds" displayName="Stratify cross-validation folds by the response" dataType="Boolean"/>
   <column name="NumberOfFolds" displayName="Number of cross-validation folds" dataType="Integer"/>
+  <column name="RandomSeed" displayName="Random seed (leave blank for non-reproducible runs)" dataType="Integer"/>
+
 </dataSheet>
 
 <dataSheet name="TemplateRaster" displayName="Template Raster" isSingleRow="True">

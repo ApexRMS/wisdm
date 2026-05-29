@@ -51,12 +51,12 @@ siteDataSheet <- datasheet(
 )
 # validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
 
-# # Set progress bar -------------------------------------------------------------
+# Set progress bar -------------------------------------------------------------
 
-# steps <- 5 + length(covariateDataSheet$CovariatesID)
-# progressBar(type = "begin", totalSteps = steps)
+steps <- 5 + length(covariateDataSheet$CovariatesID)
+progressBar(type = "begin", totalSteps = steps)
 
-# # Generate and save random seed if not already set -----------------------------
+# Generate and save random seed if not already set -----------------------------
 
 # if (nrow(validationDataSheet) < 1 || is.na(validationDataSheet$RandomSeed)) {
 #   if (nrow(validationDataSheet) < 1) {
