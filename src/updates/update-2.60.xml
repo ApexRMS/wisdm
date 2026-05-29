@@ -1,15 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <update comment="BRT TreeComplexity and Random Seed Updates">
-<!--   <action 
-    code="DropColumn"
-    tableName="wisdm_GLM"
-    dropColumnName="SelectBestPredictors">
-  </action>
-  <action 
-    code="DropColumn"
-    tableName="wisdm_GLM"
-    dropColumnName="SimplificationMethod">
-  </action> -->
   <action code="Exec" condition="TableExists" criteria="wisdm_BRT">
     <item>ALTER TABLE wisdm_BRT ADD COLUMN TreeComplexity INTEGER</item>
   </action>
