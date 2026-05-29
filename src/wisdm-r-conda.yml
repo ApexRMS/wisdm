@@ -18,6 +18,7 @@ dependencies:
   - r-gbm=2.1.8.1
   - r-ggplot2=3.4.2
   - r-glmnet=4.1_2
+  - r-glmnetutils=1.1.8
   - r-gridextra=2.3
   - r-mgcv=1.8_42
   - r-pander=0.6.5
