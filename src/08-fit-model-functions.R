@@ -55,9 +55,147 @@ fitModel <- function(
 
   #================================================================
   #                        GLM
-  #=================================================================
+  #================================================================
 
   if (out$modType == "glm") {
+    if (out$pseudoAbs) {
+      # for glm sum of absence weights set equal to sum of presence weights
+      absWt <- sum(dat$Response == 1) / sum(dat$Response == 0)
+      dat$Weight[dat$Response == 0] <- absWt
+    }
+
+    penalty <- if (out$modOptions$SimplificationMethod == "AIC") {
+      2
+    } else {
+      log(nrow(dat))
+    }
+
+    factor.mask <- na.omit(match(out$factorInputVars, sanitizedVarNames))
+    cont.mask <- seq(1:length(out$inputVars))
+    if (length(factor.mask) != 0) {
+      cont.mask <- cont.mask[-c(factor.mask)]
+    }
+
+    if (
+      !out$modOptions$ConsiderSquaredTerms &
+        !out$modOptions$ConsiderInteractions
+    ) {
+      scopeGLM <- list(
+        lower = as.formula(paste("Response", "~1")),
+        upper = as.formula(paste(
+          "Response",
+          "~",
+          paste(sanitizedVarNames, collapse = '+')
+        ))
+      )
+    }
+    if (
+      out$modOptions$ConsiderSquaredTerms & out$modOptions$ConsiderInteractions
+    ) {
+      # creates full scope with interactions and squared terms
+      scopeGLM <- list(
+        lower = as.formula(paste("Response", "~1")),
+        upper = as.formula(paste(
+          "Response",
+          "~",
+          paste(
+            c(
+              if (length(factor.mask) > 0) {
+                paste(sanitizedVarNames[factor.mask], collapse = " + ")
+              },
+              paste(
+                "(",
+                paste(sanitizedVarNames[cont.mask], collapse = " + "),
+                ")^2",
+                sep = ""
+              ),
+              paste("I(", sanitizedVarNames[cont.mask], "^2)", sep = "")
+            ),
+            collapse = " + "
+          ),
+          sep = ""
+        ))
+      )
+    }
+    if (
+      !out$modOptions$ConsiderSquaredTerms & out$modOptions$ConsiderInteractions
+    ) {
+      # creates full scope with interactions
+      scopeGLM <- list(
+        lower = as.formula(paste("Response", "~1")),
+        upper = as.formula(paste(
+          "Response",
+          "~",
+          paste(
+            c(
+              if (length(factor.mask) > 0) {
+                paste(sanitizedVarNames[factor.mask], collapse = " + ")
+              },
+              paste(
+                "(",
+                paste(sanitizedVarNames[cont.mask], collapse = " + "),
+                ")^2",
+                sep = ""
+              )
+            ),
+            collapse = " + "
+          ),
+          sep = ""
+        ))
+      )
+    }
+    if (
+      out$modOptions$ConsiderSquaredTerms & !out$modOptions$ConsiderInteractions
+    ) {
+      # creates full scope with squared terms
+      scopeGLM <- list(
+        lower = as.formula(paste("Response", "~1")),
+        upper = as.formula(paste(
+          "Response",
+          "~",
+          paste(
+            c(
+              paste(sanitizedVarNames, collapse = " + "),
+              paste("I(", sanitizedVarNames[cont.mask], "^2)", sep = "")
+            ),
+            collapse = " + "
+          ),
+          sep = ""
+        ))
+      )
+    }
+
+    if (out$modOptions$SelectBestPredictors) {
+      modelGLMStep <- step(
+        glm(
+          scopeGLM$lower,
+          family = out$modelFamily,
+          data = dat,
+          weights = dat$Weight,
+          na.action = "na.exclude"
+        ),
+        direction = 'both',
+        scope = scopeGLM,
+        k = penalty,
+        trace = 1
+      )
+    } else {
+      modelGLMStep <- glm(
+        scopeGLM$upper,
+        family = out$modelFamily,
+        data = dat,
+        weights = dat$Weight,
+        na.action = "na.exclude"
+      )
+    }
+    return(modelGLMStep)
+  }
+
+  #================================================================
+  #                        GLM LASSO
+  #=================================================================
+
+  if (out$modType == "glm-lasso") {
     if (out$pseudoAbs) {
       # for glm sum of absence weights set equal to sum of presence weights
       absWt <- sum(dat$Response == 1) / sum(dat$Response == 0) # down weighted
@@ -190,6 +328,7 @@ fitModel <- function(
     }
     return(lasso_model)
   }
+
 
   #================================================================
   #                        RF
@@ -1349,13 +1488,13 @@ makeModelEvalPlots <- function(out = out) {
 
   if (
     out$modType %in%
-      c("glm", "mars") &
+      c("glm", "glm-lasso", "mars") &
       is.null(out$data$test) &
       !(out$modType == "mars" & out$pseudoAbs)
   ) {
     png(standResidualFile, height = 1000, width = 1000)
     par(mfrow = c(2, 2))
-    if (out$modType == "glm") {
+    if (out$modType c("glm", "glm-lasso")) {
       plot(out$finalMod, cex = 1.5, lwd = 1.5, cex.main = 1.5, cex.lab = 1.5)
     }
     # if(out$input$script.name == "mars") plot(out$finalMod$glm.list[[1]], cex = 1.5, lwd = 1.5, cex.main = 1.5, cex.lab = 1.5)
@@ -1366,7 +1505,7 @@ makeModelEvalPlots <- function(out = out) {
   ### Calculate all statistics on test\train or train\cv splits  ###
 
   out$hasSplit <- hasSplit <- (out$pseudoAbs &
-    !out$modType %in% c("glm", "maxent"))
+    !out$modType %in% c("glm", "glm-lasso", "maxent"))
   Stats <- list()
 
   if (out$validationOptions$CrossValidate) {
@@ -1760,7 +1899,7 @@ makeModelEvalPlots <- function(out = out) {
       })
     )
     if (out$pseudoAbs) {
-      if (!(out$modType %in% c("glm"))) {
+      if (!(out$modType %in% c("glm", "glm-lasso"))) {
         absn <- which(a$pres.abs == 0, arr.ind = TRUE)
         samp <- sample(absn, size = min(table(a$pres.abs)), replace = FALSE)
       }
@@ -3813,7 +3952,7 @@ response.curves <- function(out) {
   }
   # if(out$modType %in% c("mars")){ nVars <- nrow(out$mod$summary)
   # if(out$modType %in% c("udc")) nVars <- out$mods$n.vars.final
-  if (out$modType %in% c("glm", "rf", "maxent", "brt", "gam")) {
+  if (out$modType %in% c("glm", "glm-lasso", "rf", "maxent", "brt", "gam")) {
     nVars <- out$nVarsFinal
   }
 
