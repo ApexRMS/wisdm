@@ -12,7 +12,7 @@
 library(rsyncrosim)
 library(tidyr)
 library(dplyr)
-# library(glmnet)
+library(glmnet)
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "00-helper-functions.R"))
@@ -80,18 +80,10 @@ if (nrow(GLMSheet) < 1) {
   GLMSheet <- safe_rbind(
     GLMSheet,
     data.frame(
-      SelectBestPredictors = FALSE,
-      SimplificationMethod = "AIC",
       ConsiderSquaredTerms = FALSE,
       ConsiderInteractions = FALSE
     )
   )
-}
-if (is.na(GLMSheet$SelectBestPredictors)) {
-  GLMSheet$SelectBestPredictors <- FALSE
-}
-if (is.na(GLMSheet$SimplificationMethod)) {
-  GLMSheet$SimplificationMethod <- "AIC"
 }
 if (is.na(GLMSheet$ConsiderSquaredTerms)) {
   GLMSheet$ConsiderSquaredTerms <- FALSE
@@ -234,7 +226,7 @@ out$tempDir <- ssimTempDir
 # Create output text file ------------------------------------------------------
 
 capture.output(
-  cat("Generalized Linear Model Results"),
+  cat("Generalized Linear Model (lasso) Results"),
   file = file.path(ssimTempDir, paste0(modType, "_output.txt"))
 )
 on.exit(
@@ -265,7 +257,7 @@ progressBar()
 finalMod <- fitModel(dat = trainingData, out = out)
 
 # save model to temp storage
-# saveRDS(finalMod, file = file.path(ssimTempDir, "Data", paste0(modType, "_model.rds")))
+# saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
 
 # add relevant model details to out
 out$finalMod <- finalMod
@@ -283,8 +275,8 @@ txt0 <- paste(
   "Settings:\n",
   "\n\t model family:  ",
   out$modelFamily,
-  "\n\t simplification method:  ",
-  GLMSheet$SimplificationMethod,
+  # "\n\t simplification method:  ",
+  # GLMSheet$SimplificationMethod,
   "\n\n\n",
   "Results:\n\t ",
   "number covariates in final model:  ",
@@ -296,16 +288,13 @@ txt0 <- paste(
 modSummary <- summary(finalMod)
 
 updateRunLog("\nSummary of Model:\n")
-coeftbl <- modSummary$coefficients
-coeftbl <- round(coeftbl, 6)
+coeftbl <- coef(finalMod, s = "lambda.min")
+coeftbl <- round(coeftbl, 6) |> as.matrix()
 coeftbl <- cbind(rownames(coeftbl), coeftbl)
 rownames(coeftbl) <- NULL
 colnames(coeftbl) <- c(
   "Variable",
-  "Estimate",
-  "Std. Error",
-  "z value",
-  "Pr(>|z|)"
+  "Estimate"
 )
 updateRunLog(pander::pandoc.table.return(
   coeftbl,

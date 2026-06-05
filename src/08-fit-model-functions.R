@@ -1494,7 +1494,7 @@ makeModelEvalPlots <- function(out = out) {
   ) {
     png(standResidualFile, height = 1000, width = 1000)
     par(mfrow = c(2, 2))
-    if (out$modType c("glm", "glm-lasso")) {
+    if (out$modType %in% c("glm", "glm-lasso")) {
       plot(out$finalMod, cex = 1.5, lwd = 1.5, cex.main = 1.5, cex.lab = 1.5)
     }
     # if(out$input$script.name == "mars") plot(out$finalMod$glm.list[[1]], cex = 1.5, lwd = 1.5, cex.main = 1.5, cex.lab = 1.5)
