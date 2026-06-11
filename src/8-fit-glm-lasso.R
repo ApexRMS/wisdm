@@ -46,7 +46,7 @@ retainedCovariatesSheet <- datasheet(
   lookupsAsFactors = F
 )
 siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
-GLMSheet <- datasheet(myScenario, "wisdm_GLMLASSO")
+GLMSheet <- datasheet(myScenario, "wisdm_GLMlasso")
 modelOutputsSheet <- datasheet(
   myScenario,
   "wisdm_OutputModel",
@@ -92,7 +92,7 @@ if (is.na(GLMSheet$ConsiderInteractions)) {
   GLMSheet$ConsiderInteractions <- FALSE
 }
 
-saveDatasheet(myScenario, GLMSheet, "wisdm_GLMLASSO")
+saveDatasheet(myScenario, GLMSheet, "wisdm_GLMlasso")
 
 ## Validation Sheet
 if (nrow(validationDataSheet) < 1) {

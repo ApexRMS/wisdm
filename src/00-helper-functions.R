@@ -69,7 +69,7 @@ pred.fct <- function(
     y[idx] <- predictSafe(glm.predict, mod, x, idx)
   }
   if (modType == "glm-lasso") {
-    y[idx] <- predictSafe(glm.predict, mod, x, idx)
+    y[idx] <- predictSafe(glmlasso.predict, mod, x, idx)
   }
   if (modType == "rf") {
     y[idx] <- predictSafe(rf.predict, mod, x, idx)
@@ -93,6 +93,26 @@ glm.predict <- function(model, x) {
   # make predictions.
 
   y <- as.vector(stats::predict(object = model, newdata = x, type = "response"))
+
+  # encode missing values as -1.
+  y[is.na(y)] <- NaN
+
+  # return predictions.
+  return(y)
+}
+
+
+## glm-lasso predict function --------------------------------------------------
+
+glmlasso.predict <- function(model, x) {
+  # retrieve key items from the global environment #
+  # make predictions.
+
+  y <- as.vector(stats::predict(
+    object = model,
+    newdata = x,
+    type = "response",
+    s = "lambda.min"))
 
   # encode missing values as -1.
   y[is.na(y)] <- NaN
