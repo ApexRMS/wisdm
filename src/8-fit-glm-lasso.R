@@ -21,7 +21,7 @@ source(file.path(packageDir, "08-fit-model-functions.R"))
 # set progress bar -------------------------------------------------------------
 
 steps <- 11
-updateRunLog('8 - Generalized Linear Model => Begin')
+updateRunLog('8 - Generalized Linear Model - LASSO => Begin')
 progressBar(type = "begin", totalSteps = steps)
 
 # Connect to library -----------------------------------------------------------
@@ -46,7 +46,7 @@ retainedCovariatesSheet <- datasheet(
   lookupsAsFactors = F
 )
 siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
-GLMSheet <- datasheet(myScenario, "wisdm_GLM")
+GLMSheet <- datasheet(myScenario, "wisdm_GLMLASSO")
 modelOutputsSheet <- datasheet(
   myScenario,
   "wisdm_OutputModel",
@@ -92,7 +92,7 @@ if (is.na(GLMSheet$ConsiderInteractions)) {
   GLMSheet$ConsiderInteractions <- FALSE
 }
 
-saveDatasheet(myScenario, GLMSheet, "wisdm_GLM")
+saveDatasheet(myScenario, GLMSheet, "wisdm_GLMLASSO")
 
 ## Validation Sheet
 if (nrow(validationDataSheet) < 1) {
@@ -191,7 +191,7 @@ progressBar()
 out <- list()
 
 ## Model type
-out$modType <- modType <- "glm"
+out$modType <- modType <- "glm-lasso"
 
 ## Model options
 out$modOptions <- GLMSheet

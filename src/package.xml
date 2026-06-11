@@ -24,6 +24,7 @@
   <column name="ModelName" displayName="Model Name" dataType="String"/>
   <column name="ModelType" displayName="Model Type" dataType="String"/>
   <record columns="ModelName|ModelType" values="Generalized Linear Model|glm"/>
+  <record columns="ModelName|ModelType" values="Generalized Linear Model - LASSO|glm-lasso"/>
   <record columns="ModelName|ModelType" values="Random Forest|rf"/>
   <record columns="ModelName|ModelType" values="Maxent|maxent"/>
   <record columns="ModelName|ModelType" values="Boosted Regression Trees|brt"/>
@@ -119,6 +120,11 @@
 <dataSheet name="GLM" displayName="Generalized Linear Model" isSingleRow="True">
   <column name="SelectBestPredictors" displayName="Select best predictors" dataType="Boolean"/>
   <column name="SimplificationMethod" displayName="Simplification method" dataType="Integer" validationType="List" formula1="0:AIC|1:BIC"/>
+  <column name="ConsiderSquaredTerms" displayName="Consider squared terms" dataType="Boolean"/>
+  <column name="ConsiderInteractions" displayName="Consider interactions" dataType="Boolean"/>
+</dataSheet>
+
+<dataSheet name="GLMlasso" displayName="Generalized Linear Model - LASSO" isSingleRow="True">
   <column name="ConsiderSquaredTerms" displayName="Consider squared terms" dataType="Boolean"/>
   <column name="ConsiderInteractions" displayName="Consider interactions" dataType="Boolean"/>
 </dataSheet>
@@ -370,6 +376,22 @@
     <dataSheet name="OutputModel" type="Output"/>
 </transformer>
 
+<!--GLMlasso Transformer-->
+<transformer
+  name="GLMlasso"
+  displayName="8 - Generalized Linear Model - LASSO"
+  programArguments="8-fit-glm-lasso.R"
+  isMultiprocessing="False"
+  condaEnv="wisdm-r-conda.yml"
+  condaEnvVersion="6">
+    <dataSheet name="FieldData" type="Input"/>
+    <dataSheet name="ValidationOptions" type="Both"/>
+    <dataSheet name="RetainedCovariates" type="Input"/>
+    <dataSheet name="SiteData" type="Input"/>
+    <dataSheet name="GLMlasso" type="Input"/>
+    <dataSheet name="OutputModel" type="Output"/>
+</transformer>
+
 <!--GAM Transformer-->
 <transformer
   name="GAM"
@@ -561,9 +583,10 @@
     <item name="RetainedCovariates"/>
   </group>
   <group name="Models">
-      <item name="BRT"/>
+    <item name="BRT"/>
     <item name="GAM"/>
     <item name="GLM"/>
+    <item name="GLMlasso"/>
     <item name="Maxent"/>
     <item name="RF" displayName="Random Forest"/>
     <item name="OutputModel"/>

@@ -68,6 +68,9 @@ pred.fct <- function(
   if (modType == "glm") {
     y[idx] <- predictSafe(glm.predict, mod, x, idx)
   }
+  if (modType == "glm-lasso") {
+    y[idx] <- predictSafe(glm.predict, mod, x, idx)
+  }
   if (modType == "rf") {
     y[idx] <- predictSafe(rf.predict, mod, x, idx)
   }
