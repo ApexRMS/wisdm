@@ -2293,7 +2293,8 @@ VariableImportance <- function(
       preds = trainPred,
       obs = out$data$train$Response,
       mod = out$finalMod,
-      modType = out$modType
+      modType = out$modType,
+      out=out
     )
   cnames <- "train"
 
@@ -2307,7 +2308,8 @@ VariableImportance <- function(
         preds = out$data$test$predicted,
         obs = out$data$test$Response,
         mod = out$finalMod,
-        modType = out$modType
+        modType = out$modType,
+        out=out
       )
     cnames <- c(cnames, "test")
   }
