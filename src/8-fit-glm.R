@@ -12,7 +12,6 @@
 library(rsyncrosim)
 library(tidyr)
 library(dplyr)
-# library(glmnet)
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "00-helper-functions.R"))

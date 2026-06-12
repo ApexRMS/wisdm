@@ -261,6 +261,7 @@ finalMod <- fitModel(dat = trainingData, out = out)
 
 # add relevant model details to out
 out$finalMod <- finalMod
+out$lambda.min = finalMod$lambda.min
 out$finalVars <- attr(terms(formula(finalMod)), "term.labels")
 # have to remove all the junk with powers and interactions for mess map production to work
 out$finalVars <- unique(unlist(strsplit(
@@ -321,15 +322,13 @@ progressBar()
 out$data$train$predicted <- pred.fct(
   x = out$data$train,
   mod = finalMod,
-  modType = modType
-)
+  modType = modType)
 
 if (validationDataSheet$SplitData) {
   out$data$test$predicted <- pred.fct(
     x = out$data$test,
     mod = finalMod,
-    modType = modType
-  )
+    modType = modType)
 }
 progressBar()
 

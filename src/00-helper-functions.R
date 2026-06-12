@@ -3,7 +3,7 @@
 ## ApexRMS, March 2022
 ## -------------------------
 
-packageDir <- Sys.getenv("ssim_package_directory")
+# packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "00-constants.R"))
 
 # Calculate Deviance function --------------------------------------------------
@@ -52,36 +52,34 @@ calc.deviance <- function(
 pred.fct <- function(
   mod, # mod = the model fit object
   x, # x = data to predict for
-  modType
+  modType, # model type
+  out=NULL, # out object to get model parameters if needed (LASSO, not cv.glmnet object)
+  cv_splits=FALSE
 ) {
   # modType = one of mars, glm, rf, brt, maxlike at present
 
-  y <- rep(NA, nrow(x))
-  idx <- stats::complete.cases(x)
 
-  predictSafe <- function(predictFct, mod, x, idx) {
-    tryCatch(predictFct(mod, x[idx, , drop = FALSE]), error = function(e) {
-      rep(NA, sum(idx))
-    })
-  }
 
   if (modType == "glm") {
-    y[idx] <- predictSafe(glm.predict, mod, x, idx)
+    y <- glm.predict(mod, x)
   }
-  if (modType == "glm-lasso") {
-    y[idx] <- predictSafe(glmlasso.predict, mod, x, idx)
+  if (modType == "glm-lasso" & !cv_splits) {
+    y <- glm.predict(mod, x)
+  }
+  if (modType == "glm-lasso" & cv_splits) {
+    y <- glmlasso.predict(mod, x, out)
   }
   if (modType == "rf") {
-    y[idx] <- predictSafe(rf.predict, mod, x, idx)
+    y <- rf.predict(mod, x)
   }
   if (modType == "maxent") {
-    y[idx] <- predictSafe(maxent.predict, mod, x, idx)
+    y <- maxent.predict(mod, x)
   }
   if (modType == "brt") {
-    y[idx] <- predictSafe(brt.predict, mod, x, idx)
+    y <- brt.predict(mod, x)
   }
   if (modType == "gam") {
-    y[idx] <- predictSafe(gam.predict, mod, x, idx)
+    y <- gam.predict(mod, x)
   }
   return(y)
 } # end pred.vals function
@@ -92,7 +90,10 @@ glm.predict <- function(model, x) {
   # retrieve key items from the global environment #
   # make predictions.
 
-  y <- as.vector(stats::predict(object = model, newdata = x, type = "response"))
+  y <- as.vector(stats::predict(
+    object = model,
+    newdata = x,
+    type = "response"))
 
   # encode missing values as -1.
   y[is.na(y)] <- NaN
@@ -104,7 +105,7 @@ glm.predict <- function(model, x) {
 
 ## glm-lasso predict function --------------------------------------------------
 
-glmlasso.predict <- function(model, x) {
+glmlasso.predict <- function(model, x, out) {
   # retrieve key items from the global environment #
   # make predictions.
 
@@ -112,7 +113,7 @@ glmlasso.predict <- function(model, x) {
     object = model,
     newdata = x,
     type = "response",
-    s = "lambda.min"))
+    s = out$lambda.min))
 
   # encode missing values as -1.
   y[is.na(y)] <- NaN

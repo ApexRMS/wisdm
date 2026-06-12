@@ -319,12 +319,13 @@ fitModel <- function(
           weights = dat$Weight,
           nfolds = 10)
     } else {
-      lasso_model <- glmnet(
-        formula = scopeGLM$formula,
-        data = dat,
-        family = out$modelFamily,
-        weights = dat$Weight,
-        alpha = 1)
+        lasso_model <- glmnet(
+          formula = scopeGLM$formula,
+          data = dat,
+          family = out$modelFamily,
+          alpha = 1,
+          weights = dat$Weight
+          )
     }
     return(lasso_model)
   }
@@ -1153,8 +1154,8 @@ cv.fct <- function(
       dat = data[model.mask, ],
       out = out,
       weight = site.weights[model.mask],
-      fullFit = F
-    )
+      fullFit = FALSE
+    )      
 
     if (is.null(cv.final.mod)) {
       stop(paste0(
@@ -1167,7 +1168,9 @@ cv.fct <- function(
     fitted.values[pred.mask] <- pred.fct(
       mod = cv.final.mod,
       x = xdat[pred.mask, ],
-      modType = out$modType
+      modType = out$modType,
+      out=out,
+      cv_splits=TRUE
     )      
     
 
@@ -1177,7 +1180,8 @@ cv.fct <- function(
       obs = obs[pred.mask],
       preds = fitted.values[pred.mask],
       mod = cv.final.mod,
-      modType = out$modType
+      modType = out$modType,
+      out=out
     )
 
     thresh[i] <- as.numeric(optimal.thresholds(
@@ -1386,7 +1390,8 @@ permute.predict <- function(
   obs, # response (observed) values
   preds, # predicted values
   mod, # fit model
-  modType # model type
+  modType, # model type
+  out
 ) {
   AUC <- matrix(NA, nrow = length(inputVars), ncol = 5)
 
@@ -1397,7 +1402,13 @@ permute.predict <- function(
       dat.i <- dat
       dat.i[, indx] <- dat.i[sample(1:dim(dat)[1]), indx]
       options(warn = -1)
-      new.pred <- as.vector(pred.fct(mod = mod, x = dat.i, modType = modType))
+      new.pred <- as.vector(
+        pred.fct(
+          mod = mod,
+          x = dat.i,
+          modType = modType,
+          out=out,
+          cv_splits=TRUE))
       # have to use ROC here because auc in presence absence incorrectly assumes auc will be greater than .5
       AUC[i, j] <- roc(obs, new.pred)
       options(warn = 0)
