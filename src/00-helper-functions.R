@@ -59,7 +59,6 @@ pred.fct <- function(
   # modType = one of mars, glm, rf, brt, maxlike at present
 
 
-
   if (modType == "glm") {
     y <- glm.predict(mod, x)
   }

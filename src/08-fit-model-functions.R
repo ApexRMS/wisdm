@@ -1191,7 +1191,9 @@ cv.fct <- function(
         pred = pred.fct(
           mod = cv.final.mod,
           x = xdat[model.mask, ],
-          modType = out$modType
+          modType = out$modType,
+          out=out,
+          cv_splits=TRUE
         )
       ),
       opt.methods = out$modOptions$thresholdOptimization
@@ -2273,7 +2275,9 @@ VariableImportance <- function(
     trainPred <- pred.fct(
       mod = out$finalMod,
       x = out$data$train,
-      modType = out$modType
+      modType = out$modType,
+      out=out,
+      cv_splits=FALSE
     )
     auc$train <- roc(out$data$train$Response, trainPred)
   } else {
@@ -4035,7 +4039,9 @@ response.curves <- function(out) {
     Xf[, 1] <- pred.fct(
       mod = out$finalMod,
       x = as.data.frame(Xp1),
-      modType = out$modType
+      modType = out$modType,
+      out=out,
+      cv_splits=FALSE
     )
 
     y.lim <- c(0, 1)
