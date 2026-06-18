@@ -179,6 +179,7 @@ if (all(is.na(siteDataWide$Weight))) {
 }
 
 # set pseudo absences to zero
+siteDataWide$Response <- as.integer(siteDataWide$Response)
 if (any(siteDataWide$Response == backgroundValue)) {
   pseudoAbs <- TRUE
 } else {
@@ -287,6 +288,10 @@ progressBar()
 # Fit model --------------------------------------------------------------------
 
 finalMod <- fitModel(dat = trainingData, out = out)
+
+if (is.null(finalMod)) {
+  stop("Unable to fit RF with provided data and settings. Review the run log for details.")
+}
 
 finalMod$trainingData <- trainingData
 

@@ -58,7 +58,7 @@ progressBar(type = "begin", totalSteps = steps)
 
 # Generate and save random seed if not already set -----------------------------
 
-if (nrow(validationDataSheet) < 1 || is.na(validationDataSheet$RandomSeed)) {
+if (nrow(validationDataSheet) < 1 || is.null(validationDataSheet$RandomSeed) || isTRUE(is.na(validationDataSheet$RandomSeed))) {
   if (nrow(validationDataSheet) < 1) {
     validationDataSheet <- safe_rbind(
       validationDataSheet,

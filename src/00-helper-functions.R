@@ -677,13 +677,16 @@ calcSiteWeights <- function(response) {
 # the R session seed. Returns the (possibly updated) validationDataSheet.
 
 resolveRandomSeed <- function(myScenario, validationDataSheet) {
-  if (nrow(validationDataSheet) < 1 || is.na(validationDataSheet$RandomSeed)) {
-    updateRunLog(
+  seedMissing <- nrow(validationDataSheet) < 1 ||
+    is.null(validationDataSheet$RandomSeed) ||
+    isTRUE(is.na(validationDataSheet$RandomSeed))
+  if (seedMissing) {
+    updateRunLog(paste0(
       "\nWarning: No random seed found in Validation Options. A seed is being ",
       "generated and saved automatically. For complete pipeline reproducibility, ",
       "run from Stage 4 (Background Data Generation) or Stage 5 ",
       "(Prepare Training/Testing Data).\n"
-    )
+    ))
     if (nrow(validationDataSheet) < 1) {
       validationDataSheet <- safe_rbind(
         validationDataSheet,
