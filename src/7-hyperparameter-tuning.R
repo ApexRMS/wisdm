@@ -157,7 +157,8 @@ if(compCases/allCases < 0.9){updateRunLog(paste("\nWarning: ", round((1-compCase
 # set site weights to default of 1 if not already supplied
 if(all(is.na(siteDataWide$Weight))){siteDataWide$Weight <- 1}
   
-# set pseudo absences to zero 
+# set pseudo absences to zero
+siteDataWide$Response <- as.integer(siteDataWide$Response)
 if(any(siteDataWide$Response == backgroundValue)){pseudoAbs <- TRUE} else {pseudoAbs <- FALSE}
 siteDataWide$Response[siteDataWide$Response == backgroundValue] <- 0
   

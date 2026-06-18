@@ -58,18 +58,22 @@ progressBar(type = "begin", totalSteps = steps)
 
 # Generate and save random seed if not already set -----------------------------
 
-# if (nrow(validationDataSheet) < 1 || is.na(validationDataSheet$RandomSeed)) {
-#   if (nrow(validationDataSheet) < 1) {
-#     validationDataSheet <- safe_rbind(
-#       validationDataSheet,
-#       data.frame(RandomSeed = sample.int(.Machine$integer.max, 1))
-#     )
-#   } else {
-#     validationDataSheet$RandomSeed <- sample.int(.Machine$integer.max, 1)
-#   }
-#   saveDatasheet(myScenario, validationDataSheet, "wisdm_ValidationOptions")
-# }
-# set.seed(validationDataSheet$RandomSeed)
+if (
+  nrow(validationDataSheet) < 1 ||
+    is.null(validationDataSheet$RandomSeed) ||
+    isTRUE(is.na(validationDataSheet$RandomSeed))
+) {
+  if (nrow(validationDataSheet) < 1) {
+    validationDataSheet <- safe_rbind(
+      validationDataSheet,
+      data.frame(RandomSeed = sample.int(.Machine$integer.max, 1))
+    )
+  } else {
+    validationDataSheet$RandomSeed <- sample.int(.Machine$integer.max, 1)
+  }
+  saveDatasheet(myScenario, validationDataSheet, "wisdm_ValidationOptions")
+}
+set.seed(validationDataSheet$RandomSeed)
 
 # Prep inputs ------------------------------------------------------------------
 
@@ -100,7 +104,7 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   if (is.na(backgroundDataOptionsSheet$KDESurface)) {
     if (
       backgroundDataOptionsSheet$BackgroundGenerationMethod ==
-      "Kernel Density Estimate (KDE)"
+        "Kernel Density Estimate (KDE)"
     ) {
       backgroundDataOptionsSheet$KDESurface <- "Continuous"
     }
@@ -108,8 +112,8 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   if (is.na(backgroundDataOptionsSheet$Isopleth)) {
     if (
       backgroundDataOptionsSheet$KDESurface == "Binary" |
-      backgroundDataOptionsSheet$BackgroundGenerationMethod ==
-      "Minimum Convex Polygon (MCP)"
+        backgroundDataOptionsSheet$BackgroundGenerationMethod ==
+          "Minimum Convex Polygon (MCP)"
     ) {
       backgroundDataOptionsSheet$Isopleth <- 95
     }
@@ -146,7 +150,7 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
 
 if (
   backgroundDataOptionsSheet$GenerateBackgroundSites &&
-  any(fieldDataSheet$Response == backgroundValue)
+    any(fieldDataSheet$Response == backgroundValue)
 ) {
   updateRunLog(paste0(
     "\nWarning: ",
@@ -161,7 +165,7 @@ if (
 if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   if (
     backgroundDataOptionsSheet$BackgroundGenerationMethod ==
-    "Kernel Density Estimate (KDE)"
+      "Kernel Density Estimate (KDE)"
   ) {
     methodInputs <- list(
       "method" = "kde",
@@ -171,7 +175,7 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   }
   if (
     backgroundDataOptionsSheet$BackgroundGenerationMethod ==
-    "Minimum Convex Polygon (MCP)"
+      "Minimum Convex Polygon (MCP)"
   ) {
     methodInputs <- list(
       "method" = "mcp",
@@ -179,21 +183,21 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
       "isopleth" = backgroundDataOptionsSheet$Isopleth
     )
   }
-  
+
   ### load template raster
   templateRaster <- rast(templateSheet$RasterFilePath)
-  
+
   backgroundSurfacePointGeneration(
     sp = "species",
-    n=backgroundDataOptionsSheet$BackgroundSiteCount+100,
+    n = backgroundDataOptionsSheet$BackgroundSiteCount + 100,
     template = templateRaster,
     outputDir = ssimTempDir,
     dat = fieldDataSheet,
-    method = methodInputs)
-  
+    method = methodInputs
+  )
+
   progressBar()
   gc()
-  
 
   # add background point to field data
   bgData <- data.table::fread(file.path(
@@ -201,17 +205,18 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
     paste0("species_", methodInputs$method, "_bg_pts.csv")
   ))
 
-
   ### stop if no background pts were returned
   if (nrow(bgData) == 0) {
     updateRunLog(
       "\nWarning: No background sites remained after filtering against presence pixels. No background data was added to Field Data.\n"
     )
-    stop("Warning: No background sites remained after filtering against presence pixels. No background data was added to Field Data.")
-  }  
-  
+    stop(
+      "Warning: No background sites remained after filtering against presence pixels. No background data was added to Field Data."
+    )
+  }
+
   progressBar()
-  
+
   ### create SiteIDs for background data
   startId <- max(fieldDataSheet$SiteID, siteDataSheet$SiteID) + 1
   bgData$SiteID <- startId:(startId + nrow(bgData) - 1)
@@ -219,7 +224,7 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   ### create spatvect object for extract
   vbgPts <- vect(bgData, geom = c("X", "Y"), crs = crs(templateRaster))
 
-  ### add columns for combining with field data. 
+  ### add columns for combining with field data.
   bgData$UseInModelEvaluation <- NA
   bgData$ModelSelectionSplit <- NA
   bgData$Weight <- NA
@@ -230,32 +235,38 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   }
 
   ### subset cols
-  sel_cols = names(fieldDataSheet)
-  bgData = bgData[,..sel_cols]; rm(sel_cols)
+  sel_cols <- names(fieldDataSheet)
+  bgData <- bgData[, ..sel_cols]
+  rm(sel_cols)
   fieldDataSheet <- rbind(fieldDataSheet, bgData)
   fieldDataSheet$SiteID <- format(fieldDataSheet$SiteID, scientific = F)
 
   ## Extract covariate data for background sites  -----
-  ### loop through each 
+  ### loop through each
   for (i in 1:nrow(covariateDataSheet)) {
-    ri = terra::rast(covariateDataSheet$RasterFilePath[i])
-    vals = terra::extract(
-      ri, vbgPts,
-      method="simple",
-      cells=FALSE,
-      xy=FALSE,
-      ID=TRUE)
-    rm(ri); gc()
-    bgData[,covariateDataSheet$CovariatesID[i]:=vals[,2]]
+    ri <- terra::rast(covariateDataSheet$RasterFilePath[i])
+    vals <- terra::extract(
+      ri,
+      vbgPts,
+      method = "simple",
+      cells = FALSE,
+      xy = FALSE,
+      ID = TRUE
+    )
+    rm(ri)
+    gc()
+    bgData[, covariateDataSheet$CovariatesID[i] := vals[, 2]]
     # progressBar()
   }
   bgData[, SiteID := as.character(SiteID)]
 
-  CovariatesID = covariateDataSheet$CovariatesID[!covariateDataSheet$CovariatesID %in% "mtpi_10m"] 
+  CovariatesID <- covariateDataSheet$CovariatesID[
+    !covariateDataSheet$CovariatesID %in% "mtpi_10m"
+  ]
 
   ### trim cols to format and melt to long format
-  keep_cols = c("SiteID", covariateDataSheet$CovariatesID)
-  bgData = bgData[,..keep_cols]
+  keep_cols <- c("SiteID", covariateDataSheet$CovariatesID)
+  bgData <- bgData[, ..keep_cols]
   bgSiteData <- gather(
     data = bgData,
     key = CovariatesID,

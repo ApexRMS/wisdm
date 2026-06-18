@@ -176,6 +176,7 @@ if (all(is.na(siteDataWide$Weight))) {
 }
 
 # set pseudo absences to zero
+siteDataWide$Response <- as.integer(siteDataWide$Response)
 if (any(siteDataWide$Response == backgroundValue)) {
   pseudoAbs <- TRUE
 } else {

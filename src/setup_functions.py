@@ -19,6 +19,9 @@ import sys
 #: Raster nodata sentinel value used throughout wisdm transformers.
 nodataValue = -9999
 
+#: Background/pseudo-absence sentinel value used throughout wisdm transformers.
+backgroundValue = -9998
+
 #: Default compression algorithm for output rasters.
 rasterCompression = 'lzw'
 
