@@ -647,6 +647,10 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
         binThreshold <- as.numeric(thresholds[
           outputOptionsSheet$ThresholdOptimization
         ])
+        updateRunLog(paste0(
+          "\nBinary map threshold (", outputOptionsSheet$ThresholdOptimization,
+          "): ", round(binThreshold, 4), "\n"
+        ))
         thr_int <- as.integer(round(binThreshold * 100))
 
         prob_r <- rast(file.path(ssimTempDir, paste0(modType, "_prob_map.tif")))

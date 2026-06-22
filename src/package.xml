@@ -446,7 +446,7 @@
 		<dataSheet name="RestrictionRaster" type="Input"/>
 		<dataSheet name="OutputModel" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
-		<dataSheet name="OutputOptions" type="Input"/>
+		<dataSheet name="OutputOptions" type="Both"/>
 		<dataSheet name="OutputSpatial" type="Output" spatialMultiProcessing="True"/>
 </transformer>
 
