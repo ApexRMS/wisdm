@@ -57,9 +57,10 @@ fitModel <- function(
 
   if (out$modType == "glm") {
     if (out$pseudoAbs) {
-      # for glm sum of absence weights set equal to sum of presence weights
+      # for glm sum of absence weights set equal to sum of presence weights;
+      # multiply rather than replace so user-defined T3 weights are preserved
       absWt <- sum(dat$Response == 1) / sum(dat$Response == 0)
-      dat$Weight[dat$Response == 0] <- absWt
+      dat$Weight[dat$Response == 0] <- absWt * dat$Weight[dat$Response == 0]
     }
 
     penalty <- if (out$modOptions$SimplificationMethod == "AIC") {
@@ -331,9 +332,10 @@ fitModel <- function(
       nFolds <- 10
     }
 
-    # calculating the case weights
+    # calculating the case weights — combine ecological balance weight with any
+    # user-defined spatial de-duplication weights from T3 (defaults to 1 if none)
     prNum <- as.numeric(table(dat$Response)["1"]) # number of presences (also used for tree complexity)
-    wt <- calcSiteWeights(dat$Response)
+    wt <- calcSiteWeights(dat$Response) * dat$Weight
 
     # tmp <- Sys.time()
     modelBRT <- tryCatch(
@@ -390,9 +392,9 @@ fitModel <- function(
   #================================================================
 
   if (out$modType == "gam") {
-    # calculating the case weights
-    # the order of weights should be the same as presences and backgrounds in the training data
-    wt <- calcSiteWeights(dat$Response)
+    # calculating the case weights — combine ecological balance weight with any
+    # user-defined spatial de-duplication weights from T3 (defaults to 1 if none)
+    wt <- calcSiteWeights(dat$Response) * dat$Weight
 
     factor.mask <- na.omit(match(out$factorInputVars, sanitizedVarNames))
     cont.mask <- seq(1:length(sanitizedVarNames))
@@ -627,6 +629,36 @@ runMaxent <- function(
 ) {
   jarPath <- file.path(ssimEnvironment()$PackageDirectory, "maxent.jar")
 
+  # On Windows, cmd.exe treats commas as argument delimiters, so commas in the
+  # SyncroSim library name (embedded in temp paths) cause MaxEnt's argument
+  # parser to split file paths into fragments. Convert to 8.3 short paths to
+  # remove commas and spaces from path components. Not needed on Linux/macOS
+  # where the shell passes arguments verbatim without comma-splitting.
+  if (.Platform$OS.type == "windows") {
+    jarPath     <- utils::shortPathName(jarPath)
+    samplesfile <- utils::shortPathName(samplesfile)
+    if (!is.null(envlayers))       envlayers       <- utils::shortPathName(envlayers)
+    outputdir   <- utils::shortPathName(outputdir)
+    if (!is.null(testsamplesfile)) testsamplesfile  <- utils::shortPathName(testsamplesfile)
+
+    # shortPathName() returns the input unchanged when NTFS 8.3 names are
+    # disabled. If commas remain, MaxEnt will still fail — stop early with
+    # a clear message rather than letting MaxEnt produce a cryptic error.
+    badPaths <- Filter(
+      function(p) grepl(",", p),
+      Filter(Negate(is.null), list(samplesfile, envlayers, outputdir))
+    )
+    if (length(badPaths) > 0) {
+      stop(
+        "MaxEnt cannot run because the SyncroSim library path contains commas ",
+        "(e.g. '", basename(dirname(dirname(badPaths[[1]]))), "'), which MaxEnt's ",
+        "argument parser cannot handle on Windows. Please rename the library to ",
+        "remove commas and re-run. Alternatively, enable NTFS 8.3 short names by ",
+        "running 'fsutil 8dot3name set <drive:> 0' as an administrator."
+      )
+    }
+  }
+
   args <- c(paste0("-mx", out$modOptions$MemoryLimit, "m"), "-jar", jarPath)
 
   if (!out$modOptions$VisibleInterface) {
@@ -812,9 +844,10 @@ est.lr <- function(dat, out) {
     nFolds <- 10
   }
 
-  # calculating the case weights
+  # calculating the case weights — combine ecological balance weight with any
+  # user-defined spatial de-duplication weights from T3 (defaults to 1 if none)
   prNum <- as.numeric(table(dat$Response)["1"]) # number of presences (also used for tree complexity)
-  wt <- calcSiteWeights(dat$Response)
+  wt <- calcSiteWeights(dat$Response) * dat$Weight
 
   # learning rates to test
   lrs <- c(.1, .05, .02, .01, .005, .0025, .001, .0005, .0001)
@@ -3531,15 +3564,17 @@ capture.stats <- function(
         "\n\n  Threshold Methods based on",
         switch(
           opt.methods,
-          "1" = ".5 threshold",
-          "2" = "Sens=Spec",
-          "3" = "maximize (sensitivity+specificity)/2",
-          "4" = "maximize Kappa",
-          "5" = "maximize percent correctly classified",
-          "6" = "predicted prevalence=observed prevalence",
-          "7" = "threshold=observed prevalence",
-          "8" = "mean predicted probability",
-          "9" = "minimize distance between ROC plot and (0,1)"
+          "Sens=Spec" = "sensitivity equals specificity"
+          # "Default"      = ".5 threshold",
+          # "MaxSens+Spec" = "max sensitivity + specificity",
+          # "No.Omission"  = "no omission",
+          # "PredPrev=Obs" = "predicted prevalence equals observed",
+          # "ObsPrev"      = "threshold equals observed prevalence",
+          # "MeanProb"     = "mean predicted probability",
+          # "MinROCdist"   = "minimize ROC distance",
+          # "ReqSens"      = "required sensitivity",
+          # "ReqSpec"      = "required specificity",
+          # "Cost"         = "minimum cost"
         ),
         if (label %in% c("Training", "Final evaluation")) {
           paste("\n\t Threshold                    : ", Stats.lst[[1]]$thresh)
