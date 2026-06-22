@@ -227,7 +227,8 @@ out$modType <- modType <- "brt"
 ## Model options
 out$modOptions <- BRTSheet
 # out$modOptions$stepSize <- out$modOptions$NumberOfTrees
-out$modOptions$thresholdOptimization <- "Sens=Spec" # To Do: link to defined Threshold Optimization Method in UI - currently set to default: sensitivity=specificity
+out$modOptions$thresholdOptimization <- "Sens=Spec"
+updateRunLog("\nThreshold method for evaluation plots and statistics: Sensitivity equals specificity\n")
 
 ## Model family
 out$modelFamily <- "bernoulli" # "binomial"
