@@ -52,33 +52,32 @@ calc.deviance <- function(
 pred.fct <- function(
   mod, # mod = the model fit object
   x, # x = data to predict for
-  modType
+  modType, # model type
+  out = NULL, # out object to get model parameters if needed (LASSO, not cv.glmnet object)
+  cv_splits = FALSE
 ) {
   # modType = one of mars, glm, rf, brt, maxlike at present
 
-  y <- rep(NA, nrow(x))
-  idx <- stats::complete.cases(x)
-
-  predictSafe <- function(predictFct, mod, x, idx) {
-    tryCatch(predictFct(mod, x[idx, , drop = FALSE]), error = function(e) {
-      rep(NA, sum(idx))
-    })
-  }
-
   if (modType == "glm") {
-    y[idx] <- predictSafe(glm.predict, mod, x, idx)
+    y <- glm.predict(mod, x)
+  }
+  if (modType == "glm-lasso" & !cv_splits) {
+    y <- glm.predict(mod, x)
+  }
+  if (modType == "glm-lasso" & cv_splits) {
+    y <- glmlasso.predict(mod, x, out)
   }
   if (modType == "rf") {
-    y[idx] <- predictSafe(rf.predict, mod, x, idx)
+    y <- rf.predict(mod, x)
   }
   if (modType == "maxent") {
-    y[idx] <- predictSafe(maxent.predict, mod, x, idx)
+    y <- maxent.predict(mod, x)
   }
   if (modType == "brt") {
-    y[idx] <- predictSafe(brt.predict, mod, x, idx)
+    y <- brt.predict(mod, x)
   }
   if (modType == "gam") {
-    y[idx] <- predictSafe(gam.predict, mod, x, idx)
+    y <- gam.predict(mod, x)
   }
   return(y)
 } # end pred.vals function
@@ -95,6 +94,43 @@ glm.predict <- function(model, x) {
   y[is.na(y)] <- NaN
 
   # return predictions.
+  return(y)
+}
+
+
+## glm-lasso predict functions -------------------------------------------------
+
+# Use glmlasso.predict() in T8 cross-validation (pred.fct with cv_splits=TRUE).
+# CV fold models are plain glmnet objects with no lambda.min, so the optimal
+# lambda must come from out$lambda.min (set from the full cv.glmnet fit).
+glmlasso.predict <- function(model, x, out) {
+  y <- as.vector(stats::predict(
+    object = model,
+    newdata = x,
+    type = "response",
+    s = out$lambda.min
+  ))
+  y[is.na(y)] <- NaN
+  return(y)
+}
+
+# Use glmlasso.predict2() in T9 spatial prediction (terra::predict via
+# predict_block_int). The model is always the full cv.glmnet object, which
+# carries lambda.min directly, and terra's calling convention requires a
+# 2-argument signature (model, x).
+# NA rows are excluded before calling glmnet's C routines (which cannot
+# handle NAs) and filled back in afterward, matching rf/brt/gam behaviour.
+glmlasso.predict2 <- function(model, x) {
+  y <- rep(NA, nrow(x))
+  idx <- stats::complete.cases(x)
+  if (any(idx)) {
+    y[idx] <- as.vector(predict(
+      object = model,
+      newdata = x[idx, , drop = FALSE],
+      type = "response",
+      s = model$lambda.min
+    ))
+  }
   return(y)
 }
 
@@ -431,8 +467,8 @@ modelEvaluation <- function(predOcc, predAbs) {
   }
 
   xc <- methods::new("modelEvaluation")
-  xc@presence = p
-  xc@absence = a
+  xc@presence <- p
+  xc@absence <- a
 
   R <- sum(rank(c(p, a))[1:np]) - (np * (np + 1) / 2)
   auc <- R / (as.numeric(na) * as.numeric(np))
@@ -455,41 +491,41 @@ modelEvaluation <- function(predOcc, predAbs) {
     res[i, 3] <- length(p[p < tr[i]]) # c  false negatives
     res[i, 4] <- length(a[a < tr[i]]) # d  true negatives
   }
-  xc@confusion = res
-  a = res[, 1]
-  b = res[, 2]
-  c = res[, 3]
-  d = res[, 4]
+  xc@confusion <- res
+  a <- res[, 1]
+  b <- res[, 2]
+  c <- res[, 3]
+  d <- res[, 4]
   # after Fielding and Bell
   np <- as.integer(np)
   na <- as.integer(na)
-  prevalence = (a[1] + c[1]) / N
+  prevalence <- (a[1] + c[1]) / N
   # overall diagnostic power
-  ODP = (b[1] + d[1]) / N
+  ODP <- (b[1] + d[1]) / N
   xc@stats <- data.frame(np, na, prevalence, auc, cor = corc, pcor, ODP)
   rownames(xc@stats) <- NULL
   # correct classification rate
-  CCR = (a + d) / N
+  CCR <- (a + d) / N
   # sensitivity, or true positive rate
-  TPR = a / (a + c)
+  TPR <- a / (a + c)
   # specificity, or true negative rate
-  TNR = d / (b + d)
+  TNR <- d / (b + d)
   # False positive rate
-  FPR = b / (b + d)
+  FPR <- b / (b + d)
   # False negative rate
-  FNR = c / (a + c)
-  PPP = a / (a + b)
-  NPP = d / (c + d)
+  FNR <- c / (a + c)
+  PPP <- a / (a + b)
+  NPP <- d / (c + d)
   # misclassification rate
-  MCR = (b + c) / N
+  MCR <- (b + c) / N
   # odds ratio
-  OR = (a * d) / (c * b)
+  OR <- (a * d) / (c * b)
 
-  prA = (a + d) / N
-  prY = (a + b) / N * (a + c) / N
-  prN = (c + d) / N * (b + d) / N
-  prE = prY + prN
-  kappa = (prA - prE) / (1 - prE)
+  prA <- (a + d) / N
+  prY <- (a + b) / N * (a + c) / N
+  prN <- (c + d) / N * (b + d) / N
+  prE <- prY + prN
+  kappa <- (prA - prE) / (1 - prE)
   xc@tr_stats <- data.frame(
     treshold = tr,
     kappa,
@@ -511,7 +547,7 @@ modelEvaluation <- function(predOcc, predAbs) {
   no_omission <- tr[max(which(res[, "fn"] == 0))]
   # Suggestions by Diego Nieto-Lugilde
   # equal prevalence
-  equal_prevalence = tr[which.min(abs(tr - prevalence))]
+  equal_prevalence <- tr[which.min(abs(tr - prevalence))]
   # equal sensitivity and specificity
   equal_sens_spec <- tr[which.min(abs(TPR - TNR))]
 

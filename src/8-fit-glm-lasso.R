@@ -1,27 +1,27 @@
 ## --------------------
-## wisdm - fit brt
-## ApexRMS, June 2025
+## wisdm - fit glm
+## ApexRMS, March 2024
 ## --------------------
 
 # built under R version 4.1.3, SyncroSim 3.1.10 & rsyncrosim 2.1.3
-# script pulls in pre-processed field, site and covariate data; fits boost
-# regression trees (brt) model; builds model diagnostic and validation plots
+# script pulls in pre-processed field, site and covariate data; fits glm; builds
+# model diagnostic and validation plots
 
 # source dependencies ----------------------------------------------------------
 
-library(rsyncrosim) # install.packages("C:/GitHub/rsyncrosim", type="source", repos=NULL)
+library(rsyncrosim)
 library(tidyr)
 library(dplyr)
-library(dismo)
+library(glmnet)
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "00-helper-functions.R"))
 source(file.path(packageDir, "08-fit-model-functions.R"))
 
-# Set progress bar -------------------------------------------------------------
+# set progress bar -------------------------------------------------------------
 
 steps <- 11
-updateRunLog('8 - Boosted Regression Trees => Begin')
+updateRunLog('8 - Generalized Linear Model - LASSO => Begin')
 progressBar(type = "begin", totalSteps = steps)
 
 # Connect to library -----------------------------------------------------------
@@ -33,6 +33,7 @@ myScenario <- scenario()
 
 # Path to ssim temporary directory
 ssimTempDir <- ssimEnvironment()$TransferDirectory
+# ssimTempDir <- Sys.getenv("ssim_temp_directory")
 
 # Read in datasheets
 covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
@@ -45,7 +46,7 @@ retainedCovariatesSheet <- datasheet(
   lookupsAsFactors = F
 )
 siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
-BRTSheet <- datasheet(myScenario, "wisdm_BRT")
+GLMSheet <- datasheet(myScenario, "wisdm_GLMlasso")
 modelOutputsSheet <- datasheet(
   myScenario,
   "wisdm_OutputModel",
@@ -68,56 +69,30 @@ if (nrow(fieldDataSheet) == 0L) {
 }
 if (all(fieldDataSheet$Response == 1) | all(fieldDataSheet$Response == 0)) {
   stop(
-    "BRT is a presence-absences (or presence-background) method; please ensure that the Field Data includes both presence and absence (or pseudo-absence) data before continuing."
+    "GLM is a presence-absences method; please ensure that the Field Data includes both presence and absence (or pseudo-absence) data before continuing."
   )
 }
 
 #  Set defaults ----------------------------------------------------------------
 
-## BRT Sheet
-if (nrow(BRTSheet) < 1 | all(is.na(BRTSheet))) {
-  fitFromDefaults <- TRUE
-  BRTSheet <- BRTSheet %>% drop_na()
-  BRTSheet <- safe_rbind(
-    BRTSheet,
+## GLM Sheet
+if (nrow(GLMSheet) < 1) {
+  GLMSheet <- safe_rbind(
+    GLMSheet,
     data.frame(
-      FittingMethod = "Use defaults and tuning",
-      LearningRate = 0.001, # learning.rate
-      BagFraction = 0.75, # bag.fraction
-      TreeComplexity = 1, # tree complexity/interaction depth
-      MaximumTrees = 10000, # max.trees
-      NumberOfTrees = 50
+      ConsiderSquaredTerms = FALSE,
+      ConsiderInteractions = FALSE
     )
-  ) # n.trees
-} else {
-  if (BRTSheet$FittingMethod == "Use defaults and tuning") {
-    fitFromDefaults <- TRUE
-    BRTSheet$LearningRate <- 0.001
-    BRTSheet$BagFraction <- 0.75
-    BRTSheet$TreeComplexity <- 1
-    BRTSheet$MaximumTrees <- 10000
-    BRTSheet$NumberOfTrees <- 50
-  } else {
-    fitFromDefaults <- FALSE
-    BRTSheet$FittingMethod <- "Use values provided below"
-  }
+  )
+}
+if (is.na(GLMSheet$ConsiderSquaredTerms)) {
+  GLMSheet$ConsiderSquaredTerms <- FALSE
+}
+if (is.na(GLMSheet$ConsiderInteractions)) {
+  GLMSheet$ConsiderInteractions <- FALSE
 }
 
-if (is.na(BRTSheet$LearningRate)) {
-  BRTSheet$LearningRate <- 0.001
-}
-if (is.na(BRTSheet$BagFraction)) {
-  BRTSheet$BagFraction <- 0.75
-}
-if (is.na(BRTSheet$TreeComplexity)) {
-  BRTSheet$TreeComplexity <- 1
-}
-if (is.na(BRTSheet$MaximumTrees)) {
-  BRTSheet$MaximumTrees <- 10000
-}
-if (is.na(BRTSheet$NumberOfTrees)) {
-  BRTSheet$NumberOfTrees <- 50
-}
+saveDatasheet(myScenario, GLMSheet, "wisdm_GLMlasso")
 
 ## Validation Sheet
 if (nrow(validationDataSheet) < 1) {
@@ -137,20 +112,15 @@ progressBar()
 # Prep data for model fitting --------------------------------------------------
 
 siteDataWide <- spread(siteDataSheet, key = CovariatesID, value = "Value")
-rm(siteDataSheet)
-gc()
 
 # remove variables dropped due to correlation
-keepVars <- intersect(
-  c('SiteID', retainedCovariatesSheet$CovariatesID),
-  names(siteDataWide)
-)
-siteDataWide <- siteDataWide[, keepVars, drop = FALSE]
+siteDataWide <- siteDataWide[, c(
+  'SiteID',
+  retainedCovariatesSheet$CovariatesID
+)]
 
 # merge field and site data
 siteDataWide <- merge(fieldDataSheet, siteDataWide, by = "SiteID")
-rm(fieldDataSheet)
-gc()
 
 # remove sites with incomplete data
 allCases <- nrow(siteDataWide)
@@ -176,7 +146,6 @@ if (all(is.na(siteDataWide$Weight))) {
 }
 
 # set pseudo absences to zero
-siteDataWide$Response <- as.integer(siteDataWide$Response)
 if (any(siteDataWide$Response == backgroundValue)) {
   pseudoAbs <- TRUE
 } else {
@@ -207,6 +176,7 @@ trainingData <- trainTestDatasets$`FALSE`
 if (!validationDataSheet$CrossValidate) {
   trainingData$ModelSelectionSplit <- FALSE
 }
+
 testingData <- trainTestDatasets$`TRUE`
 rm(trainTestDatasets)
 gc()
@@ -215,23 +185,20 @@ if (!is.null(testingData)) {
 }
 progressBar()
 
-
 # Model definitions ------------------------------------------------------------
 
 # create object to store intermediate model selection/evaluation inputs
 out <- list()
 
 ## Model type
-out$modType <- modType <- "brt"
+out$modType <- modType <- "glm-lasso"
 
 ## Model options
-out$modOptions <- BRTSheet
-# out$modOptions$stepSize <- out$modOptions$NumberOfTrees
-out$modOptions$thresholdOptimization <- "Sens=Spec"
-updateRunLog("\nThreshold method for evaluation plots and statistics: Sensitivity equals specificity\n")
+out$modOptions <- GLMSheet
+out$modOptions$thresholdOptimization <- "Sens=Spec" # To Do: link to defined Threshold Optimization Method in UI - currently set to default: sensitivity=specificity
 
 ## Model family
-out$modelFamily <- "bernoulli" # "binomial"
+out$modelFamily <- "binomial"
 
 ## Candidate variables
 out$inputVars <- retainedCovariatesSheet$CovariatesID
@@ -259,7 +226,7 @@ out$tempDir <- ssimTempDir
 # Create output text file ------------------------------------------------------
 
 capture.output(
-  cat("Boosted Regression Tree Results"),
+  cat("Generalized Linear Model (lasso) Results"),
   file = file.path(ssimTempDir, paste0(modType, "_output.txt"))
 )
 on.exit(
@@ -271,6 +238,7 @@ on.exit(
   add = TRUE
 )
 
+
 # Review model data ------------------------------------------------------------
 
 if (nrow(trainingData) / (length(out$inputVars) - 1) < 10) {
@@ -281,89 +249,72 @@ if (nrow(trainingData) / (length(out$inputVars) - 1) < 10) {
     sep = ""
   ))
 }
+
 progressBar()
 
 # Fit model --------------------------------------------------------------------
 
-if (fitFromDefaults) {
-  # tune learning rate to give approx 1000 trees in final model
-  allLrOut <- est.lr(dat = trainingData, out = out)
-  if (is.null(allLrOut) || nrow(allLrOut) == 0L) {
-    updateRunLog(
-      "\nWarning: Learning-rate estimation failed; falling back to default 0.001\n"
-    )
-  } else {
-    lrOut <- allLrOut[allLrOut$n.trees != allLrOut$trees.fit, , drop = FALSE]
-    if (nrow(lrOut) == 0L) {
-      lrOut <- allLrOut
-    }
-    BRTSheet$LearningRate <- out$modOptions$LearningRate <- lrOut$lrs[1]
-  }
-}
-
-saveDatasheet(myScenario, BRTSheet, "wisdm_BRT")
-
 finalMod <- fitModel(dat = trainingData, out = out)
 
-if (is.null(finalMod)) {
-  # updateRunLog("Unable to fit model with defined parameters. Try setting a smaller learning rate or smaller step size (i.e., Number of trees add per stage).")
-  stop(
-    "Unable to fit model with defined parameters. Try setting a smaller learning rate or smaller step size (i.e., Number of trees added per stage)."
-  )
-}
+# save model to temp storage
+# saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
 
 # add relevant model details to out
 out$finalMod <- finalMod
-out$finalVars <- finalMod$contributions$var # brt doesn't drop variables
+out$lambda.min = finalMod$lambda.min
+out$finalVars <- attr(terms(formula(finalMod)), "term.labels")
+# have to remove all the junk with powers and interactions for mess map production to work
+out$finalVars <- unique(unlist(strsplit(
+  gsub("I\\(", "", gsub("\\^2)", "", out$finalVars)),
+  ":"
+)))
 out$nVarsFinal <- length(out$finalVars)
 
-# number of trees
-out$modOptions$nTrees <- nTrees <- finalMod$gbm.call$best.trees
-
-# number of folds
-cvFolds <- finalMod$gbm.call$cv.folds
-
+# add relevant model details to text output
 txt0 <- paste(
   "\n\n",
   "Settings:\n",
-  # "\n\trandom seed used             : ",out$input$seed,
-  "\n\ttree complexity              : ",
-  finalMod$interaction.depth,
-  "\n\tlearning rate                : ",
-  finalMod$shrinkage,
-  "\n\tn(trees)                     : ",
-  nTrees,
-  "\n\tn folds                      : ",
-  cvFolds,
-  "\n\tn covariates in final model  : ",
-  paste(out$finalVars, collapse = ", "),
+  "\n\t model family:  ",
+  out$modelFamily,
+  # "\n\t simplification method:  ",
+  # GLMSheet$SimplificationMethod,
+  "\n\n\n",
+  "Results:\n\t ",
+  "number covariates in final model:  ",
+  length(attr(terms(formula(finalMod)), "term.labels")),
+  "\n",
   sep = ""
 )
 
-txt1 <- "\nRelative influence of predictors in final model:\n\n"
-# txt2 <- "\nImportant interactions in final model:\n\n"
-
-modelSummary <- finalMod$contributions
-modelSummary <- modelSummary[order(modelSummary[, 2], decreasing = T), ]
-row.names(modelSummary) <- NULL
-
-capture.output(
-  cat(txt0),
-  cat(txt1),
-  print(modelSummary),
-  file = file.path(ssimTempDir, paste0(modType, "_output.txt")),
-  append = TRUE
-)
+modSummary <- summary(finalMod)
 
 updateRunLog("\nSummary of Model:\n")
-coeftbl <- modelSummary
-coeftbl[, 2] <- round(coeftbl[, 2], 4)
-colnames(coeftbl) <- c("Variable", "Relative Influence")
+coeftbl <- coef(finalMod, s = "lambda.min")
+coeftbl <- round(coeftbl, 6) |> as.matrix()
+coeftbl <- cbind(rownames(coeftbl), coeftbl)
+rownames(coeftbl) <- NULL
+colnames(coeftbl) <- c(
+  "Variable",
+  "Estimate"
+)
 updateRunLog(pander::pandoc.table.return(
   coeftbl,
   style = "simple",
   split.tables = 100
 ))
+
+capture.output(
+  cat(txt0),
+  modSummary,
+  file = file.path(ssimTempDir, paste0(modType, "_output.txt")),
+  append = TRUE
+)
+
+if (length(coef(finalMod)) == 1) {
+  stop(
+    "Null model was selected. \nEvaluation metrics and plots will not be produced"
+  )
+}
 progressBar()
 
 # Test model predictions -------------------------------------------------------
@@ -371,15 +322,13 @@ progressBar()
 out$data$train$predicted <- pred.fct(
   x = out$data$train,
   mod = finalMod,
-  modType = modType
-)
+  modType = modType)
 
 if (validationDataSheet$SplitData) {
   out$data$test$predicted <- pred.fct(
     x = out$data$test,
     mod = finalMod,
-    modType = modType
-  )
+    modType = modType)
 }
 progressBar()
 
@@ -412,7 +361,7 @@ updateRunLog(pander::pandoc.table.return(
 finalMod$trainingData <- trainingData
 saveRDS(finalMod, file = file.path(ssimTempDir, paste0(modType, "_model.rds")))
 
-## Run Cross Validation (if specified) -----------------------------------------
+# Run Cross Validation (if specified) ------------------------------------------
 
 if (validationDataSheet$CrossValidate) {
   out <- cv.fct(out = out, nfolds = validationDataSheet$NumberOfFolds)
@@ -425,7 +374,6 @@ progressBar()
 
 out <- suppressWarnings(makeModelEvalPlots(out = out))
 progressBar()
-
 ## Response Curves ##
 
 response.curves(out)
@@ -474,13 +422,13 @@ modelOutputsSheet <- safe_rbind(
   )
 )
 
-if ("brt_StandardResidualPlots.png" %in% tempFiles) {
+if ("glm_StandardResidualPlots.png" %in% tempFiles) {
   modelOutputsSheet$ResidualsPlot <- file.path(
     ssimTempDir,
     paste0(modType, "_StandardResidualPlots.png")
   )
 }
-if ("brt_AUCPRPlot.png" %in% tempFiles) {
+if ("glm_AUCPRPlot.png" %in% tempFiles) {
   modelOutputsSheet$AUCPRPlot <- file.path(
     ssimTempDir,
     paste0(modType, "_AUCPRPlot.png")

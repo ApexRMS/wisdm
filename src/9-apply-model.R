@@ -309,6 +309,16 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
     modVars <- attr(mod$terms, "term.labels")
     trainingData <- mod$trainingData
     predictFct <- gam.predict
+  } else if (modType == "glm-lasso") {
+    modVars <- attr(terms(formula(mod)), "term.labels")
+    modVars <- unique(unlist(strsplit(
+      gsub("I\\(", "", gsub("\\^2\\)", "", modVars)),
+      ":"
+    )))
+    trainingData <- mod$trainingData
+    predictFct <- glmlasso.predict2
+    library(glmnet)
+    library(glmnetUtils)
   } else {
     stop("Unsupported model type: ", modType)
   }
