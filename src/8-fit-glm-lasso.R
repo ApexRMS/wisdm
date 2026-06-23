@@ -358,6 +358,7 @@ updateRunLog(pander::pandoc.table.return(
 ))
 
 # save model info to temp storage
+finalMod$trainingData <- trainingData
 saveRDS(finalMod, file = file.path(ssimTempDir, paste0(modType, "_model.rds")))
 
 # Run Cross Validation (if specified) ------------------------------------------
