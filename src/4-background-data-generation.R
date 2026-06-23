@@ -49,7 +49,7 @@ siteDataSheet <- datasheet(
   optional = T,
   lookupsAsFactors = F
 )
-# validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
+validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
 
 # Set progress bar -------------------------------------------------------------
 
