@@ -9,7 +9,4 @@
 <action code="Exec" condition="TableExists" criteria="wisdm_Models">
     <item>INSERT INTO wisdm_Models(ProjectID, ModelName, ModelType) SELECT ProjectID, "Generalized Linear Model - LASSO", "glm-lasso" FROM core_Project WHERE ProjectID NOT IN (SELECT DISTINCT ProjectID FROM wisdm_Models WHERE ModelType = "glm-lasso")</item>
   </action>
-  <action code="Exec" condition="TableNotExists" criteria="wisdm_GLMLASSO">
-    <item>CREATE TABLE wisdm_GLMLASSO(GLMLASSOID INTEGER, ScenarioID INTEGER, ConsiderSquaredTerms BOOLEAN, ConsiderInteractions BOOLEAN, PRIMARY KEY (GLMLASSOID))</item>
-  </action>
 </update>
