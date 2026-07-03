@@ -212,11 +212,10 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   ## Remove background points that occur in pixels with presence points -----
 
   # rasterize points data
-  r <- rast(
-    ext(templateRaster),
-    resolution = res(templateRaster),
-    crs = crs(templateRaster)
-  )
+  # Reuse templateRaster directly (rather than rebuilding a raster from its
+  # extent/resolution) so the pixel grid used for background-site extraction
+  # stays exactly aligned with the covariate rasters, which share the same grid.
+  r <- templateRaster
   pts <- vect(fieldData, geom = c("X", "Y"), crs = crs(templateRaster))
   rm(templateRaster, fieldData)
   gc()
