@@ -175,6 +175,11 @@ def prep_spatial_data():
     # "_tiled" appended to the name, and the datasheet is updated so all
     # downstream scripts use the tiled version.
     with rasterio.open(templatePath) as src:
+        if np.issubdtype(np.dtype(src.dtypes[0]), np.unsignedinteger):
+            raise ValueError(
+                f"Template raster has an unsigned integer dtype ({src.dtypes[0]}), "
+                f"which is incompatible with the nodata value -9999. Convert the "
+                f"template raster to float32 or a signed integer type before continuing.")
         if not src.profile.get('tiled', False):
             base, ext = os.path.splitext(os.path.basename(templatePath))
             tiledTemplatePath = os.path.join(

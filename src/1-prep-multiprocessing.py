@@ -108,6 +108,14 @@ if templateRasterSheet.RasterFilePath.isnull().item():
 if not templateRasterSheet.RasterFilePath.item().lower().endswith(".tif"):
     raise ValueError("Template raster must be a .tif file.")
 
+# check that template dtype is signed (unsigned types cannot represent nodata=-9999)
+with rasterio.open(templateRasterSheet.RasterFilePath.item()) as _src:
+    if np.issubdtype(np.dtype(_src.dtypes[0]), np.unsignedinteger):
+        raise ValueError(
+            f"Template raster has an unsigned integer dtype ({_src.dtypes[0]}), "
+            f"which is incompatible with the nodata value -9999. Convert the "
+            f"template raster to float32 or a signed integer type before continuing.")
+
 # stop if tile count is set to 1
 if templateRasterSheet.TileCount.item() == 1:
     # inform user and skip rest of script
