@@ -52,12 +52,21 @@ modType <- modelsSheet$ModelType[modelsSheet$ModelName == tuningModelSheet$Model
 if(modType == "rf"){ library(randomForest)
   tuningSheet <- datasheet(myScenario, "wisdm_rfTuning")
   modelSheet <- datasheet(myScenario, "wisdm_RF",returnScenarioInfo = F)
-  modelArgs <- list(NumberOfVariablesSampled = "Number of variables sampled at split", MaximumNodes = "Maximum number of nodes", NumberOfTrees = "Number of trees", NodeSize = "Node size")
+  modelArgs <- list(
+    NumberOfVariablesSampled = "Number of variables sampled at split",
+    MaximumNodes = "Maximum number of nodes",
+    NumberOfTrees = "Number of trees",
+    NodeSize = "Node size")
 } 
 if(modType == "brt"){ library(dismo)
   tuningSheet <- datasheet(myScenario, "wisdm_brtTuning")
   modelSheet <- datasheet(myScenario, "wisdm_BRT")
-  modelArgs <- list(LearningRate = "Learning rate", NumberOfTrees = "Number of trees added per stage", BagFraction = "Bag fraction", MaximumTrees = "Maximum number of trees")
+  modelArgs <- list(
+    LearningRate = "Learning rate",
+    NumberOfTrees = "Number of trees added per stage",
+    BagFraction = "Bag fraction",
+    TreeComplexity = "Tree Complexity",
+    MaximumTrees = "Maximum number of trees")
 }
   
 # output datasheets
@@ -127,6 +136,7 @@ if(modType == "brt"){
   if(is.na(modelSheet$BagFraction)){modelSheet$BagFraction <- 0.75}
   if(is.na(modelSheet$MaximumTrees)){modelSheet$MaximumTrees <- 10000}
   if(is.na(modelSheet$NumberOfTrees)){modelSheet$NumberOfTrees <- 50}
+  if(is.na(modelSheet$TreeComplexity)){modelSheet$TreeComplexity <- 1}
 }
 
 ## Validation Sheet

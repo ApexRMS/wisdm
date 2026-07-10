@@ -164,10 +164,10 @@
 
 <dataSheet name="brtTuning" displayName="Boosted Regression Trees [Tuning]" isSingleRow="True">
   <column name="Parameter1" displayName="Parameter 1" dataType="Integer" validationType="List"
-  formula1="1:Learning rate|2:Number of trees added per stage|3:Bag fraction|4:Maximum number of trees"/>
+  formula1="1:Learning rate|2:Number of trees added per stage|3:Bag fraction|4:Maximum number of trees|5:Tree Complexity"/>
   <column name="Parameter1Values" displayName="Tuning values for parameter 1" dataType="String" />
   <column name="Parameter2" displayName="Parameter 2" dataType="Integer" validationType="List"
-  formula1="1:Learning rate|2:Number of trees added per stage|3:Bag fraction|4:Maximum number of trees"/>
+  formula1="1:Learning rate|2:Number of trees added per stage|3:Bag fraction|4:Maximum number of trees|5:Tree Complexity"/>
   <column name="Parameter2Values" displayName="Tuning values for parameter 2" dataType="String" /> 
 </dataSheet>
 

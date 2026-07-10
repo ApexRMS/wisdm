@@ -3,7 +3,7 @@
 ## ApexRMS, March 2022
 ## -------------------------
 
-packageDir <- Sys.getenv("ssim_package_directory")
+# packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "00-constants.R"))
 
 # Calculate Deviance function --------------------------------------------------
