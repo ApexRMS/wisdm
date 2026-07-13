@@ -45,9 +45,9 @@ backgroundSurfacePointGeneration <- function(
   
   if ('kde' %in% method) { 
     ### set outnames
-    kde_bg_out = gsub('/', '\\\\', paste0(outputDir, '/', sp, '_kde_bg_surface.tif'))
-    kde_pts_out = paste0(outputDir, '/', sp, '_kde_bg_pts.csv')
-    bg_pts_out = paste0(outputDir, '/', sp, '_kde_bg_pts.shp')
+    kde_bg_out  <- file.path(outputDir, paste0(sp, "_kde_bg_surface.tif"))
+    kde_pts_out <- file.path(outputDir, paste0(sp, "_kde_bg_pts.csv"))
+    bg_pts_out  <- file.path(outputDir, paste0(sp, "_kde_bg_pts.shp"))
     ### don't waste time generating points if they exist
     if(file.exists(kde_pts_out)){
       stop("KDE background points already exist!\nDelete current points to proceed.")
@@ -264,8 +264,8 @@ backgroundSurfacePointGeneration <- function(
   
   if("mcp" %in% method){
     ### set outnames
-    mcp_pts_out <- paste0(outputDir, '/', sp, '_mcp_bg_pts.csv')
-    bg_pts_out <- paste0(outputDir, '/', sp, '_mcp_bg_pts.shp')
+    mcp_pts_out <- file.path(outputDir, paste0(sp, "_mcp_bg_pts.csv"))
+    bg_pts_out  <- file.path(outputDir, paste0(sp, "_mcp_bg_pts.shp"))
     ### don't waste time generating points if they exist
     if(file.exists(mcp_pts_out)){
       stop("MCP background points already exist!\nDelete current points to proceed.")
@@ -308,7 +308,7 @@ backgroundSurfacePointGeneration <- function(
       sf::st_cast("POLYGON")
     
     ### set path for bg surface
-    bg_out <- paste0(outputDir, '/', sp, '_mcp_bg_surface.tif')
+    bg_out <- file.path(outputDir, paste0(sp, "_mcp_bg_surface.tif"))
     
     ### convert to vect & set crs
     outVect <- terra::vect(polygons); rm(polygons)
