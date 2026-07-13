@@ -17,7 +17,7 @@ import os  # noqa: E402
 import sys  # noqa: E402
 from setup_functions import (  # noqa: E402
     setupCondaEnv, checkGdalVersion, setupGdalProj,
-    nodataValue, defaultChunkDims, getNumThreads)
+    nodataValue, backgroundValue, defaultChunkDims, getNumThreads, signedDtype)
 
 setupCondaEnv()
 checkGdalVersion()
@@ -187,6 +187,10 @@ else:
 sites = gpd.GeoDataFrame(fieldDataSheet, geometry=siteCoords, crs=fieldDataCRS)
 del fieldDataSheet, siteCoords
 
+# Convert background sites to 0 for processing; restore before saving (mirrors other transformers)
+bgSiteIds = sites.SiteID[sites.Response == backgroundValue].tolist()
+sites.loc[sites.Response == backgroundValue, "Response"] = 0
+
 # Reproject points if site crs differs from template crs
 if sites.crs != templateCRS:
     sites_reprojected = sites.to_crs(templateCRS)
@@ -281,8 +285,8 @@ if fieldDataOptions.AggregateAndWeight[0] != "None":
                     if sum(resp_d) == 0 or np.mean(resp_d) == 1:  # if all absence or all presence
                         sites.loc[sitesInd[1:], "Response"] = nodataValue
                     else:  # if response is mix of presence/absence
-                        # keep a presence and convert rest of repeat sites to background points
-                        keep_d = (sites.Response[sitesInd] == 1).index[0]
+                        # keep a presence and convert rest of repeat sites to nodataValue
+                        keep_d = sitesInd[resp_d.index(1)]
                         sitesInd.remove(keep_d)
                         sites.loc[sitesInd, "Response"] = nodataValue
             else:  # if count data
@@ -309,6 +313,10 @@ if fieldDataOptions.AggregateAndWeight[0] != "None":
     else:
         ps.environment.update_run_log(
             "Only one field data observation present per pixel; no aggregation or weighting required.")
+
+# Restore background sites to backgroundValue (only surviving sites remain as 0)
+sites.loc[(sites.SiteID.isin(bgSiteIds)) & (
+    sites.Response == 0), "Response"] = backgroundValue
 
 # Save updated field data to scenario
 outputFieldDataSheet = sites.iloc[:, 0:7]
@@ -337,7 +345,15 @@ sitesOut = sites[["SiteID"]]  # , "RasterCellID"
 for i in range(len(covariateDataSheet.CovariatesID)):
     # Load processed covariate rasters and extract site values
     outputCovariatePath = covariateDataSheet.RasterFilePath[i]
-    covariateRaster = rioxarray.open_rasterio(outputCovariatePath, chunks=defaultChunkDims)
+    covariateRaster = rioxarray.open_rasterio(
+        outputCovariatePath, chunks=defaultChunkDims)
+
+    if covariateRaster.dtype != signedDtype(covariateRaster.dtype):
+        raise ValueError(
+            f"Covariate '{covariateDataSheet.CovariatesID[i]}' has an unsigned integer "
+            f"dtype ({covariateRaster.dtype}), which is incompatible with the nodata "
+            f"value -9999. Run Transformer 2 (Spatial Data Preparation) first to convert "
+            f"covariate rasters to a signed type before continuing.")
 
     if covariateRaster.rio.width < templateRaster.rio.width or \
             covariateRaster.rio.height < templateRaster.rio.height:

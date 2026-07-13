@@ -4,149 +4,156 @@
 <!--Library Datasheets-->
 
 <dataSheet name="Network" dataScope="Library" isSingleRow="True">
-	<column name="NetworkEnabled" displayName="Access online transformation library" dataType="Boolean"/>
-	<record columns="NetworkEnabled" values="-1"/>
+  <column name="NetworkEnabled" displayName="Access online transformation library" dataType="Boolean"/>
+  <record columns="NetworkEnabled" values="-1"/>
 </dataSheet>
 
 <!--Project Datasheets-->
 
 <dataSheet name="Covariates" dataScope="Project" displayMember="CovariateName">
-	<column name="CovariateName" displayName="Covariate Name" dataType="String"/>
-	<column name="IsCategorical" displayName="Is Categorical" dataType="Boolean" defaultValue="0" isOptional="True"/>
-	<column name="Description" dataType="String" isOptional="True"/>
-	<column name="ID" dataType="Integer" isOptional="True" fillWeight="5" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="0"/>
+  <column name="CovariateName" displayName="Covariate Name" dataType="String"/>
+  <column name="IsCategorical" displayName="Is Categorical" dataType="Boolean" defaultValue="0" isOptional="True"/>
+  <column name="Description" dataType="String" isOptional="True"/>
+  <column name="ID" dataType="Integer" isOptional="True" fillWeight="5" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="0"/>
     <column name="Color" dataType="String" isOptional="True" isReadOnly="True" autoSizeMode="None" width="35"/>
-	<validation validationType="UniqueOrNull" columns="ID"/>
+  <validation validationType="UniqueOrNull" columns="ID"/>
     <validation validationType="Unique" columns="CovariateName"/>
 </dataSheet>
 
 <dataSheet name="Models" dataScope="Project" displayMember="ModelName">
-	<column name="ModelName" displayName="Model Name" dataType="String"/>
-	<column name="ModelType" displayName="Model Type" dataType="String"/>
-	<record columns="ModelName|ModelType" values="Generalized Linear Model|glm"/>
-	<record columns="ModelName|ModelType" values="Random Forest|rf"/>
-	<record columns="ModelName|ModelType" values="Maxent|maxent"/>
-	<record columns="ModelName|ModelType" values="Boosted Regression Trees|brt"/>
-	<record columns="ModelName|ModelType" values="Generalized Additive Model|gam"/>
+  <column name="ModelName" displayName="Model Name" dataType="String"/>
+  <column name="ModelType" displayName="Model Type" dataType="String"/>
+  <record columns="ModelName|ModelType" values="Generalized Linear Model|glm"/>
+  <record columns="ModelName|ModelType" values="Generalized Linear Model - LASSO|glm-lasso"/>
+  <record columns="ModelName|ModelType" values="Random Forest|rf"/>
+  <record columns="ModelName|ModelType" values="Maxent|maxent"/>
+  <record columns="ModelName|ModelType" values="Boosted Regression Trees|brt"/>
+  <record columns="ModelName|ModelType" values="Generalized Additive Model|gam"/>
 </dataSheet>
 
 <!--Scenario Datasheets-->
 
 <dataSheet name="FieldData" displayName="Field Data">
-	<column name="SiteID" displayName="Site" dataType="Integer" isOptional="True"/>
-	<column name="X" dataType="Double"/>
-	<column name="Y" dataType="Double"/>
-	<column name="Response" dataType="Integer"/>
-	<column name="UseInModelEvaluation" displayName="Use In Model Evaluation" dataType="Boolean" isOptional="True"/>
-	<column name="ModelSelectionSplit" displayName="Model Selection Split" dataType="Integer" isOptional="True"/>
-	<column name="Weight" dataType="Double" isOptional="True"/>
+  <column name="SiteID" displayName="Site" dataType="Integer" isOptional="True"/>
+  <column name="X" dataType="Double"/>
+  <column name="Y" dataType="Double"/>
+  <column name="Response" dataType="Integer"/>
+  <column name="UseInModelEvaluation" displayName="Use In Model Evaluation" dataType="Boolean" isOptional="True"/>
+  <column name="ModelSelectionSplit" displayName="Model Selection Split" dataType="Integer" isOptional="True"/>
+  <column name="Weight" dataType="Double" isOptional="True"/>
 </dataSheet>
 
 <dataSheet name="FieldDataOptions" displayName="Field Data Options" isSingleRow="True">
-	<column name="EPSG" displayName="Coordinate reference system (e.g., EPSG:4326)" dataType="String" isOptional="True"/>
-	<column name="AggregateAndWeight" displayName="Aggregate or weight data" dataType="Integer" validationType="List" formula1="0:Aggregate|1:Weight" isOptional="True"/>
+  <column name="EPSG" displayName="Coordinate reference system (e.g., EPSG:4326)" dataType="String" isOptional="True"/>
+  <column name="AggregateAndWeight" displayName="Aggregate or weight data" dataType="Integer" validationType="List" formula1="0:Aggregate|1:Weight" isOptional="True"/>
 </dataSheet>
 
 <dataSheet name="BackgroundDataOptions" displayName="Background Data Options" isSingleRow="True">
-	<column name="GenerateBackgroundSites" displayName="Generate background sites" dataType="Boolean" defaultValue="0"/>
-  	<column name="BackgroundSiteCount" displayName="Number of background sites added to field data" dataType="Integer" isOptional="True"/>
-	<column name="BackgroundGenerationMethod" displayName="Method used for background site generation" dataType="Integer" validationType="List" formula1="0:Kernel Density Estimate (KDE)|1:Minimum Convex Polygon (MCP)" isOptional="True"/>
+  <column name="GenerateBackgroundSites" displayName="Generate background sites" dataType="Boolean" defaultValue="0"/>
+    <column name="BackgroundSiteCount" displayName="Number of background sites added to field data" dataType="Integer" isOptional="True"/>
+  <column name="BackgroundGenerationMethod" displayName="Method used for background site generation" dataType="Integer" validationType="List" formula1="0:Kernel Density Estimate (KDE)|1:Minimum Convex Polygon (MCP)" isOptional="True"/>
     <column name="KDESurface" displayName="KDE background surface method" dataType="Integer" validationType="List" formula1="0:Continuous|1:Binary" isOptional="True"/>
     <column name="Isopleth" displayName="Isopleth threshold used for binary mask creation (%)" dataType="Integer" isOptional="True"/>
 </dataSheet>
 
 <dataSheet name="CovariateData" displayName="Covariate Data">
-	<column name="CovariatesID" displayName="Covariate" dataType="Integer" validationType="Datasheet" formula1="Covariates" allowDbNull="False"/>
-	<column name="RasterFilePath" displayName="Raster File" dataType="String" isExternalFile="True" isRaster="True" allowDbNull="False"/>
-	<column name="ResampleMethod" displayName="Resample Method" dataType="Integer" validationType="List" formula1="0:Nearest Neighbor|1:Bilinear|2:Cubic|3:Cubic Spline|4:Lanczos" isOptional="True" />
-	<column name="AggregationMethod" displayName="Aggregation Method" dataType="Integer" validationType="List" formula1="0:Mean|1:Max|2:Min|3:Majority" isOptional="True" />
+  <column name="CovariatesID" displayName="Covariate" dataType="Integer" validationType="Datasheet" formula1="Covariates" allowDbNull="False"/>
+  <column name="RasterFilePath" displayName="Raster File" dataType="String" isExternalFile="True" isRaster="True" allowDbNull="False"/>
+  <column name="ResampleMethod" displayName="Resample Method" dataType="Integer" validationType="List" formula1="0:Nearest Neighbor|1:Bilinear|2:Cubic|3:Cubic Spline|4:Lanczos" isOptional="True" />
+  <column name="AggregationMethod" displayName="Aggregation Method" dataType="Integer" validationType="List" formula1="0:Mean|1:Max|2:Min|3:Majority" isOptional="True" />
 </dataSheet>
 
 <dataSheet name="RetainedCovariates" displayName="Retained Covariate List">
-	<column name="CovariatesID" displayName="Covariate" dataType="Integer" validationType="Datasheet" formula1="Covariates"/>
+  <column name="CovariatesID" displayName="Covariate" dataType="Integer" validationType="Datasheet" formula1="Covariates"/>
 </dataSheet>
 
 <dataSheet name="SiteData" displayName="Site Data">
-	<column name="SiteID" displayName="Site" dataType="Integer"/>
-	<column name="CovariatesID" displayName="Covariate" dataType="Integer" validationType="Datasheet" formula1="Covariates"/>
-	<column name="Value" dataType="Double"/>
+  <column name="SiteID" displayName="Site" dataType="Integer"/>
+  <column name="CovariatesID" displayName="Covariate" dataType="Integer" validationType="Datasheet" formula1="Covariates"/>
+  <column name="Value" dataType="Double"/>
 </dataSheet>
 
 <dataSheet name="CovariateSelectionOptions" displayName="Covariate Selection Options" isSingleRow="True">
-	<column name="SelectionMethod" displayName="Covariate selection method" dataType="Integer" validationType="List" formula1="0:Interactive (Correlation Viewer)|1:Automatic (Variance Inflation Factor)" defaultValue="0"/>
-	<column name="DisplayHighestCorrelations" displayName="Display highest correlations" dataType="Boolean"/>
-	<column name="CorrelationThreshold" displayName="Correlation threshold" dataType="Double" defaultValue="0.7" validationType="Decimal" validationCondition="Between" formula1="0"  formula2="1"/>
-	<column name="NumberOfPlots" displayName="Number of plots" dataType="Integer"/>
-	<column name="VIFThreshold" displayName="Variance inflation factor threshold" dataType="Integer"/>
+  <column name="SelectionMethod" displayName="Covariate selection method" dataType="Integer" validationType="List" formula1="0:Interactive (Correlation Viewer)|1:Automatic (Variance Inflation Factor)" defaultValue="0"/>
+  <column name="DisplayHighestCorrelations" displayName="Display highest correlations" dataType="Boolean"/>
+  <column name="CorrelationThreshold" displayName="Correlation threshold" dataType="Double" defaultValue="0.7" validationType="Decimal" validationCondition="Between" formula1="0"  formula2="1"/>
+  <column name="NumberOfPlots" displayName="Number of plots" dataType="Integer"/>
+  <column name="VIFThreshold" displayName="Variance inflation factor threshold" dataType="Integer"/>
 </dataSheet>
 
 <dataSheet name="ValidationOptions" displayName="Validation Options" isSingleRow="True">
-	<column name="SplitData" displayName="Split data for model training and testing" dataType="Boolean"/>
-	<column name="ProportionTrainingData" displayName="Proportion of data used for model training" dataType="Double" validationType="Decimal" validationCondition="Between" formula1="0" formula2="1"/>
-	<column name="CrossValidate" displayName="Use cross validation for model selection" dataType="Boolean"/>
-	<column name="StratifyFolds" displayName="Stratify cross-validation folds by the response" dataType="Boolean"/>
-	<column name="NumberOfFolds" displayName="Number of cross-validation folds" dataType="Integer"/>
-	<column name="RandomSeed" displayName="Random seed (leave blank for non-reproducible runs)" dataType="Integer"/>
+  <column name="SplitData" displayName="Split data for model training and testing" dataType="Boolean"/>
+  <column name="ProportionTrainingData" displayName="Proportion of data used for model training" dataType="Double" validationType="Decimal" validationCondition="Between" formula1="0" formula2="1"/>
+  <column name="CrossValidate" displayName="Use cross validation for model selection" dataType="Boolean"/>
+  <column name="StratifyFolds" displayName="Stratify cross-validation folds by the response" dataType="Boolean"/>
+  <column name="NumberOfFolds" displayName="Number of cross-validation folds" dataType="Integer"/>
+  <column name="RandomSeed" displayName="Random seed (leave blank for non-reproducible runs)" dataType="Integer"/>
 </dataSheet>
 
 <dataSheet name="TemplateRaster" displayName="Template Raster" isSingleRow="True">
-	<column name="RasterFilePath" displayName="Raster file" dataType="String" isExternalFile="True" isRaster="True"/>
-	<column name="TileCount" displayName="Number of mulitprocessing tiles (optional)" dataType="Integer"/>
+  <column name="RasterFilePath" displayName="Raster file" dataType="String" isExternalFile="True" isRaster="True"/>
+  <column name="TileCount" displayName="Number of mulitprocessing tiles (optional)" dataType="Integer"/>
 </dataSheet>
 
 <dataSheet name="RestrictionRaster" displayName="Restriction Raster" isSingleRow="True">
-	<column name="RasterFilePath" displayName="Raster file" dataType="String" isExternalFile="True" isRaster="True"/>
-	<column name="Description" dataType="String"/>
+  <column name="RasterFilePath" displayName="Raster file" dataType="String" isExternalFile="True" isRaster="True"/>
+  <column name="Description" dataType="String"/>
 </dataSheet>
 
 <!--Model Options-->
 
-<dataSheet  name="BRT" displayName="Boosted Regression Trees" isSingleRow="True">
-	<column name="FittingMethod" displayName="Fitting method" dataType="Integer" validationType="List" formula1="0:Use defaults and tuning|1:Use values provided below"/>
-	<column name="LearningRate" displayName="Learning rate" dataType="Double"/>
-	<column name="NumberOfTrees" displayName="Number of trees added per stage" dataType="Integer"/>
-	<column name="BagFraction" displayName="Bag fraction" dataType="Double"/>
-	<column name="MaximumTrees" displayName="Maximum number of trees" dataType="Integer"/>
+<dataSheet name="BRT" displayName="Boosted Regression Trees" isSingleRow="True">
+  <column name="FittingMethod" displayName="Fitting method" dataType="Integer" validationType="List" formula1="0:Use defaults and tuning|1:Use values provided below"/>
+  <column name="LearningRate" displayName="Learning rate" dataType="Double"/>
+  <column name="NumberOfTrees" displayName="Number of trees added per stage" dataType="Integer"/>
+  <column name="TreeComplexity" displayName="Tree Complexity" dataType="Integer"/>
+  <column name="BagFraction" displayName="Bag fraction" dataType="Double"/>
+  <column name="MaximumTrees" displayName="Maximum number of trees" dataType="Integer"/>
 </dataSheet>
 
 <dataSheet name="GAM" displayName="Generalized Additive Model" isSingleRow="True">
-	<column name="SmoothingMethod" displayName="Smoothing method" dataType="Integer" validationType="List" formula1="0:Thin plate regression splines with shrinkage-to-zero"/>
-	<column name="BasisDimension" displayName="Basis dimension (k)" dataType="Integer"/>
-	<column name="PenaltySelectionMethod" displayName="Penalty selection method" dataType="Integer" validationType="List" formula1="0:AIC|1:GCV|2:ML|3:REML|4:UBRE"/>
+  <column name="SmoothingMethod" displayName="Smoothing method" dataType="Integer" validationType="List" formula1="0:Thin plate regression splines with shrinkage-to-zero"/>
+  <column name="BasisDimension" displayName="Basis dimension (k)" dataType="Integer"/>
+  <column name="PenaltySelectionMethod" displayName="Penalty selection method" dataType="Integer" validationType="List" formula1="0:AIC|1:GCV|2:ML|3:REML|4:UBRE"/>
 </dataSheet>
 
 <dataSheet name="GLM" displayName="Generalized Linear Model" isSingleRow="True">
-	<column name="SelectBestPredictors" displayName="Select best predictors" dataType="Boolean"/>
-	<column name="SimplificationMethod" displayName="Simplification method" dataType="Integer" validationType="List" formula1="0:AIC|1:BIC"/>
-	<column name="ConsiderSquaredTerms" displayName="Consider squared terms" dataType="Boolean"/>
-	<column name="ConsiderInteractions" displayName="Consider interactions" dataType="Boolean"/>
+  <column name="SelectBestPredictors" displayName="Select best predictors" dataType="Boolean"/>
+  <column name="SimplificationMethod" displayName="Simplification method" dataType="Integer" validationType="List" formula1="0:AIC|1:BIC"/>
+  <column name="ConsiderSquaredTerms" displayName="Consider squared terms" dataType="Boolean"/>
+  <column name="ConsiderInteractions" displayName="Consider interactions" dataType="Boolean"/>
+</dataSheet>
+
+<dataSheet name="GLMlasso" displayName="Generalized Linear Model - LASSO" isSingleRow="True">
+  <column name="ConsiderSquaredTerms" displayName="Consider squared terms" dataType="Boolean"/>
+  <column name="ConsiderInteractions" displayName="Consider interactions" dataType="Boolean"/>
 </dataSheet>
 
 <dataSheet name="Maxent" isSingleRow="True">
-	<column name="MemoryLimit" displayName="Memory allocation (MB)" dataType="Integer"/>
-	<column name="MultiprocessingThreads" displayName="Number of processing threads" dataType="Integer"/>
-	<column name="AutoFeatureSelection" displayName="Automatic feature selection" dataType="Boolean"/>
-	<column name="UseHinge" displayName="Use hinge feature type" dataType="Boolean"/>
-	<column name="UseLinear" displayName="Use linear feature type" dataType="Boolean"/>
-	<column name="UseQuadratic" displayName="Use quadratic feature type" dataType="Boolean"/>
-	<column name="UseProduct" displayName="Use product feature type" dataType="Boolean"/>
-	<column name="UseThreshold" displayName="Use threshold feature type" dataType="Boolean"/>
-	<column name="RegularizationMultiplier" displayName="Regularization multiplier" dataType="Double"/>
-	<column name="EnableClamping" displayName="Enable clamping" dataType="Boolean"/>
-	<column name="VisibleInterface" displayName="View maxent user interface during run" dataType="Boolean"/>
-	<column name="SaveMaxentFiles" displayName="Save maxent formatted input/output files" dataType="Boolean"/>
+  <column name="MemoryLimit" displayName="Memory allocation (MB)" dataType="Integer"/>
+  <column name="MultiprocessingThreads" displayName="Number of processing threads" dataType="Integer"/>
+  <column name="AutoFeatureSelection" displayName="Automatic feature selection" dataType="Boolean"/>
+  <column name="UseHinge" displayName="Use hinge feature type" dataType="Boolean"/>
+  <column name="UseLinear" displayName="Use linear feature type" dataType="Boolean"/>
+  <column name="UseQuadratic" displayName="Use quadratic feature type" dataType="Boolean"/>
+  <column name="UseProduct" displayName="Use product feature type" dataType="Boolean"/>
+  <column name="UseThreshold" displayName="Use threshold feature type" dataType="Boolean"/>
+  <column name="RegularizationMultiplier" displayName="Regularization multiplier" dataType="Double"/>
+  <column name="EnableClamping" displayName="Enable clamping" dataType="Boolean"/>
+  <column name="VisibleInterface" displayName="View maxent user interface during run" dataType="Boolean"/>
+  <column name="SaveMaxentFiles" displayName="Save maxent formatted input/output files" dataType="Boolean"/>
 </dataSheet>
 
 <dataSheet name="RF" displayName="Random Forest" isSingleRow="True">
-	<column name="EvaluateCovariateImportance" displayName="Evaluate covariate importance" dataType="Boolean"/>
-	<column name="CalculateCasewiseImportance" displayName="Calculate casewise importance" dataType="Boolean"/>
-	<column name="NumberOfVariablesSampled" displayName="Number of variables sampled at split" dataType="Double"/>
-	<column name="MaximumNodes" displayName="Maximum number of nodes" dataType="Integer"/>
-	<column name="NumberOfTrees" displayName="Number of trees" dataType="Integer"/>
-	<column name="NodeSize" displayName="Node size" dataType="Integer"/>
-	<column name="NormalizeVotes" displayName="Normalize votes" dataType="Boolean"/>
-	<column name="CalculateProximity" displayName="Calculate proximity" dataType="Boolean"/>
-	<column name="SampleWithReplacement" displayName="Sample with replacement" dataType="Boolean"/>
+  <column name="EvaluateCovariateImportance" displayName="Evaluate covariate importance" dataType="Boolean"/>
+  <column name="CalculateCasewiseImportance" displayName="Calculate casewise importance" dataType="Boolean"/>
+  <column name="NumberOfVariablesSampled" displayName="Number of variables sampled at split" dataType="Double"/>
+  <column name="MaximumNodes" displayName="Maximum number of nodes" dataType="Integer"/>
+  <column name="NumberOfTrees" displayName="Number of trees" dataType="Integer"/>
+  <column name="NodeSize" displayName="Node size" dataType="Integer"/>
+  <column name="NormalizeVotes" displayName="Normalize votes" dataType="Boolean"/>
+  <column name="CalculateProximity" displayName="Calculate proximity" dataType="Boolean"/>
+  <column name="SampleWithReplacement" displayName="Sample with replacement" dataType="Boolean"/>
 </dataSheet>
 
 <!-- Hyperparameter Tuning -->
@@ -156,96 +163,96 @@
 </dataSheet>
 
 <dataSheet name="brtTuning" displayName="Boosted Regression Trees [Tuning]" isSingleRow="True">
-	<column name="Parameter1" displayName="Parameter 1" dataType="Integer" validationType="List"
-	formula1="1:Learning rate|2:Number of trees added per stage|3:Bag fraction|4:Maximum number of trees"/>
-	<column name="Parameter1Values" displayName="Tuning values for parameter 1" dataType="String" />
-	<column name="Parameter2" displayName="Parameter 2" dataType="Integer" validationType="List"
-	formula1="1:Learning rate|2:Number of trees added per stage|3:Bag fraction|4:Maximum number of trees"/>
-	<column name="Parameter2Values" displayName="Tuning values for parameter 2" dataType="String" /> 
+  <column name="Parameter1" displayName="Parameter 1" dataType="Integer" validationType="List"
+  formula1="1:Learning rate|2:Number of trees added per stage|3:Bag fraction|4:Maximum number of trees"/>
+  <column name="Parameter1Values" displayName="Tuning values for parameter 1" dataType="String" />
+  <column name="Parameter2" displayName="Parameter 2" dataType="Integer" validationType="List"
+  formula1="1:Learning rate|2:Number of trees added per stage|3:Bag fraction|4:Maximum number of trees"/>
+  <column name="Parameter2Values" displayName="Tuning values for parameter 2" dataType="String" /> 
 </dataSheet>
 
 <dataSheet name="rfTuning" displayName="Random Forest [Tuning]" isSingleRow="True">
     <column name="Parameter1" displayName="Parameter 1" dataType="Integer" validationType="List" 
-	formula1="1:Number of variables sampled at split|2:Maximum number of nodes|3:Number of trees|4:Node size"/>
-	<column name="Parameter1Values" displayName="Tuning values for parameter 1" dataType="String" />
+  formula1="1:Number of variables sampled at split|2:Maximum number of nodes|3:Number of trees|4:Node size"/>
+  <column name="Parameter1Values" displayName="Tuning values for parameter 1" dataType="String" />
     <column name="Parameter2" displayName="Parameter 2" dataType="Integer" validationType="List" 
-	formula1="1:Number of variables sampled at split|2:Maximum number of nodes|3:Number of trees|4:Node size"/>
-	<column name="Parameter2Values" displayName="Tuning values for parameter 2" dataType="String" />
+  formula1="1:Number of variables sampled at split|2:Maximum number of nodes|3:Number of trees|4:Node size"/>
+  <column name="Parameter2Values" displayName="Tuning values for parameter 2" dataType="String" />
 </dataSheet>
 
 <!-- Spatial Output Options-->
 
 <dataSheet name="OutputOptions" displayName="Output Options" isSingleRow="True">
-	<column name="MakeProbabilityMap" displayName="Make probability map" dataType="Boolean"/>
-	<column name="MakeBinaryMap" displayName="Make binary map" dataType="Boolean"/>
-	<column name="ThresholdOptimization" displayName="Binary threshold optimization method" dataType="Integer" validationType="List" formula1="0:Max kappa|1:Max sensitivity and specificity|2:No omission|3:Prevalence|4:Sensitivity equals specificity"/>
-	<column name="MakeResidualsMap" displayName="Make residuals map" dataType="Boolean"/>
-	<column name="MakeMessMap" displayName="Make multivariate environmental similarity surface (MESS) map" dataType="Boolean"/>
-	<column name="MakeModMap" displayName="Make most dissimilar variable (MoD) map" dataType="Boolean"/>
+  <column name="MakeProbabilityMap" displayName="Make probability map" dataType="Boolean"/>
+  <column name="MakeBinaryMap" displayName="Make binary map" dataType="Boolean"/>
+  <column name="ThresholdOptimization" displayName="Binary threshold optimization method" dataType="Integer" validationType="List" formula1="0:Max kappa|1:Max sensitivity and specificity|2:No omission|3:Prevalence|4:Sensitivity equals specificity"/>
+  <column name="MakeResidualsMap" displayName="Make residuals map" dataType="Boolean"/>
+  <column name="MakeMessMap" displayName="Make multivariate environmental similarity surface (MESS) map" dataType="Boolean"/>
+  <column name="MakeModMap" displayName="Make most dissimilar variable (MoD) map" dataType="Boolean"/>
 </dataSheet>
 
 <dataSheet  name="EnsembleOptions" displayName="Ensemble Options" isSingleRow="True">
-	<column name="MakeProbabilityEnsemble" displayName="Make probability ensemble map" dataType="Boolean"/>
-	<column name="ProbabilityMethod" displayName="Probability ensemble method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
-	<column name="NormalizeProbability" displayName="Normalize probability before ensemble" dataType="Boolean"/>
-	<column name="MakeBinaryEnsemble" displayName="Make binary ensemble map" dataType="Boolean"/>
-	<column name="BinaryMethod" displayName="Binary ensemble method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
-	<column name="IgnoreNA" displayName="Ignore 'No Data' values during ensemble" dataType="Boolean"/>
+  <column name="MakeProbabilityEnsemble" displayName="Make probability ensemble map" dataType="Boolean"/>
+  <column name="ProbabilityMethod" displayName="Probability ensemble method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
+  <column name="NormalizeProbability" displayName="Normalize probability before ensemble" dataType="Boolean"/>
+  <column name="MakeBinaryEnsemble" displayName="Make binary ensemble map" dataType="Boolean"/>
+  <column name="BinaryMethod" displayName="Binary ensemble method" dataType="Integer" validationType="List" formula1="0:Mean|1:Sum"/>
+  <column name="IgnoreNA" displayName="Ignore 'No Data' values during ensemble" dataType="Boolean"/>
 </dataSheet>
 
 <!--Output Datasheets-->
 
 <dataSheet name="OutputCovariateCorrelationMatrix" displayName="Covariate Correlation Matrix Outputs">
-	<column name="InitialMatrix" dataType="String" isExternalFile="True" isImage="True"/>
-	<column name="SelectedMatrix" dataType="String" isExternalFile="True" isImage="True"/>
+  <column name="InitialMatrix" dataType="String" isExternalFile="True" isImage="True"/>
+  <column name="SelectedMatrix" dataType="String" isExternalFile="True" isImage="True"/>
 </dataSheet>
 
 <dataSheet name="OutputModel" displayName="Model Outputs">
-	<column name="ModelsID" dataType="Integer" validationType="Datasheet" formula1="Models" isVisible="False"/>						
-	<column name="ModelRDS" displayName="Model RDS" dataType="String" isExternalFile="True" isReadOnly="True"/>
-	<column name="ResponseCurves" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="ResidualsPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="ResidualSmoothPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="ResidualSmoothRDS" dataType="String" isExternalFile="True" isVisible="False"/>
-	<column name="TextOutput" dataType="String" isExternalFile="True" isVisible="False"/>
-	<column name="CalibrationPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="ROCAUCPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="AUCPRPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="ConfusionMatrix" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="VariableImportancePlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="VariableImportanceData" dataType="String" isExternalFile="True" isVisible="False"/>
-	<column name="MaxentFiles" dataType="String" isExternalFile="True" isVisible="False"/>
+  <column name="ModelsID" dataType="Integer" validationType="Datasheet" formula1="Models" isVisible="False"/>           
+  <column name="ModelRDS" displayName="Model RDS" dataType="String" isExternalFile="True" isReadOnly="True"/>
+  <column name="ResponseCurves" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="ResidualsPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="ResidualSmoothPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="ResidualSmoothRDS" dataType="String" isExternalFile="True" isVisible="False"/>
+  <column name="TextOutput" dataType="String" isExternalFile="True" isVisible="False"/>
+  <column name="CalibrationPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="ROCAUCPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="AUCPRPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="ConfusionMatrix" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="VariableImportancePlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="VariableImportanceData" dataType="String" isExternalFile="True" isVisible="False"/>
+  <column name="MaxentFiles" dataType="String" isExternalFile="True" isVisible="False"/>
 </dataSheet>
 
 <dataSheet name="OutputSpatial" displayName="Spatial Outputs" spatialMultiProcessing="True">
-	<column name="ModelsID" dataType="Integer" validationType="Datasheet" formula1="Models"/>
-	<column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
-	<column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
-	<column name="ModRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
-	<column name="ResidualsRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
-	<column name="BinaryRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
-	<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
+  <column name="ModelsID" dataType="Integer" validationType="Datasheet" formula1="Models"/>
+  <column name="ProbabilityRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
+  <column name="MessRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
+  <column name="ModRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
+  <column name="ResidualsRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
+  <column name="BinaryRaster" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="ModelsID"/>
+  <column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
 </dataSheet>
 
 <dataSheet name="OutputEnsemble" displayName="Ensemble Outputs">
-	<column name="ProbabilityRasterMean" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
-	<column name="ProbabilityRasterSum" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
-	<column name="BinaryRasterMean" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
-	<column name="BinaryRasterSum" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
-	<column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
+  <column name="ProbabilityRasterMean" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
+  <column name="ProbabilityRasterSum" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
+  <column name="BinaryRasterMean" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
+  <column name="BinaryRasterSum" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band"/>
+  <column name="Band" dataType="Integer" allowDbNull="True" isOptional="True"/>
 </dataSheet>
 
 <dataSheet name="OutputHyperparameterTuning" displayName="Hyperparameter Tuning Outputs">
-	<column name="ModelsID" dataType="Integer" validationType="Datasheet" formula1="Models" isVisible="False"/>						
-	<column name="ResponseCurves" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="ResidualsPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="ResidualSmoothPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="TextOutput" dataType="String" isExternalFile="True" isVisible="False"/>
-	<column name="CalibrationPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="ROCAUCPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="AUCPRPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="ConfusionMatrix" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
-	<column name="VariableImportancePlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="ModelsID" dataType="Integer" validationType="Datasheet" formula1="Models" isVisible="False"/>           
+  <column name="ResponseCurves" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="ResidualsPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="ResidualSmoothPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="TextOutput" dataType="String" isExternalFile="True" isVisible="False"/>
+  <column name="CalibrationPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="ROCAUCPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="AUCPRPlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="ConfusionMatrix" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
+  <column name="VariableImportancePlot" dataType="String" isExternalFile="True" isImage="True" isVisible="False"/>
 </dataSheet>
 
 <!--Prepare Multiprocessing Transformer-->
@@ -255,10 +262,10 @@
   programArguments="1-prep-multiprocessing.py"
   isMultiprocessing="False"
   condaEnv="wisdm-py-conda.yml"
-  condaEnvVersion="6">
-	<dataSheet name="TemplateRaster" type="Input"/>
-	<dataSheet name="core_SpatialMultiprocessing" type="Output"/>		
-</transformer>	
+  condaEnvVersion="7">
+  <dataSheet name="TemplateRaster" type="Input"/>
+  <dataSheet name="core_SpatialMultiprocessing" type="Output"/>   
+</transformer>  
 
 <!--Spatial Data Preparation Transformer-->
 <transformer
@@ -267,69 +274,69 @@
   programArguments="2-spatial-data-preparation.py"
   isMultiprocessing="False"
   condaEnv="wisdm-py-conda.yml"
-  condaEnvVersion="6">
-	<dataSheet name="TemplateRaster" type="Input"/>
-	<dataSheet name="RestrictionRaster" type="Both"/>
-	<dataSheet name="CovariateData" type="Both"/>
+  condaEnvVersion="7">
+  <dataSheet name="TemplateRaster" type="Input"/>
+  <dataSheet name="RestrictionRaster" type="Both"/>
+  <dataSheet name="CovariateData" type="Both"/>
 </transformer>
 
 <!--Site Data Preparation Transformer-->
 <transformer
-	name="SiteDataPreparation"
-	displayName="3 - Site Data Preparation"
-	programArguments="3-site-data-preparation.py"
-	isMultiprocessing="False"
-	condaEnv="wisdm-py-conda.yml"
-  	condaEnvVersion="6">
-		<dataSheet name="TemplateRaster" type="Input"/>
-		<dataSheet name="FieldDataOptions" type="Input"/>
-		<dataSheet name="FieldData" type="Both"/>
-		<dataSheet name="CovariateData" type="Both"/>
-		<dataSheet name="SiteData" type="Output"/>
+  name="SiteDataPreparation"
+  displayName="3 - Site Data Preparation"
+  programArguments="3-site-data-preparation.py"
+  isMultiprocessing="False"
+  condaEnv="wisdm-py-conda.yml"
+    condaEnvVersion="7">
+    <dataSheet name="TemplateRaster" type="Input"/>
+    <dataSheet name="FieldDataOptions" type="Input"/>
+    <dataSheet name="FieldData" type="Both"/>
+    <dataSheet name="CovariateData" type="Both"/>
+    <dataSheet name="SiteData" type="Output"/>
 </transformer>
 
 <!--Background Data Preparation Transformer-->
 <transformer
-	name="BackgroundDataGeneration"
-	displayName="4 - Background Data Generation"
-	programArguments="4-background-data-generation.R"
-	isMultiprocessing="False"
-	condaEnv="wisdm-r-conda.yml"
-  	condaEnvVersion="6">
-		<dataSheet name="TemplateRaster" type="Input"/>
-		<dataSheet name="FieldData" type="Both"/>
-		<dataSheet name="BackgroundDataOptions" type="Input"/>
-		<dataSheet name="ValidationOptions" type="Both"/>
-		<dataSheet name="CovariateData" type="Both"/>
-		<dataSheet name="SiteData" type="Both"/>
+  name="BackgroundDataGeneration"
+  displayName="4 - Background Data Generation"
+  programArguments="4-background-data-generation.R"
+  isMultiprocessing="False"
+  condaEnv="wisdm-r-conda.yml"
+    condaEnvVersion="7">
+    <dataSheet name="TemplateRaster" type="Input"/>
+    <dataSheet name="FieldData" type="Both"/>
+    <dataSheet name="BackgroundDataOptions" type="Input"/>
+    <dataSheet name="ValidationOptions" type="Both"/>
+    <dataSheet name="CovariateData" type="Both"/>
+    <dataSheet name="SiteData" type="Both"/>
 </transformer>
-		
+    
 <!--Split Data for Training/Testing Transformer-->
 <transformer
-	name="FieldDataPreparation"
-	displayName="5 - Prepare Training/Testing Data"
-	programArguments="5-prepare-training-testing-data.R"
-	isMultiprocessing="False"
-	condaEnv="wisdm-r-conda.yml"
-  	condaEnvVersion="6">
-		<dataSheet name="FieldData" type="Both"/>
-		<dataSheet name="ValidationOptions" type="Both"/>
-		<dataSheet name="SiteData" type="Input"/>
+  name="FieldDataPreparation"
+  displayName="5 - Prepare Training/Testing Data"
+  programArguments="5-prepare-training-testing-data.R"
+  isMultiprocessing="False"
+  condaEnv="wisdm-r-conda.yml"
+    condaEnvVersion="7">
+    <dataSheet name="FieldData" type="Both"/>
+    <dataSheet name="ValidationOptions" type="Both"/>
+    <dataSheet name="SiteData" type="Input"/>
 </transformer>
 
 <!--Variable Reduction Transformer-->
 <transformer
-	name="VariableReduction"
-	displayName ="6 - Variable Reduction"
-	programArguments="6-variable-reduction.R"
-	isMultiprocessing="False"
-	condaEnv="wisdm-r-conda.yml"	
-  	condaEnvVersion="6">
-		<dataSheet name="FieldData" type="Input"/>
-		<dataSheet name="SiteData" type="Input"/>
-		<dataSheet name="CovariateSelectionOptions" type ="Input"/>
-		<dataSheet name="RetainedCovariates" type="Both"/>
-		<dataSheet name="OutputCovariateCorrelationMatrix" type="Output"/>
+  name="VariableReduction"
+  displayName ="6 - Variable Reduction"
+  programArguments="6-variable-reduction.R"
+  isMultiprocessing="False"
+  condaEnv="wisdm-r-conda.yml"  
+    condaEnvVersion="7">
+    <dataSheet name="FieldData" type="Input"/>
+    <dataSheet name="SiteData" type="Input"/>
+    <dataSheet name="CovariateSelectionOptions" type ="Input"/>
+    <dataSheet name="RetainedCovariates" type="Both"/>
+    <dataSheet name="OutputCovariateCorrelationMatrix" type="Output"/>
 </transformer>
 
 <!--Hyperparameter Tuning Transformer-->
@@ -339,100 +346,116 @@
   programArguments="7-hyperparameter-tuning.R"
   isMultiprocessing="False"
   condaEnv="wisdm-r-conda.yml"
-  condaEnvVersion="6">
-	<dataSheet name="FieldData" type="Input"/>
-	<dataSheet name="ValidationOptions" type="Both"/>
-	<dataSheet name="RetainedCovariates" type="Input"/>
-	<dataSheet name="SiteData" type="Input"/>
-	 <dataSheet name="TuningModel" type="Input" />
+  condaEnvVersion="7">
+  <dataSheet name="FieldData" type="Input"/>
+  <dataSheet name="ValidationOptions" type="Both"/>
+  <dataSheet name="RetainedCovariates" type="Input"/>
+  <dataSheet name="SiteData" type="Input"/>
+   <dataSheet name="TuningModel" type="Input" />
     <dataSheet name="brtTuning" type="Input" />
     <dataSheet name="rfTuning" type="Input" />
-	<dataSheet name="RF" type="Both"/>
-	<dataSheet name="BRT" type="Both"/>
-	<dataSheet name="OutputModel" type="Output"/>
-	<dataSheet name="OutputHyperparameterTuning" type="Output"/>
+  <dataSheet name="RF" type="Both"/>
+  <dataSheet name="BRT" type="Both"/>
+  <dataSheet name="OutputModel" type="Output"/>
+  <dataSheet name="OutputHyperparameterTuning" type="Output"/>
 </transformer>
 
 <!--GLM Transformer-->
 <transformer
-	name="GLM"
-	displayName="8 - Generalized Linear Model"
-	programArguments="8-fit-glm.R"
-	isMultiprocessing="False"
-	condaEnv="wisdm-r-conda.yml"
-	condaEnvVersion="6">
-		<dataSheet name="FieldData" type="Input"/>
-		<dataSheet name="ValidationOptions" type="Both"/>
-		<dataSheet name="RetainedCovariates" type="Input"/>
-		<dataSheet name="SiteData" type="Input"/>
-		<dataSheet name="GLM" type="Input"/>
-		<dataSheet name="OutputModel" type="Output"/>
+  name="GLM"
+  displayName="8 - Generalized Linear Model"
+  programArguments="8-fit-glm.R"
+  isMultiprocessing="False"
+  condaEnv="wisdm-r-conda.yml"
+  condaEnvVersion="7">
+    <dataSheet name="FieldData" type="Input"/>
+    <dataSheet name="ValidationOptions" type="Both"/>
+    <dataSheet name="RetainedCovariates" type="Input"/>
+    <dataSheet name="SiteData" type="Input"/>
+    <dataSheet name="GLM" type="Input"/>
+    <dataSheet name="OutputModel" type="Output"/>
+</transformer>
+
+<!--GLMlasso Transformer-->
+<transformer
+  name="GLMlasso"
+  displayName="8 - Generalized Linear Model - LASSO"
+  programArguments="8-fit-glm-lasso.R"
+  isMultiprocessing="False"
+  condaEnv="wisdm-r-conda.yml"
+  condaEnvVersion="7">
+    <dataSheet name="FieldData" type="Input"/>
+    <dataSheet name="ValidationOptions" type="Both"/>
+    <dataSheet name="RetainedCovariates" type="Input"/>
+    <dataSheet name="SiteData" type="Input"/>
+    <dataSheet name="GLMlasso" type="Input"/>
+    <dataSheet name="OutputModel" type="Output"/>
 </transformer>
 
 <!--GAM Transformer-->
 <transformer
-	name="GAM"
-	displayName="8 - Generalized Additive Model"
-	programArguments="8-fit-gam.R"
-	isMultiprocessing="False"
-	condaEnv="wisdm-r-conda.yml"
-	condaEnvVersion="6">
-		<dataSheet name="FieldData" type="Input"/>
-		<dataSheet name="ValidationOptions" type="Both"/>
-		<dataSheet name="RetainedCovariates" type="Input"/>
-		<dataSheet name="SiteData" type="Input"/>
-		<dataSheet name="GAM" type="Input"/>
-		<dataSheet name="OutputModel" type="Output"/>
+  name="GAM"
+  displayName="8 - Generalized Additive Model"
+  programArguments="8-fit-gam.R"
+  isMultiprocessing="False"
+  condaEnv="wisdm-r-conda.yml"
+  condaEnvVersion="7">
+    <dataSheet name="FieldData" type="Input"/>
+    <dataSheet name="ValidationOptions" type="Both"/>
+    <dataSheet name="RetainedCovariates" type="Input"/>
+    <dataSheet name="SiteData" type="Input"/>
+    <dataSheet name="GAM" type="Input"/>
+    <dataSheet name="OutputModel" type="Output"/>
 </transformer>
 
 <!--Random Forest Transformer-->
 <transformer
-	name="RF"
-	displayName="8 - Random Forest"
-	programArguments="8-fit-rf.R"
-	isMultiprocessing="False"
-	condaEnv="wisdm-r-conda.yml"
-	condaEnvVersion="6">
-		<dataSheet name="FieldData" type="Input"/>
-		<dataSheet name="ValidationOptions" type="Both"/>
-		<dataSheet name="RetainedCovariates" type="Input"/>
-		<dataSheet name="SiteData" type="Input"/>
-		<dataSheet name="RF" type="Input"/>
-		<dataSheet name="OutputModel" type="Output"/>
+  name="RF"
+  displayName="8 - Random Forest"
+  programArguments="8-fit-rf.R"
+  isMultiprocessing="False"
+  condaEnv="wisdm-r-conda.yml"
+  condaEnvVersion="7">
+    <dataSheet name="FieldData" type="Input"/>
+    <dataSheet name="ValidationOptions" type="Both"/>
+    <dataSheet name="RetainedCovariates" type="Input"/>
+    <dataSheet name="SiteData" type="Input"/>
+    <dataSheet name="RF" type="Input"/>
+    <dataSheet name="OutputModel" type="Output"/>
 </transformer>
 
 <!--Maxent Transformer-->
 <transformer
-	name="Maxent"
-	displayName="8 - Maxent"
-	programArguments="8-fit-maxent.R"
-	isMultiprocessing="False"
-	condaEnv="wisdm-r-conda.yml"
-	condaEnvVersion="6">
-		<dataSheet name="FieldData" type="Input"/>
-		<dataSheet name="CovariateData" type="Input"/>
-		<dataSheet name="ValidationOptions" type="Both"/>
-		<dataSheet name="RetainedCovariates" type="Input"/>
-		<dataSheet name="SiteData" type="Input"/>
-		<dataSheet name="Maxent" type="Input"/>
-		<dataSheet name="OutputModel" type="Output"/>
+  name="Maxent"
+  displayName="8 - Maxent"
+  programArguments="8-fit-maxent.R"
+  isMultiprocessing="False"
+  condaEnv="wisdm-r-conda.yml"
+  condaEnvVersion="7">
+    <dataSheet name="FieldData" type="Input"/>
+    <dataSheet name="CovariateData" type="Input"/>
+    <dataSheet name="ValidationOptions" type="Both"/>
+    <dataSheet name="RetainedCovariates" type="Input"/>
+    <dataSheet name="SiteData" type="Input"/>
+    <dataSheet name="Maxent" type="Input"/>
+    <dataSheet name="OutputModel" type="Output"/>
 </transformer>
 
 <!--BRT Transformer-->
 <transformer
-	name="BRT"
-	displayName="8 - Boosted Regression Trees"
-	programArguments="8-fit-brt.R"
-	isMultiprocessing="False"
-	condaEnv="wisdm-r-conda.yml"
-	condaEnvVersion="6">
-		<dataSheet name="FieldData" type="Input"/>
-		<dataSheet name="CovariateData" type="Input"/>
-		<dataSheet name="ValidationOptions" type="Both"/>
-		<dataSheet name="RetainedCovariates" type="Input"/>
-		<dataSheet name="SiteData" type="Input"/>
-		<dataSheet name="BRT" type="Input"/>
-		<dataSheet name="OutputModel" type="Output"/>
+  name="BRT"
+  displayName="8 - Boosted Regression Trees"
+  programArguments="8-fit-brt.R"
+  isMultiprocessing="False"
+  condaEnv="wisdm-r-conda.yml"
+  condaEnvVersion="7">
+    <dataSheet name="FieldData" type="Input"/>
+    <dataSheet name="CovariateData" type="Input"/>
+    <dataSheet name="ValidationOptions" type="Both"/>
+    <dataSheet name="RetainedCovariates" type="Input"/>
+    <dataSheet name="SiteData" type="Input"/>
+    <dataSheet name="BRT" type="Input"/>
+    <dataSheet name="OutputModel" type="Output"/>
 </transformer>
 
 <!--Apply Model Transformer-->
@@ -441,216 +464,217 @@
 	displayName="9 - Apply Model"
 	programArguments="9-apply-model.R"
 	condaEnv="wisdm-r-conda.yml"
-	condaEnvVersion="6">
+	condaEnvVersion="7">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
 		<dataSheet name="RestrictionRaster" type="Input"/>
 		<dataSheet name="OutputModel" type="Input"/>
 		<dataSheet name="CovariateData" type="Input"/>
-		<dataSheet name="OutputOptions" type="Input"/>
+		<dataSheet name="OutputOptions" type="Both"/>
 		<dataSheet name="OutputSpatial" type="Output" spatialMultiProcessing="True"/>
 </transformer>
 
 <!--Ensemble Model Transformer-->
 <transformer
-	name="EnsembleModel"
-	displayName="10 - Ensemble Model"
-	programArguments="10-ensemble-model.py"
-	isMultiprocessing="False"
-	condaEnv="wisdm-py-conda.yml"
-	condaEnvVersion="6">
-		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
-		<dataSheet name="TemplateRaster" type="Input"/>
-		<dataSheet name="EnsembleOptions" type="Input"/>
-		<dataSheet name="OutputSpatial" type="Input"/>
-		<dataSheet name="OutputEnsemble" type="Output"/>
+  name="EnsembleModel"
+  displayName="10 - Ensemble Model"
+  programArguments="10-ensemble-model.py"
+  isMultiprocessing="False"
+  condaEnv="wisdm-py-conda.yml"
+  condaEnvVersion="7">
+    <dataSheet name="core_SpatialMultiprocessing" type="Input"/>
+    <dataSheet name="TemplateRaster" type="Input"/>
+    <dataSheet name="EnsembleOptions" type="Input"/>
+    <dataSheet name="OutputSpatial" type="Input"/>
+    <dataSheet name="OutputEnsemble" type="Output"/>
 </transformer>
 
- <!--Export Transformers-->
+<!--Export Transformers-->
 
 <transformer 
-	name="CovariateCorrelationExportInitial" dataSheet="OutputCovariateCorrelationMatrix" column="InitialMatrix" isFolderExport="True">
+  name="CovariateCorrelationExportInitial" dataSheet="OutputCovariateCorrelationMatrix" column="InitialMatrix" isFolderExport="True">
 </transformer>
 
 <transformer
-	name="CovariateCorrelationExportSelected" dataSheet="OutputCovariateCorrelationMatrix" column="SelectedMatrix" isFolderExport="True">
+  name="CovariateCorrelationExportSelected" dataSheet="OutputCovariateCorrelationMatrix" column="SelectedMatrix" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="ModelExportRDS" dataSheet="OutputModel" column="ModelRDS" isFolderExport="True">
+  name="ModelExportRDS" dataSheet="OutputModel" column="ModelRDS" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="ModelExportText" dataSheet="OutputModel" column="TextOutput" isFolderExport="True">
+  name="ModelExportText" dataSheet="OutputModel" column="TextOutput" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="VariableImportanceExportData"	dataSheet="OutputModel" column="VariableImportanceData" isFolderExport="True">
+  name="VariableImportanceExportData" dataSheet="OutputModel" column="VariableImportanceData" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="MaxentFilesExport" dataSheet="OutputModel" column="MaxentFiles" isFolderExport="True">
+  name="MaxentFilesExport" dataSheet="OutputModel" column="MaxentFiles" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="ProbMapExport" dataSheet="OutputSpatial" column="ProbabilityRaster" isFolderExport="True">
+  name="ProbMapExport" dataSheet="OutputSpatial" column="ProbabilityRaster" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="MessMapExport" dataSheet="OutputSpatial" column="MessRaster" isFolderExport="True">
+  name="MessMapExport" dataSheet="OutputSpatial" column="MessRaster" isFolderExport="True">
 </transformer>
-		
+    
 <transformer 
-	name="ModMapExport" dataSheet="OutputSpatial" column="ModRaster" isFolderExport="True">
+  name="ModMapExport" dataSheet="OutputSpatial" column="ModRaster" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="ResidMapExport" dataSheet="OutputSpatial" column="ResidualsRaster" isFolderExport="True">
+  name="ResidMapExport" dataSheet="OutputSpatial" column="ResidualsRaster" isFolderExport="True">
 </transformer>
 
 <transformer
-	name="BinMapExport" dataSheet="OutputSpatial" column="BinaryRaster" isFolderExport="True">
+  name="BinMapExport" dataSheet="OutputSpatial" column="BinaryRaster" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="MeanProbEnsembleExport" dataSheet="OutputEnsemble" column="ProbabilityRasterMean" isFolderExport="True">
+  name="MeanProbEnsembleExport" dataSheet="OutputEnsemble" column="ProbabilityRasterMean" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="SumProbEnsembleExport" dataSheet="OutputEnsemble" column="ProbabilityRasterSum" isFolderExport="True">
+  name="SumProbEnsembleExport" dataSheet="OutputEnsemble" column="ProbabilityRasterSum" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="MeanBinEnsembleExport" dataSheet="OutputEnsemble" column="BinaryRasterMean" isFolderExport="True">
+  name="MeanBinEnsembleExport" dataSheet="OutputEnsemble" column="BinaryRasterMean" isFolderExport="True">
 </transformer>
 
 <transformer 
-	name="SumBinEnsembleExport" dataSheet="OutputEnsemble" column="BinaryRasterSum" isFolderExport="True">
+  name="SumBinEnsembleExport" dataSheet="OutputEnsemble" column="BinaryRasterSum" isFolderExport="True">
 </transformer>
 
 <!--Library Layout-->
 <layout type="Library"> 
-  	<group name="Options">
-		<item name="Network"/>
-	</group>
+    <group name="Options">
+    <item name="Network"/>
+  </group>
 </layout>  
 
 <!--Project Layout-->
 <layout type="Project">
-	<item name="Covariates"/>
+  <item name="Covariates"/>
 </layout> 
 
 <!--Scenario Layout-->
 <layout type="Scenario">
-	<group name="DataPreparation" displayName="Data Preparation">
-	 	<group name="SpatialData" displayName="Spatial Data">
-			<item name="TemplateRaster"/>
-			<item name="CovariateData"/>
-			<item name="RestrictionRaster"/>
-		</group>
-	  	<group name="FieldData" displayName="Field Data">
-			<item name="FieldData"/>
-			<item name="FieldDataOptions"/>
-			<item name="BackgroundDataOptions"/>
-	  	</group>
-	  	<item name="ValidationOptions"/>
-	</group>
-	<group name="VariableReduction" displayName="Variable Reduction">
-		<item name="SiteData"/>
-		<item name="CovariateSelectionOptions"/>
-		<item name="RetainedCovariates"/>
-	</group>
-	<group name="Models">
-	  	<item name="BRT"/>
-		<item name="GAM"/>
-		<item name="GLM"/>
-		<item name="Maxent"/>
-		<item name="RF" displayName="Random Forest"/>
-		<item name="OutputModel"/>
-	</group>
-	<group name="HyperparameterTuning" displayName="Hyperparameter Tuning">
-		<item name="TuningModel" /> 
-		<group name="Tuning">
-			<item name="rfTuning" />
-			<item name="brtTuning" />
-		</group>   
-  	</group>
-	<group name="OutputOptions" displayName="Output Options">
-	  	<item name="OutputOptions"/>
-		<item name="EnsembleOptions"/>
-	</group>
+  <group name="DataPreparation" displayName="Data Preparation">
+    <group name="SpatialData" displayName="Spatial Data">
+      <item name="TemplateRaster"/>
+      <item name="CovariateData"/>
+      <item name="RestrictionRaster"/>
+    </group>
+      <group name="FieldData" displayName="Field Data">
+      <item name="FieldData"/>
+      <item name="FieldDataOptions"/>
+      <item name="BackgroundDataOptions"/>
+      </group>
+      <item name="ValidationOptions"/>
+  </group>
+  <group name="VariableReduction" displayName="Variable Reduction">
+    <item name="SiteData"/>
+    <item name="CovariateSelectionOptions"/>
+    <item name="RetainedCovariates"/>
+  </group>
+  <group name="Models">
+    <item name="BRT"/>
+    <item name="GAM"/>
+    <item name="GLM"/>
+    <item name="GLMlasso"/>
+    <item name="Maxent"/>
+    <item name="RF" displayName="Random Forest"/>
+    <item name="OutputModel"/>
+  </group>
+  <group name="HyperparameterTuning" displayName="Hyperparameter Tuning">
+    <item name="TuningModel" /> 
+    <group name="Tuning">
+      <item name="rfTuning" />
+      <item name="brtTuning" />
+    </group>   
+    </group>
+  <group name="OutputOptions" displayName="Output Options">
+      <item name="OutputOptions"/>
+    <item name="EnsembleOptions"/>
+  </group>
 </layout> 
 
 <!--Result Transformers Layout-->
 <layout type="Export">
-	<group name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation Matrix">
-		<item name="CovariateCorrelationExportInitial" displayName="Initial Covariates"/>
-		<item name="CovariateCorrelationExportSelected" displayName="Selected Covariates"/>
-	</group>
-	<group name="ModelOutputs" displayName="Model Outputs">
-		<item name="ModelExportRDS" displayName="Model RDS"/>
-		<item name="ModelExportText" displayName="Summary Text"/>
-		<item name="VariableImportanceExportData" displayName="Variable Importance"/>
-		<item name="MaxentFilesExport" displayName="Maxent Files"/>
-	</group>
-	<group name="MapOutputs" displayName="Map Outputs">
-		<item name="ProbMapExport" displayName="Probability"/>
-		<item name="BinMapExport" displayName="Binary"/>
-		<item name="MessMapExport" displayName="MESS"/>
-		<item name="ModMapExport" displayName="MoD"/>
-		<item name="ResidMapExport" displayName="Residuals"/>
-	</group>
-	<group name="EnsembleOutputs" displayName="Ensemble Outputs">
-		<item name="MeanProbEnsembleExport" displayName="Probability Ensemble (Mean)"/>
-		<item name="SumProbEnsembleExport" displayName="Probability Ensemble (Sum)"/>
-		<item name="MeanBinEnsembleExport" displayName="Binary Ensemble (Mean)"/>
-		<item name="SumBinEnsembleExport" displayName="Binary Ensemble (Sum)"/>
-	</group>
+  <group name="CovariateCorrelationExportMatrix" displayName="Covariate Correlation Matrix">
+    <item name="CovariateCorrelationExportInitial" displayName="Initial Covariates"/>
+    <item name="CovariateCorrelationExportSelected" displayName="Selected Covariates"/>
+  </group>
+  <group name="ModelOutputs" displayName="Model Outputs">
+    <item name="ModelExportRDS" displayName="Model RDS"/>
+    <item name="ModelExportText" displayName="Summary Text"/>
+    <item name="VariableImportanceExportData" displayName="Variable Importance"/>
+    <item name="MaxentFilesExport" displayName="Maxent Files"/>
+  </group>
+  <group name="MapOutputs" displayName="Map Outputs">
+    <item name="ProbMapExport" displayName="Probability"/>
+    <item name="BinMapExport" displayName="Binary"/>
+    <item name="MessMapExport" displayName="MESS"/>
+    <item name="ModMapExport" displayName="MoD"/>
+    <item name="ResidMapExport" displayName="Residuals"/>
+  </group>
+  <group name="EnsembleOutputs" displayName="Ensemble Outputs">
+    <item name="MeanProbEnsembleExport" displayName="Probability Ensemble (Mean)"/>
+    <item name="SumProbEnsembleExport" displayName="Probability Ensemble (Sum)"/>
+    <item name="MeanBinEnsembleExport" displayName="Binary Ensemble (Mean)"/>
+    <item name="SumBinEnsembleExport" displayName="Binary Ensemble (Sum)"/>
+  </group>
 </layout>
 
 <!--Image Layout-->
-<layout type="Image">	
-	<group name="CovariateCorrelationMatrix" displayName="Covariate Correlations">
-		<item name="InitialMatrix" displayName="Initial Matrix" dataSheet="OutputCovariateCorrelationMatrix" column="InitialMatrix"/>
-		<item name="SelectedMatrix" displayName="Selected Matrix" dataSheet="OutputCovariateCorrelationMatrix" column="SelectedMatrix"/>
-	</group>
-	<group name="HyperparameterTuningOutputs" displayName="Hyperparameter Tuning Outputs">
-		<item name="ResponseCurvesMatrix" displayName="Response Curves" dataSheet="OutputHyperparameterTuning" column="ResponseCurves" filter="ModelsID" extendedIdentifier="(Response Curves)"/>
-		<item name="ResidualsPlotMatrix" displayName="Standard Residuals" dataSheet="OutputHyperparameterTuning" column="ResidualsPlot" filter="ModelsID" extendedIdentifier="(Standard Residuals)"/>
-		<item name="ResidualSmoothPlotMatrix" displayName="Residuals Smooth" dataSheet="OutputHyperparameterTuning" column="ResidualSmoothPlot" filter="ModelsID" extendedIdentifier="(Residuals Smooth)"/>	
-		<item name="CalibrationPlotMatrix" displayName="Calibration" dataSheet="OutputHyperparameterTuning" column="CalibrationPlot" filter="ModelsID" extendedIdentifier="(Calibration)"/>
-		<item name="ROCAUCPlotMatrix" displayName="ROC/AUC" dataSheet="OutputHyperparameterTuning" column="ROCAUCPlot" filter="ModelsID" extendedIdentifier="(ROC/AUC)"/>
-		<item name="AUCPRPlotMatrix" displayName="AUCPR" dataSheet="OutputHyperparameterTuning" column="AUCPRPlot" filter="ModelsID" extendedIdentifier="(AUCPR)"/>
-		<item name="ConfusionMatrixMatrix" displayName="Confusion Matrix" dataSheet="OutputHyperparameterTuning" column="ConfusionMatrix" filter="ModelsID" extendedIdentifier="(Confusion Matrix)"/>
-		<item name="VariableImportancePlotMatrix" displayName="Variable Importance Plot" dataSheet="OutputHyperparameterTuning" column="VariableImportancePlot" filter="ModelsID" extendedIdentifier="(Variable Importance Plot)"/>
-	</group>
-	<group name="ModelOutputs" displayName="Model Outputs">
-		<item name="ResponseCurves" displayName="Response Curves" dataSheet="OutputModel" column="ResponseCurves" filter="ModelsID" extendedIdentifier="(Response Curves)"/>
-		<item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="OutputModel" column="ResidualsPlot" filter="ModelsID" extendedIdentifier="(Standard Residuals)"/>
-		<item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="OutputModel" column="ResidualSmoothPlot" filter="ModelsID" extendedIdentifier="(Residuals Smooth)"/>	
-		<item name="CalibrationPlot" displayName="Calibration" dataSheet="OutputModel" column="CalibrationPlot" filter="ModelsID" extendedIdentifier="(Calibration)"/>
-		<item name="ROCAUCPlot" displayName="ROC/AUC" dataSheet="OutputModel" column="ROCAUCPlot" filter="ModelsID" extendedIdentifier="(ROC/AUC)"/>
-		<item name="AUCPRPlot" displayName="AUCPR" dataSheet="OutputModel" column="AUCPRPlot" filter="ModelsID" extendedIdentifier="(AUCPR)"/>
-		<item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="OutputModel" column="ConfusionMatrix" filter="ModelsID" extendedIdentifier="(Confusion Matrix)"/>
-		<item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="OutputModel" column="VariableImportancePlot" filter="ModelsID" extendedIdentifier="(Variable Importance)"/>		
-	</group>
+<layout type="Image"> 
+  <group name="CovariateCorrelationMatrix" displayName="Covariate Correlations">
+    <item name="InitialMatrix" displayName="Initial Matrix" dataSheet="OutputCovariateCorrelationMatrix" column="InitialMatrix"/>
+    <item name="SelectedMatrix" displayName="Selected Matrix" dataSheet="OutputCovariateCorrelationMatrix" column="SelectedMatrix"/>
+  </group>
+  <group name="HyperparameterTuningOutputs" displayName="Hyperparameter Tuning Outputs">
+    <item name="ResponseCurvesMatrix" displayName="Response Curves" dataSheet="OutputHyperparameterTuning" column="ResponseCurves" filter="ModelsID" extendedIdentifier="(Response Curves)"/>
+    <item name="ResidualsPlotMatrix" displayName="Standard Residuals" dataSheet="OutputHyperparameterTuning" column="ResidualsPlot" filter="ModelsID" extendedIdentifier="(Standard Residuals)"/>
+    <item name="ResidualSmoothPlotMatrix" displayName="Residuals Smooth" dataSheet="OutputHyperparameterTuning" column="ResidualSmoothPlot" filter="ModelsID" extendedIdentifier="(Residuals Smooth)"/> 
+    <item name="CalibrationPlotMatrix" displayName="Calibration" dataSheet="OutputHyperparameterTuning" column="CalibrationPlot" filter="ModelsID" extendedIdentifier="(Calibration)"/>
+    <item name="ROCAUCPlotMatrix" displayName="ROC/AUC" dataSheet="OutputHyperparameterTuning" column="ROCAUCPlot" filter="ModelsID" extendedIdentifier="(ROC/AUC)"/>
+    <item name="AUCPRPlotMatrix" displayName="AUCPR" dataSheet="OutputHyperparameterTuning" column="AUCPRPlot" filter="ModelsID" extendedIdentifier="(AUCPR)"/>
+    <item name="ConfusionMatrixMatrix" displayName="Confusion Matrix" dataSheet="OutputHyperparameterTuning" column="ConfusionMatrix" filter="ModelsID" extendedIdentifier="(Confusion Matrix)"/>
+    <item name="VariableImportancePlotMatrix" displayName="Variable Importance Plot" dataSheet="OutputHyperparameterTuning" column="VariableImportancePlot" filter="ModelsID" extendedIdentifier="(Variable Importance Plot)"/>
+  </group>
+  <group name="ModelOutputs" displayName="Model Outputs">
+    <item name="ResponseCurves" displayName="Response Curves" dataSheet="OutputModel" column="ResponseCurves" filter="ModelsID" extendedIdentifier="(Response Curves)"/>
+    <item name="ResidualsPlot" displayName="Standard Residuals" dataSheet="OutputModel" column="ResidualsPlot" filter="ModelsID" extendedIdentifier="(Standard Residuals)"/>
+    <item name="ResidualSmoothPlot" displayName="Residuals Smooth" dataSheet="OutputModel" column="ResidualSmoothPlot" filter="ModelsID" extendedIdentifier="(Residuals Smooth)"/>  
+    <item name="CalibrationPlot" displayName="Calibration" dataSheet="OutputModel" column="CalibrationPlot" filter="ModelsID" extendedIdentifier="(Calibration)"/>
+    <item name="ROCAUCPlot" displayName="ROC/AUC" dataSheet="OutputModel" column="ROCAUCPlot" filter="ModelsID" extendedIdentifier="(ROC/AUC)"/>
+    <item name="AUCPRPlot" displayName="AUCPR" dataSheet="OutputModel" column="AUCPRPlot" filter="ModelsID" extendedIdentifier="(AUCPR)"/>
+    <item name="ConfusionMatrix" displayName="Confusion Matrix" dataSheet="OutputModel" column="ConfusionMatrix" filter="ModelsID" extendedIdentifier="(Confusion Matrix)"/>
+    <item name="VariableImportancePlot" displayName="Variable Importance" dataSheet="OutputModel" column="VariableImportancePlot" filter="ModelsID" extendedIdentifier="(Variable Importance)"/>    
+  </group>
 </layout>
 
 <!--Maps Layout-->
-<layout type="Map">	
-	<item name="CovariateMaps" displayName="Covariate Maps" dataSheet="CovariateData" column="RasterFilePath" filter="CovariatesID"/>
-	<group name="MapOutputs" displayName="Map Outputs">
-		<item name="ProbabilityMap" displayName="Probability" dataSheet="OutputSpatial" column="ProbabilityRaster" filter="ModelsID" extendedIdentifier="(Probability)"/>
-		<item name="BinaryMap" displayName="Binary" dataSheet="OutputSpatial" column="BinaryRaster" filter="ModelsID" extendedIdentifier="(Binary)"/>
-		<item name="MessMap" displayName="MESS" dataSheet="OutputSpatial" column="MessRaster" filter="ModelsID" extendedIdentifier="(MESS)"/>
-		<item name="ModMap" displayName="MoD" dataSheet="OutputSpatial" column="ModRaster" filter="ModelsID" extendedIdentifier="(MoD)"/>
-		<item name="ResidualsMap" displayName="Residuals" dataSheet="OutputSpatial" column="ResidualsRaster" filter="ModelsID" extendedIdentifier="(Residuals)"/>
-	</group>
-	<group name="EnsembleOutputs" displayName="Ensemble Outputs">
-		<item name="ProbabilityMapMean" displayName="Probability Ensemble (Mean)" dataSheet="OutputEnsemble" column="ProbabilityRasterMean"/>
-		<item name="ProbabilityMapSum" displayName="Probability Ensemble (Sum)" dataSheet="OutputEnsemble" column="ProbabilityRasterSum"/>
-		<item name="BinaryMapMean" displayName="Binary Ensemble (Mean)" dataSheet="OutputEnsemble" column="BinaryRasterMean"/>
-		<item name="BinaryMapSum" displayName="Binary Ensemble (Sum)" dataSheet="OutputEnsemble" column="BinaryRasterSum"/>
-	</group>
+<layout type="Map"> 
+  <item name="CovariateMaps" displayName="Covariate Maps" dataSheet="CovariateData" column="RasterFilePath" filter="CovariatesID"/>
+  <group name="MapOutputs" displayName="Map Outputs">
+    <item name="ProbabilityMap" displayName="Probability" dataSheet="OutputSpatial" column="ProbabilityRaster" filter="ModelsID" extendedIdentifier="(Probability)"/>
+    <item name="BinaryMap" displayName="Binary" dataSheet="OutputSpatial" column="BinaryRaster" filter="ModelsID" extendedIdentifier="(Binary)"/>
+    <item name="MessMap" displayName="MESS" dataSheet="OutputSpatial" column="MessRaster" filter="ModelsID" extendedIdentifier="(MESS)"/>
+    <item name="ModMap" displayName="MoD" dataSheet="OutputSpatial" column="ModRaster" filter="ModelsID" extendedIdentifier="(MoD)"/>
+    <item name="ResidualsMap" displayName="Residuals" dataSheet="OutputSpatial" column="ResidualsRaster" filter="ModelsID" extendedIdentifier="(Residuals)"/>
+  </group>
+  <group name="EnsembleOutputs" displayName="Ensemble Outputs">
+    <item name="ProbabilityMapMean" displayName="Probability Ensemble (Mean)" dataSheet="OutputEnsemble" column="ProbabilityRasterMean"/>
+    <item name="ProbabilityMapSum" displayName="Probability Ensemble (Sum)" dataSheet="OutputEnsemble" column="ProbabilityRasterSum"/>
+    <item name="BinaryMapMean" displayName="Binary Ensemble (Mean)" dataSheet="OutputEnsemble" column="BinaryRasterMean"/>
+    <item name="BinaryMapSum" displayName="Binary Ensemble (Sum)" dataSheet="OutputEnsemble" column="BinaryRasterSum"/>
+  </group>
 </layout>
 
 <updateProvider className="SyncroSim.Core.XMLUpdateProvider" classAssembly="SyncroSim.Core"/>

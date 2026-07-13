@@ -8,8 +8,10 @@ library(PRROC)
 library(ROCR)
 library(ggplot2)
 library(splines)
+library(glmnet)
+library(glmnetUtils)
 
-# Model Fit Functions ----------------------------------------------------------
+# MODEL FIT FUNCTION -----------------------------------------------------------
 
 ## Fit model -------------------------------------------------------------------
 
@@ -57,9 +59,10 @@ fitModel <- function(
 
   if (out$modType == "glm") {
     if (out$pseudoAbs) {
-      # for glm sum of absence weights set equal to sum of presence weights
+      # for glm sum of absence weights set equal to sum of presence weights;
+      # multiply rather than replace so user-defined T3 weights are preserved
       absWt <- sum(dat$Response == 1) / sum(dat$Response == 0)
-      dat$Weight[dat$Response == 0] <- absWt
+      dat$Weight[dat$Response == 0] <- absWt * dat$Weight[dat$Response == 0]
     }
 
     penalty <- if (out$modOptions$SimplificationMethod == "AIC") {
@@ -190,8 +193,148 @@ fitModel <- function(
   }
 
   #================================================================
-  #                        RF
+  #                        GLM LASSO
+  #=================================================================
+
+  if (out$modType == "glm-lasso") {
+    if (out$pseudoAbs) {
+      # for glm sum of absence weights set equal to sum of presence weights
+      absWt <- sum(dat$Response == 1) / sum(dat$Response == 0) # down weighted
+      # absWt <- 1e9 # infinitely weighted logistic regression
+      dat$Weight[dat$Response == 0] <- absWt
+    }
+
+    factor.mask <- na.omit(match(out$factorInputVars, sanitizedVarNames))
+    cont.mask <- seq(1:length(out$inputVars))
+    if (length(factor.mask) != 0) {
+      cont.mask <- cont.mask[-c(factor.mask)]
+    }
+
+    ### NO squared terms; NO interactions 
+    if (
+      !out$modOptions$ConsiderSquaredTerms &
+        !out$modOptions$ConsiderInteractions
+    ) {
+      scopeGLM <- list(
+        formula = as.formula(paste(
+          "Response", "~",
+          paste(sanitizedVarNames, collapse = '+')
+        ))
+      )
+    }
+    ### YES squared terms; NO interactions 
+    if (
+      out$modOptions$ConsiderSquaredTerms & out$modOptions$ConsiderInteractions
+    ) {
+      # creates full scope with interactions and squared terms
+      scopeGLM <- list(
+        formula = as.formula(paste(
+          "Response",
+          "~",
+          paste(
+            c(
+              if (length(factor.mask) > 0) {
+                paste(sanitizedVarNames[factor.mask], collapse = " + ")
+              },
+              paste(
+                "(",
+                paste(sanitizedVarNames[cont.mask], collapse = " + "),
+                ")^2",
+                sep = ""
+              ),
+              paste("I(", sanitizedVarNames[cont.mask], "^2)", sep = "")
+            ),
+            collapse = " + "
+          ),
+          sep = ""
+        ))
+      )
+    }
+    ### NO squared terms; YES interactions 
+    if (
+      !out$modOptions$ConsiderSquaredTerms & out$modOptions$ConsiderInteractions
+    ) {
+      # creates full scope with interactions
+      scopeGLM <- list(
+        formula = as.formula(paste(
+          "Response",
+          "~",
+          paste(
+            c(
+              if (length(factor.mask) > 0) {
+                paste(sanitizedVarNames[factor.mask], collapse = " + ")
+              },
+              paste(
+                "(",
+                paste(sanitizedVarNames[cont.mask], collapse = " + "),
+                ")^2",
+                sep = ""
+              )
+            ),
+            collapse = " + "
+          ),
+          sep = ""
+        ))
+      )
+    }
+    ### YES squared terms; YES interactions 
+    if (
+      out$modOptions$ConsiderSquaredTerms & !out$modOptions$ConsiderInteractions
+    ) {
+      # creates full scope with squared terms
+      scopeGLM <- list(
+        formula = as.formula(paste(
+          "Response",
+          "~",
+          paste(
+            c(
+              paste(sanitizedVarNames, collapse = " + "),
+              paste("I(", sanitizedVarNames[cont.mask], "^2)", sep = "")
+            ),
+            collapse = " + "
+          ),
+          sep = ""
+        ))
+      )
+    }
+
+    ### FIT MODEL
+    # lasso_model <- cv.glmnet(
+    #   formula = scopeGLM$formula,
+    #   data = dat,
+    #   family = out$modelFamily,
+    #   alpha = 1, # fitting lasso
+    #   weights = dat$Weight,
+    #   nfolds = 10)
+    # this code is set for when implement separate predictions
+    # 1 for fitting model on full training dataset (cv)
+    # 1 for fitting model on fold (no cv). but will need to use lambda value
+    # from cv model in prediction, but that has to be passed through the FOUR?!?
+    # prediction functions. 
+    if(fullFit){
+        lasso_model <- cv.glmnet(
+          formula = scopeGLM$formula,
+          data = dat,
+          family = out$modelFamily,
+          alpha = 1, # fitting lasso
+          weights = dat$Weight,
+          nfolds = 10)
+    } else {
+        lasso_model <- glmnet(
+          formula = scopeGLM$formula,
+          data = dat,
+          family = out$modelFamily,
+          alpha = 1,
+          weights = dat$Weight
+          )
+    }
+    return(lasso_model)
+  }
+
+
   #================================================================
+  #                        RF
+  #=================================================================
   if (out$modType == "rf") {
     # set defaults
     n.trees = out$modOptions$NumberOfTrees
@@ -322,7 +465,7 @@ fitModel <- function(
 
   #================================================================
   #                        BRT
-  #================================================================
+  #=================================================================
   if (out$modType == "brt") {
     # set n-folds
     if (out$validationOptions$CrossValidate) {
@@ -331,9 +474,10 @@ fitModel <- function(
       nFolds <- 10
     }
 
-    # calculating the case weights
+    # calculating the case weights — combine ecological balance weight with any
+    # user-defined spatial de-duplication weights from T3 (defaults to 1 if none)
     prNum <- as.numeric(table(dat$Response)["1"]) # number of presences (also used for tree complexity)
-    wt <- calcSiteWeights(dat$Response)
+    wt <- calcSiteWeights(dat$Response) * dat$Weight
 
     # tmp <- Sys.time()
     modelBRT <- tryCatch(
@@ -345,7 +489,7 @@ fitModel <- function(
             gbm.x = which(!(names(dat) %in% nonCovariateCols)), # indicies of predictor variables in data
             gbm.y = which(names(dat) == "Response"), # index of response variable in data
             family = out$modelFamily,
-            tree.complexity = ifelse(prNum < 50, 1, 5),
+            tree.complexity = out$modOptions$TreeComplexity,
             learning.rate = out$modOptions$LearningRate,
             bag.fraction = out$modOptions$BagFraction,
             max.trees = out$modOptions$MaximumTrees, # maximum number of trees to fit before stopping
@@ -356,7 +500,7 @@ fitModel <- function(
             plot.main = FALSE
           )
         } else {
-          # cross-validation used for model evaluation (run from cv.fct where data is subset by fold prior to call)
+          # cross-validation used for model evaluation (run from cv.fct where data is subset by fold prior to cv.fct() call)
           gbm::gbm(
             formula = Response ~ .,
             data = dplyr::select(
@@ -365,7 +509,7 @@ fitModel <- function(
             ), # response + predictors
             distribution = out$modelFamily,
             n.trees = out$modOptions$nTrees, # total number of trees to fit (set to optimal number from full fit)
-            interaction.depth = ifelse(prNum < 50, 1, 5),
+            interaction.depth = out$modOptions$TreeComplexity,
             shrinkage = out$modOptions$LearningRate,
             bag.fraction = out$modOptions$BagFraction,
             n.minobsinnode = 10, # minimum number of training observations per tree node; gbm default is 10
@@ -387,12 +531,12 @@ fitModel <- function(
 
   #================================================================
   #                        GAM
-  #================================================================
+  #=================================================================
 
   if (out$modType == "gam") {
-    # calculating the case weights
-    # the order of weights should be the same as presences and backgrounds in the training data
-    wt <- calcSiteWeights(dat$Response)
+    # calculating the case weights — combine ecological balance weight with any
+    # user-defined spatial de-duplication weights from T3 (defaults to 1 if none)
+    wt <- calcSiteWeights(dat$Response) * dat$Weight
 
     factor.mask <- na.omit(match(out$factorInputVars, sanitizedVarNames))
     cont.mask <- seq(1:length(sanitizedVarNames))
@@ -627,6 +771,36 @@ runMaxent <- function(
 ) {
   jarPath <- file.path(ssimEnvironment()$PackageDirectory, "maxent.jar")
 
+  # On Windows, cmd.exe treats commas as argument delimiters, so commas in the
+  # SyncroSim library name (embedded in temp paths) cause MaxEnt's argument
+  # parser to split file paths into fragments. Convert to 8.3 short paths to
+  # remove commas and spaces from path components. Not needed on Linux/macOS
+  # where the shell passes arguments verbatim without comma-splitting.
+  if (.Platform$OS.type == "windows") {
+    jarPath     <- utils::shortPathName(jarPath)
+    samplesfile <- utils::shortPathName(samplesfile)
+    if (!is.null(envlayers))       envlayers       <- utils::shortPathName(envlayers)
+    outputdir   <- utils::shortPathName(outputdir)
+    if (!is.null(testsamplesfile)) testsamplesfile  <- utils::shortPathName(testsamplesfile)
+
+    # shortPathName() returns the input unchanged when NTFS 8.3 names are
+    # disabled. If commas remain, MaxEnt will still fail — stop early with
+    # a clear message rather than letting MaxEnt produce a cryptic error.
+    badPaths <- Filter(
+      function(p) grepl(",", p),
+      Filter(Negate(is.null), list(samplesfile, envlayers, outputdir))
+    )
+    if (length(badPaths) > 0) {
+      stop(
+        "MaxEnt cannot run because the SyncroSim library path contains commas ",
+        "(e.g. '", basename(dirname(dirname(badPaths[[1]]))), "'), which MaxEnt's ",
+        "argument parser cannot handle on Windows. Please rename the library to ",
+        "remove commas and re-run. Alternatively, enable NTFS 8.3 short names by ",
+        "running 'fsutil 8dot3name set <drive:> 0' as an administrator."
+      )
+    }
+  }
+
   args <- c(paste0("-mx", out$modOptions$MemoryLimit, "m"), "-jar", jarPath)
 
   if (!out$modOptions$VisibleInterface) {
@@ -789,6 +963,7 @@ read.maxent <- function(lambdas) {
   return(retn.lst)
 }
 
+
 ### Estimate Learning Rate [for BRT] -------------------------------------------
 # this function estimates optimal number of trees at a variety of learning rates
 # the learning rate that produces closest to 1000 trees is selected
@@ -812,9 +987,10 @@ est.lr <- function(dat, out) {
     nFolds <- 10
   }
 
-  # calculating the case weights
+  # calculating the case weights — combine ecological balance weight with any
+  # user-defined spatial de-duplication weights from T3 (defaults to 1 if none)
   prNum <- as.numeric(table(dat$Response)["1"]) # number of presences (also used for tree complexity)
-  wt <- calcSiteWeights(dat$Response)
+  wt <- calcSiteWeights(dat$Response) * dat$Weight
 
   # learning rates to test
   lrs <- c(.1, .05, .02, .01, .005, .0025, .001, .0005, .0001)
@@ -847,9 +1023,9 @@ est.lr <- function(dat, out) {
           ), # response + predictors
           distribution = out$modelFamily,
           n.trees = n.trees[n],
-          interaction.depth = ifelse(prNum < 50, 1, 5),
+          interaction.depth = out$modOptions$TreeComplexity, # this is what Elith et al. refer to as 'tree complexity'
           shrinkage = lrs[i],
-          bag.fraction = out$modOptions$BagFraction,
+          bag.fraction = out$modOptions$BagFraction, #
           n.minobsinnode = 10, # minimum number of training observations per tree node; gbm default is 10
           cv.folds = nFolds,
           weights = wt,
@@ -895,7 +1071,7 @@ est.lr <- function(dat, out) {
   }
 }
 
-# Model Selection and Validation Functions -------------------------------------
+# MODEL SELECTION AND VALIDATION FUNCTIONS -------------------------------------
 
 ## Run Cross Validation --------------------------------------------------------
 
@@ -1011,14 +1187,12 @@ cv.fct <- function(
       dat = data[model.mask, ],
       out = out,
       weight = site.weights[model.mask],
-      fullFit = F
-    )
+      fullFit = FALSE
+    )      
 
     if (is.null(cv.final.mod)) {
       stop(paste0(
-        "CV fold ",
-        i,
-        " model fitting failed. ",
+        "CV fold ", i, " model fitting failed. ",
         "Consider removing or reclassifying rare factor levels, reducing the number of CV folds, ",
         "or reviewing the data for outliers or class imbalance."
       ))
@@ -1027,8 +1201,11 @@ cv.fct <- function(
     fitted.values[pred.mask] <- pred.fct(
       mod = cv.final.mod,
       x = xdat[pred.mask, ],
-      modType = out$modType
-    )
+      modType = out$modType,
+      out=out,
+      cv_splits=TRUE
+    )      
+    
 
     cor.mat[, i] <- permute.predict(
       inputVars = out$inputVars,
@@ -1036,7 +1213,8 @@ cv.fct <- function(
       obs = obs[pred.mask],
       preds = fitted.values[pred.mask],
       mod = cv.final.mod,
-      modType = out$modType
+      modType = out$modType,
+      out=out
     )
 
     thresh[i] <- as.numeric(optimal.thresholds(
@@ -1046,7 +1224,9 @@ cv.fct <- function(
         pred = pred.fct(
           mod = cv.final.mod,
           x = xdat[model.mask, ],
-          modType = out$modType
+          modType = out$modType,
+          out=out,
+          cv_splits=TRUE
         )
       ),
       opt.methods = out$modOptions$thresholdOptimization
@@ -1060,10 +1240,7 @@ cv.fct <- function(
     valid_i <- !is.na(u_i)
     if (any(!valid_i)) {
       updateRunLog(paste0(
-        "\nWarning: ",
-        sum(!valid_i),
-        " site(s) in CV fold ",
-        i,
+        "\nWarning: ", sum(!valid_i), " site(s) in CV fold ", i,
         " could not be predicted and will be excluded from fold evaluation.",
         " This is likely caused by a factor level absent from this fold's training data.\n"
       ))
@@ -1074,9 +1251,7 @@ cv.fct <- function(
 
     if (all(is.na(u_i))) {
       stop(paste0(
-        "CV fold ",
-        i,
-        " produced no valid predictions. This is likely caused by a categorical ",
+        "CV fold ", i, " produced no valid predictions. This is likely caused by a categorical ",
         "variable with a factor level that is absent from this fold's training data. ",
         "Consider removing or reclassifying rare factor levels, or reducing the number of CV folds."
       ))
@@ -1085,9 +1260,7 @@ cv.fct <- function(
     if (family == "binomial" | family == "bernoulli") {
       if (length(unique(y_i)) < 2) {
         stop(paste0(
-          "CV fold ",
-          i,
-          " contains only one response class after excluding unpredictable sites. ",
+          "CV fold ", i, " contains only one response class after excluding unpredictable sites. ",
           "Consider removing or reclassifying rare factor levels, or reducing the number of CV folds."
         ))
       }
@@ -1164,7 +1337,7 @@ cv.fct <- function(
 }
 
 
-## Model Evaluation Helper Functions -------------------------------------------
+### Model Evaluation Helper Functions ------------------------------------------
 
 ### ROC Function ---------------------------------------------------------------
 
@@ -1201,7 +1374,7 @@ roc <- function(
   return(round(wilc, 4))
 }
 
-### Calibration Function -------------------------------------------------------
+### Calibration function -------------------------------------------------------
 
 calibration <- function(
   obs, # observed response
@@ -1244,7 +1417,7 @@ calibration <- function(
   return(calibration.result)
 }
 
-### Permute Predict Function ---------------------------------------------------
+### Permute Predict function ---------------------------------------------------
 
 permute.predict <- function(
   inputVars, # input variables for model fitting
@@ -1252,7 +1425,8 @@ permute.predict <- function(
   obs, # response (observed) values
   preds, # predicted values
   mod, # fit model
-  modType # model type
+  modType, # model type
+  out
 ) {
   AUC <- matrix(NA, nrow = length(inputVars), ncol = 5)
 
@@ -1263,7 +1437,13 @@ permute.predict <- function(
       dat.i <- dat
       dat.i[, indx] <- dat.i[sample(1:dim(dat)[1]), indx]
       options(warn = -1)
-      new.pred <- as.vector(pred.fct(mod = mod, x = dat.i, modType = modType))
+      new.pred <- as.vector(
+        pred.fct(
+          mod = mod,
+          x = dat.i,
+          modType = modType,
+          out=out,
+          cv_splits=TRUE))
       # have to use ROC here because auc in presence absence incorrectly assumes auc will be greater than .5
       AUC[i, j] <- roc(obs, new.pred)
       options(warn = 0)
@@ -1273,7 +1453,7 @@ permute.predict <- function(
   return(AUC)
 }
 
-# Model Output Functions -------------------------------------------------------
+# MODEL OUTPUT FUNCTIONS -------------------------------------------------------
 
 ## Make Model Evaluation Plots -------------------------------------------------
 
@@ -1354,13 +1534,13 @@ makeModelEvalPlots <- function(out = out) {
 
   if (
     out$modType %in%
-      c("glm", "mars") &
+      c("glm", "glm-lasso", "mars") &
       is.null(out$data$test) &
       !(out$modType == "mars" & out$pseudoAbs)
   ) {
     png(standResidualFile, height = 1000, width = 1000)
     par(mfrow = c(2, 2))
-    if (out$modType == "glm") {
+    if (out$modType %in% c("glm", "glm-lasso")) {
       plot(out$finalMod, cex = 1.5, lwd = 1.5, cex.main = 1.5, cex.lab = 1.5)
     }
     # if(out$input$script.name == "mars") plot(out$finalMod$glm.list[[1]], cex = 1.5, lwd = 1.5, cex.main = 1.5, cex.lab = 1.5)
@@ -1371,7 +1551,7 @@ makeModelEvalPlots <- function(out = out) {
   ### Calculate all statistics on test\train or train\cv splits  ###
 
   out$hasSplit <- hasSplit <- (out$pseudoAbs &
-    !out$modType %in% c("glm", "maxent"))
+    !out$modType %in% c("glm", "glm-lasso", "maxent"))
   Stats <- list()
 
   if (out$validationOptions$CrossValidate) {
@@ -1765,7 +1945,7 @@ makeModelEvalPlots <- function(out = out) {
       })
     )
     if (out$pseudoAbs) {
-      if (!(out$modType %in% c("glm"))) {
+      if (!(out$modType %in% c("glm", "glm-lasso"))) {
         absn <- which(a$pres.abs == 0, arr.ind = TRUE)
         samp <- sample(absn, size = min(table(a$pres.abs)), replace = FALSE)
       }
@@ -1971,7 +2151,7 @@ makeModelEvalPlots <- function(out = out) {
   return(out)
 }
 
-### Calculate Statistics Function ----------------------------------------------
+### Calculate statistics function ----------------------------------------------
 
 calcStat <- function(
   x, # x <- out$data[[i]]
@@ -2110,7 +2290,7 @@ calcStat <- function(
   }
 }
 
-### Variable Importance Function -----------------------------------------------
+### Variable Importance function -----------------------------------------------
 
 VariableImportance <- function(
   out, # out list
@@ -2128,7 +2308,9 @@ VariableImportance <- function(
     trainPred <- pred.fct(
       mod = out$finalMod,
       x = out$data$train,
-      modType = out$modType
+      modType = out$modType,
+      out=out,
+      cv_splits=FALSE
     )
     auc$train <- roc(out$data$train$Response, trainPred)
   } else {
@@ -2144,7 +2326,8 @@ VariableImportance <- function(
       preds = trainPred,
       obs = out$data$train$Response,
       mod = out$finalMod,
-      modType = out$modType
+      modType = out$modType,
+      out=out
     )
   cnames <- "train"
 
@@ -2158,7 +2341,8 @@ VariableImportance <- function(
         preds = out$data$test$predicted,
         obs = out$data$test$Response,
         mod = out$finalMod,
-        modType = out$modType
+        modType = out$modType,
+        out=out
       )
     cnames <- c(cnames, "test")
   }
@@ -2200,7 +2384,11 @@ VariableImportance <- function(
   ymiddle <- seq(from = 0, to = length(out$inputVars), length = nrow(xright))
   offSet <- 0.5
 
-  par(mar = c(6, 17, 6, 0))
+  n <- nrow(xright)
+  maxLabelLen <- max(nchar(rownames(xright)))
+  cex_axis <- min(2.5, max(0.6, min(43 / n, 25 / maxLabelLen)))
+  mar_left <- min(25, max(14, ceiling(maxLabelLen * cex_axis * 0.60) + 2))
+  par(mar = c(6, mar_left, 6, 0))
 
   if (!out$validationOptions$SplitData & !out$validationOptions$CrossValidate) {
     plot(
@@ -2372,12 +2560,6 @@ VariableImportance <- function(
     0
   )
   ylabs <- rownames(xright)
-  ylabs <- paste(
-    substr(ylabs, start = 1, stop = 10),
-    c("\n", "")[1 + (nchar(ylabs) <= 10)],
-    substr(ylabs, start = 11, stop = nchar(ylabs)),
-    sep = ""
-  )
   axis(
     2,
     at = seq(
@@ -2388,14 +2570,14 @@ VariableImportance <- function(
       Offset,
     labels = ylabs,
     las = 2,
-    cex = 2.5,
-    cex.lab = 2.5,
-    cex.axis = 2.5
+    cex = cex_axis,
+    cex.lab = cex_axis,
+    cex.axis = cex_axis
   )
-  title(ylab = "Variables", line = 14, cex.lab = 3, font.lab = 2)
+  title(ylab = "Variables", line = mar_left - 3, cex.lab = 3, font.lab = 2)
 }
 
-### Confusion Matrix Function --------------------------------------------------
+### Confusion Matrix function --------------------------------------------------
 
 confusion.matrix <- function(
   Stats, # output from calcStat function
@@ -2547,7 +2729,7 @@ confusion.matrix <- function(
   )
 }
 
-### Residual Image Function ----------------------------------------------------
+### Residual Image function ----------------------------------------------------
 
 resid.image <- function(dev.contrib, dat, file.name, label, create.image = T) {
   #produces a map of deviance residuals unless we're using independent evaluation data in which case
@@ -2708,7 +2890,7 @@ beachcolours <- function(
 }
 
 
-### Test/Train ROC Plot Function -----------------------------------------------
+### Test/Train ROC Plot function -----------------------------------------------
 
 TestTrainRocPlot <- function(
   dat, # Stats$train$auc.data
@@ -3253,7 +3435,7 @@ TestTrainRocPlot <- function(
   par(op)
 }
 
-### Presence-Only Smoothed Calibration Plot Function ---------------------------
+### Presence-Only Smoothed Calibration Plot function ---------------------------
 
 pocplot <- function(pred, back, linearize = TRUE, ...) {
   ispresence <- c(rep(1, length(pred)), rep(0, length(back)))
@@ -3281,7 +3463,7 @@ pocplot <- function(pred, back, linearize = TRUE, ...) {
   predd
 }
 
-### Presence-Absence Smoothed Calibration Plot Function ------------------------
+### Presence-Absence Smoothed Calibration Plot function ------------------------
 
 pacplot <- function(pred, pa, ...) {
   predd <- smoothdist(preds = pred, obs = pa)
@@ -3295,7 +3477,7 @@ pacplot <- function(pred, pa, ...) {
   )
 }
 
-#### Plotting Function for Calibration Plots [nested in pocplot/pacplot] -------
+#### Plotting function for Calibration plots [nested in pocplot/pacplot] -------
 
 calibplot <- function(
   pred,
@@ -3344,7 +3526,7 @@ calibplot <- function(
   }
 }
 
-#### Smoothing Function for Calibration Plots [nested in pocplot/pacplot] ------
+#### Smoothing function for Calibration plots [nested in pocplot/pacplot] ------
 
 smoothingdf <- 6
 smoothdist <- function(preds, obs) {
@@ -3385,7 +3567,7 @@ smoothdist <- function(preds, obs) {
   data.frame(x = x, y = y$fit, se = y$se.fit)
 }
 
-### Capture Statistics Function ------------------------------------------------
+### Capture Statistics function ------------------------------------------------
 
 capture.stats <- function(
   Stats.lst, # stats or lst output from calcStat function
@@ -3531,15 +3713,17 @@ capture.stats <- function(
         "\n\n  Threshold Methods based on",
         switch(
           opt.methods,
-          "1" = ".5 threshold",
-          "2" = "Sens=Spec",
-          "3" = "maximize (sensitivity+specificity)/2",
-          "4" = "maximize Kappa",
-          "5" = "maximize percent correctly classified",
-          "6" = "predicted prevalence=observed prevalence",
-          "7" = "threshold=observed prevalence",
-          "8" = "mean predicted probability",
-          "9" = "minimize distance between ROC plot and (0,1)"
+          "Sens=Spec" = "sensitivity equals specificity"
+          # "Default"      = ".5 threshold",
+          # "MaxSens+Spec" = "max sensitivity + specificity",
+          # "No.Omission"  = "no omission",
+          # "PredPrev=Obs" = "predicted prevalence equals observed",
+          # "ObsPrev"      = "threshold equals observed prevalence",
+          # "MeanProb"     = "mean predicted probability",
+          # "MinROCdist"   = "minimize ROC distance",
+          # "ReqSens"      = "required sensitivity",
+          # "ReqSpec"      = "required specificity",
+          # "Cost"         = "minimum cost"
         ),
         if (label %in% c("Training", "Final evaluation")) {
           paste("\n\t Threshold                    : ", Stats.lst[[1]]$thresh)
@@ -3805,7 +3989,7 @@ capture.stats <- function(
   }
 }
 
-## Response Curves Function -----------------------------------------------------
+## response curves function -----------------------------------------------------
 
 response.curves <- function(out) {
   # Desanitize output variable names
@@ -3818,7 +4002,7 @@ response.curves <- function(out) {
   }
   # if(out$modType %in% c("mars")){ nVars <- nrow(out$mod$summary)
   # if(out$modType %in% c("udc")) nVars <- out$mods$n.vars.final
-  if (out$modType %in% c("glm", "rf", "maxent", "brt", "gam")) {
+  if (out$modType %in% c("glm", "glm-lasso", "rf", "maxent", "brt", "gam")) {
     nVars <- out$nVarsFinal
   }
 
@@ -3890,7 +4074,9 @@ response.curves <- function(out) {
     Xf[, 1] <- pred.fct(
       mod = out$finalMod,
       x = as.data.frame(Xp1),
-      modType = out$modType
+      modType = out$modType,
+      out=out,
+      cv_splits=FALSE
     )
 
     y.lim <- c(0, 1)

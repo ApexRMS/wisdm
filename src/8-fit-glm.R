@@ -12,7 +12,6 @@
 library(rsyncrosim)
 library(tidyr)
 library(dplyr)
-# library(glmnet)
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "00-helper-functions.R"))
@@ -154,6 +153,7 @@ if (all(is.na(siteDataWide$Weight))) {
 }
 
 # set pseudo absences to zero
+siteDataWide$Response <- as.integer(siteDataWide$Response)
 if (any(siteDataWide$Response == backgroundValue)) {
   pseudoAbs <- TRUE
 } else {
@@ -203,7 +203,8 @@ out$modType <- modType <- "glm"
 
 ## Model options
 out$modOptions <- GLMSheet
-out$modOptions$thresholdOptimization <- "Sens=Spec" # To Do: link to defined Threshold Optimization Method in UI - currently set to default: sensitivity=specificity
+out$modOptions$thresholdOptimization <- "Sens=Spec"
+updateRunLog("\nThreshold method for evaluation plots and statistics: Sensitivity equals specificity\n")
 
 ## Model family
 out$modelFamily <- "binomial"
@@ -264,8 +265,9 @@ progressBar()
 
 finalMod <- fitModel(dat = trainingData, out = out)
 
-# save model to temp storage
-# saveRDS(finalMod, file = file.path(ssimTempDir, "Data", paste0(modType, "_model.rds")))
+if (is.null(finalMod)) {
+  stop("Unable to fit GLM with provided data and settings. Review the run log for details.")
+}
 
 # add relevant model details to out
 out$finalMod <- finalMod

@@ -84,6 +84,7 @@ if (nrow(BRTSheet) < 1 | all(is.na(BRTSheet))) {
       FittingMethod = "Use defaults and tuning",
       LearningRate = 0.001, # learning.rate
       BagFraction = 0.75, # bag.fraction
+      TreeComplexity = 1, # tree complexity/interaction depth
       MaximumTrees = 10000, # max.trees
       NumberOfTrees = 50
     )
@@ -93,6 +94,7 @@ if (nrow(BRTSheet) < 1 | all(is.na(BRTSheet))) {
     fitFromDefaults <- TRUE
     BRTSheet$LearningRate <- 0.001
     BRTSheet$BagFraction <- 0.75
+    BRTSheet$TreeComplexity <- 1
     BRTSheet$MaximumTrees <- 10000
     BRTSheet$NumberOfTrees <- 50
   } else {
@@ -106,6 +108,9 @@ if (is.na(BRTSheet$LearningRate)) {
 }
 if (is.na(BRTSheet$BagFraction)) {
   BRTSheet$BagFraction <- 0.75
+}
+if (is.na(BRTSheet$TreeComplexity)) {
+  BRTSheet$TreeComplexity <- 1
 }
 if (is.na(BRTSheet$MaximumTrees)) {
   BRTSheet$MaximumTrees <- 10000
@@ -171,6 +176,7 @@ if (all(is.na(siteDataWide$Weight))) {
 }
 
 # set pseudo absences to zero
+siteDataWide$Response <- as.integer(siteDataWide$Response)
 if (any(siteDataWide$Response == backgroundValue)) {
   pseudoAbs <- TRUE
 } else {
@@ -221,7 +227,8 @@ out$modType <- modType <- "brt"
 ## Model options
 out$modOptions <- BRTSheet
 # out$modOptions$stepSize <- out$modOptions$NumberOfTrees
-out$modOptions$thresholdOptimization <- "Sens=Spec" # To Do: link to defined Threshold Optimization Method in UI - currently set to default: sensitivity=specificity
+out$modOptions$thresholdOptimization <- "Sens=Spec"
+updateRunLog("\nThreshold method for evaluation plots and statistics: Sensitivity equals specificity\n")
 
 ## Model family
 out$modelFamily <- "bernoulli" # "binomial"

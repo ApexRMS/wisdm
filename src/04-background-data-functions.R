@@ -4,243 +4,383 @@
 ## -------------------------
 
 # Background surface generation function ---------------------------------------
+backgroundSurfacePointGeneration <- function(
+    sp,         # species
+    n,          # number of pseudoabsence points to generate
+    template,   # template raster
+    outputDir,  # output directory
+    dat,        # field data 
+    method)     # includes method:('kde', 'mcp'); surface: ('continuous', 'binary'); isopleth
+{ # start function  
+  # TWO methods:
+  #     KDE or MCP
+  # TWO options for KDE:
+  # continuous or binary (random within isopleth)
+  # ONE option for MCP:
+  # binary (random within isopleth)
+  # if KDE & continous: generate pts based on KDE surface only
+  # if KDE & binary: generate points randomly within isopleth given
+  # if MCP: generate points randomly within MCP, MCP is generaged by isopleth given
 
-# library(sp)
-# library(adehabitatHR)
-# library(spatstat.geom)
-# library(sf)
-
-backgroundSurfaceGeneration <- function(sp,         # species
-                                        template,   # template raster
-                                        mask,       # spatVector object bounding the study area
-                                        outputDir,  # output directory
-                                        dat,        # field data 
-                                        method)     # c('kde', 'mcp')
-  { # start function  
-    
-    xy  <- sp::SpatialPoints(dat[, c('X', 'Y')])
-    ud  <- adehabitatHR::kernelUD(xy, extent = 0.5, grid = 150)
-    mm  <- ud@coords[order(ud@coords[, 1]), ]
-    mm  <- order(ud@coords[, 2])
-    m   <- ud@data$ud[mm]
-    
-    if ('kde' %in% method) { 
-      if(tolower(method$surface) == "continuous"){
-        kde_bg_out <- paste0(outputDir, '/', sp, '_kde_bg_surface.tif')
-        if (.Platform$OS.type == "windows") kde_bg_out <- gsub('/', '\\\\', kde_bg_out)
-        kde.mat <- matrix(m, nrow = length(unique(ud@coords[, 1])))
-      
-        t <- terra::rast(raster::raster(ud))
-        ext(t) <- ext(ud)
-        crs(t) <- crs(template)
-        t <- t / max(kde.mat) * 100 # normalize from 0-100
-        t <- terra::crop(t, ext(template))
-        t <- terra::resample(x = t, y = template, method = 'near')
-        t <- terra::ifel(!is.na(template), t, NA)
-        
-        writeRaster(x = t,
-                    filename = kde_bg_out,
-                    gdal = c('BIGTIFF=YES', 'TILED=YES', 'COMPRESS=LZW'),
-                    overwrite = T )
-      }
-      if(tolower(method$surface) == 'binary'){
-        ver <- adehabitatHR::getverticeshr(ud, method$isopleth)  
-        bg_out <- paste0(outputDir, '/', sp, '_kde_bg_surface.shp')
-      }
-    }
-    
-    if("mcp" %in% method){
-      ver <- adehabitatHR::mcp(xy, percent = method$isopleth)
-      bg_out <- paste0(outputDir, '/', sp, '_mcp_bg_surface.shp')
-    }
-    
-    if ("mcp" %in% method | tolower(method$surface) == 'binary') { 
-      
-      WindowList <- list()
-      for (j in 1:length(ver@polygons[[1]]@Polygons)) {
-        x <- y <- vector()
-        x <- ver@polygons[[1]]@Polygons[[j]]@coords[, 1]
-        y <- ver@polygons[[1]]@Polygons[[j]]@coords[, 2]
-        xy <- paste(x, y, sep = "")
-        x <- x[!(duplicated(xy))]
-        y <- y[!(duplicated(xy))]
-        
-        MyWindow <-
-          try(spatstat.geom::owin(poly = list(x = x[length(x):1], y = y[length(x):1])), silent =
-                TRUE)
-        if (class(MyWindow) == "try-error")
-          MyWindow <-
-          spatstat.geom::owin(poly = list(x = x[1:length(x)], y = y[1:length(x)]))
-        ifelse(j == 1, WindowList <- MyWindow, {
-          ifelse(
-            spatstat.geom::is.subset.owin(MyWindow, WindowList),
-            WindowList <- spatstat.geom::setminus.owin(WindowList, MyWindow),
-            WindowList <- spatstat.geom::union.owin(MyWindow, WindowList)
-          )
-        })
-      }
-      
-      outVect <- terra::vect(sf::st_as_sf(WindowList))
-      crs(outVect) <- terra::crs(template)
-      outVect <- terra::intersect(outVect, mask)
-      terra::writeVector(outVect, bg_out, overwrite = T)
-    }
-    
-  } # end function
-
-
-# Background point (psuedo-absence) generation function -------------------------
-
-# library(data.table)
-
-
-backgroundPointGeneration <- function(sp,                           # species name
-                                      n,                            # number of pseudoabsence points to generate
-                                      method,                       # c('kde','mcp')
-                                      outputDir,                    # output directory 
-                                      target_file,                  # path to csv with growth form-specific points (target background point pool)
-                                      overwrite)                    # overwrite existing files
-  { # start function 
   
-  if('kde' %in% method){
-    
-    kde_pts_out <- paste0(outputDir, '/', sp, '_kde_bg_pts.csv')
-    
+  ### ### ### ###
+  ### objects that all methods need
+  ### ### ### ###
+  ### sf vector object of observations. will need to set CRS if obs are different
+
+  ### using adehabitatHR to get ud
+  xy  <- sp::SpatialPoints(dat[, c('X', 'Y')])
+  ud  <- adehabitatHR::kernelUD(xy, extent = 0.5, grid = 150)
+  mm  <- ud@coords[order(ud@coords[, 1]), ]
+  mm  <- order(ud@coords[, 2])
+  m   <- ud@data$ud[mm]
+
+  ### create sf object with obs
+  occ_sf <- sf::st_as_sf(
+    dat[dat$Response==1, c("X", "Y")],
+    coords = c("X", "Y"),
+    crs = crs(template),
+    remove = FALSE
+  )
+  
+  if ('kde' %in% method) { 
+    ### set outnames
+    kde_bg_out  <- file.path(outputDir, paste0(sp, "_kde_bg_surface.tif"))
+    kde_pts_out <- file.path(outputDir, paste0(sp, "_kde_bg_pts.csv"))
+    bg_pts_out  <- file.path(outputDir, paste0(sp, "_kde_bg_pts.shp"))
+    ### don't waste time generating points if they exist
     if(file.exists(kde_pts_out)){
       stop("KDE background points already exist!\nDelete current points to proceed.")
     }
+    ### ### ### ### ### ### ###
+    ### code for moving away from adehabitatHR - but need to eval ppp bandwidth
+    ### ### ### ### ### ### ###
+    # ### get cell resolution of template
+    # template_res = terra::res(template)[1]
+    # ### get bounding box of observations and buffer by 10 grid cells
+    # bbox <- sf::st_bbox(c(
+    #   xmin = min(dat[,"X"]),
+    #   ymin = min(dat[,"Y"]),
+    #   xmax = max(dat[,"X"]),
+    #   ymax = max(dat[,"Y"])),
+    #   crs = crs(template))
+    # ### get cell width to use for kernel density. cell width determined here is approximately what's needed to create:
+    # # 2,500 (50 x 50) 
+    # # 10,000 (100 x 100) 
+    # # 1,000,000 (1000 x 1000) 
+    # # tiles in bounding box of observations for generating the kernel density estimate. This keeps resolution reasonable, but still fast. 
+    # cell_width <- mean(c(
+    #   ((bbox$xmax - bbox$xmin) / 50),
+    #   ((bbox$ymax - bbox$ymin) / 50)
+    # ))
+    # ### expand bounding box by 1/2 width and length
+    # buffer_width <- mean(c(
+    #   ((bbox$xmax - bbox$xmin) / 2),
+    #   ((bbox$ymax - bbox$ymin) / 2)
+    # ))
+    # bbox <- bbox |>
+    #   sf::st_as_sfc() |>
+    #   sf::st_buffer(dist = buffer_width)|> 
+    #   sf::st_bbox()
+    # ### create owin
+    # win <- spatstat.geom::as.owin(bbox)
+    # ### set window
+    # OBSppp <- spatstat.geom::ppp(dat[,"X"], dat[,"Y"], window=win)
+    # # plot(OBSppp)
+    # ### set bandwidth for KDE. This should be a tunable parameter. sigma, estimated here, is ~ h/2, where h is the parameter estimated by kernealHD with the href method. 
+    # bw <- spatstat.explore::bw.ppl(OBSppp) |> round() * 2 # sigma = h/2, where h is estimated from adehabitatHR:kernelUD (original code)
+    # npts <- spatstat.geom::npoints(OBSppp)
+    # ### generate KDE layer
+    # density_ppp <- spatstat.explore::density.ppp(
+    #   OBSppp,
+    #   sigma=bw,
+    #   weights = rep(1 / npts, npts), # ensure that intensity integrates to 1
+    #   eps=cell_width)
+    # r <- terra::rast(density_ppp)
+    # terra::crs(r) <- terra::crs(template)
     
+    # ### rescale weights. this is time consuming for large rasters.
+    # terra::setMinMax(r, force=TRUE); mm=terra::minmax(r)
+    # r <- (r-mm[1])/(mm[2]-mm[1]) * 100
+    # r <- round(r)
+    # # set all values that are 0 to be NA 
+    # r <- ifel(r==0, NA, r)
+    ### ### ### ### ### ### ###
+    ### END
+    ### ### ### ### ### ### ###
+
+    ### rescale weights.
+    r <- terra::rast(raster::raster(ud))
+    ext(r) <- ext(ud)
+    crs(r) <- crs(template)
+    terra::setMinMax(r, force=TRUE); mm=terra::minmax(r)
+    r <- (r-mm[1])/(mm[2]-mm[1]) * 100
+    r <- round(r)
+    # set all values that are 0 to be NA 
+    r <- ifel(r==0, NA, r)
+
+    ### create new template that is cropped to sampling grid.
+    ### this may be smaller than original template, but might not
+    ### if points are at edge of template
+    template_small <- terra::crop(template, r)
+    ### resample to template. this is time consuming for large rasters.
+    r <- terra::resample(r, template_small, method="bilinear")
+    ### crop & mask to template
+    r <- terra::mask(r, template_small)
+    
+    # ### write out raster
+    # # global(!is.na(r), "sum", na.rm=TRUE) 
+    # terra::writeRaster(x = r,
+    #                    filename = kde_bg_out,
+    #                    overwrite=TRUE,
+    #                    gdal=c('COMPRESS=LZW', 'BIGTIFF=YES', 'TILED=YES')) 
+    ### get cells that are observations
+    occ_cellIDs <- terra::extract(r, vect(occ_sf), cells = TRUE)
+    
+    ### IF CONTINOUS, SAMPLE WITH WEIGHTS
     if(tolower(method$surface) == "continuous"){
-      ### Find KDE raster
-      r <- list.files(path = outputDir, pattern = 'kde.*.tif$', full.names = T)
-      r <- terra::rast(r)
-      
-      valid <- data.table::data.table()
-      
-      # you can extract many values, very quickly with terra
-      inc <- 10000000
-      total <- terra::ncell(r)
-      
-      # since we're not ever going to put a point on the kde surface where values
-      # are < 1, surfaces can be subset to the *truly* available values. For 
-      # species with very limited distributions, this dramatically decreases the
-      # amount of time the code spends searching for valid bg locations.
-      
-      if(total > inc){
-        
-        cat('Finding viable cells...\n')
-        
-        pb <- txtProgressBar(0, 100, style = 3)
-        
-        for(i in seq(1,ncell(r),inc)){
-          
-          tmp <- terra::extract(r, i:(i + inc))
-          tmp$id <- c(i:(i + inc))
-          tmp$kde_bg_surface <- ifelse(tmp[ ,1] < 1, NA, tmp[ ,1])
-          tmp <- na.omit(tmp)
-          
-          valid <- rbind(valid, tmp)
-          
-          perc_complete <- ((i + inc) / total) * 100
-          
-          setTxtProgressBar(pb, ifelse(perc_complete <= 100, perc_complete, 100))
-          
-        }
-        
-        close(pb)
-        
-      } else {
-        
-        tmp <- terra::extract(r, 1:inc)
-        tmp$id <- 1:inc
-        tmp$kde_bg_surface <- ifelse(tmp[ ,1] < 1, NA, tmp[ ,1])
-        tmp <- na.omit(tmp)
-        
-        valid <- rbind(valid, tmp)
-        
-      }
-      
       pts <- data.table::data.table()
-      used <- data.table::data.table()
-      
-      while(nrow(pts) < n){
-        
-        tmp <- valid[sample(nrow(valid), 1000),]
-        tmp <- tmp[!(tmp$id %in% used$id), ]
-        
-        if(nrow(tmp) == 0) next()
-        
-        used <- rbind(used, tmp)
-        
-        # generate column of random integers between 1 and 100. 
-        # If the id field is >= this number, it is retained.
-        tmp[, test := as.numeric(sample(1:100, nrow(tmp), replace = T))]
-        
-        # keep true values only
-        tmp <- tmp[, retain := ifelse(tmp[,1] >= test, T, F)][retain == T]
-        
-        if(nrow(tmp) > 0){
-          pts <- rbind(pts, tmp)
-        } else {
-          next()
+      system.time({
+        while(nrow(pts) < n){
+          ### take spatially random sample all cells in OCC region
+          rnd_sample <- terra::spatSample(
+            x=r,
+            size=n*1.5,
+            method='random',
+            cells=TRUE,
+            xy=FALSE,
+            replace=TRUE,
+            as.raster=FALSE,
+            as.points=FALSE,
+            na.rm=TRUE) |> data.table::data.table()
+          names(rnd_sample)[1] = "cell"
+          names(rnd_sample)[2] = "weights"
+          
+          ### drop cells that are occurrence
+          rnd_sample[rnd_sample$cell%in%occ_cellIDs$cell, "weights"] <- 0
+          
+          ### sample the sample with weights 
+          selected_cells <- sample(
+            rnd_sample$cell,
+            size = 1000,
+            replace = TRUE,
+            prob = rnd_sample$weights
+          )
+          
+          ### combine sample set with complete set, drop duplicates if any
+          pts <- rbind(pts, data.table::as.data.table(xyFromCell(r, selected_cells)))
+          pts <- unique(pts)
+          pts <- pts[complete.cases(pts), ]
         }
-      }
-      
+      }) 
+      ### reduce pts to size of background points requested. random sample is all that's needed here. not sampling by prob. Just thinning to limit size
       if(nrow(pts) > n){
-        pts <- pts[sample(1:nrow(pts), n, prob = pts[[1]], replace = F), ]
+        pts_ind <- sample(nrow(pts), size=n, replace=FALSE)
+        pts <- pts[pts_ind,]
       }
-      
-      # convert to spatVector and write out
-      v <- as.data.frame(terra::xyFromCell(r, pts[[2]]))
-      v$Response <- c(rep(backgroundValue, n))
-      colnames(v) <- c("X", "Y", "Response")
-      write.csv(v, kde_pts_out, row.names = F)
-      
-      cat(nrow(v), 'pseudoabsence points generated for continuous KDE surface\n')
-    }
-    
-    if(tolower(method$surface) == "binary"){
-      # v <- sf::st_read(list.files(path = outputDir, pattern = 'kde.*shp', full.names = T), quiet = TRUE)
-      #
-      # if(missing(target_file)) stop('Missing path to target bg dataset!')
-      # pts <- readr::read_csv(target_file, show_col_types = F, progress = F) |>
-      #   dplyr::select(1:2) |>
-      #   sf::st_as_sf(coords = c('X','Y'), crs = sf::st_crs(v))
-      # 
-      # test <- sf::st_intersects(v, pts, sparse = T)
-      # pts <- pts[unlist(test),] |> unique()
-      # 
-      # if(nrow(pts) > n){
-      #   pts <- pts[sample(nrow(pts), n), ]
-      # }
-      # 
-      # pts <- as.data.frame(sf::st_coordinates(pts))
-      
-      v <- vect(list.files(path = outputDir, pattern = 'kde.*shp', full.names = T))
-      pts <- crds(spatSample(v, n, "random"))
-      
-      pts <- as.data.frame(pts)
+      ### write out
       names(pts) <- c("X", "Y")
-      pts$Response <- backgroundValue
-      write.csv(pts, kde_pts_out, row.names = F)
+      pts$Response <- -9998
+      data.table::fwrite(pts, kde_pts_out)
+      ### write out shapefile if needed
+      # occ_sf <- sf::st_as_sf(
+      #   pts[, c("X", "Y")],
+      #   coords = c("X", "Y"),
+      #   crs = crs(template),
+      #   remove = FALSE
+      # ) |> terra::vect()
+      # terra::writeVector(occ_sf, bg_pts_out, overwrite = T)
+    } # end tolower(method$surface) == "continuous"
+    
+    ### if BINARY, SAMPLE WITH OUT WEIGHTS
+    if(tolower(method$surface) == 'binary'){
+      ### calc isopleth from occ pct
+      # r_obs <- terra::extract(r, vect(occ_sf))
+      # q_val = (100-method$isopleth)/100
+      # isopleth <- quantile(r_obs[,2], q_val, na.rm=TRUE)
+      isopleth <- 100-method$isopleth
+      # Create binary mask of cells >= threshold
+      outRast <- terra::ifel(r >= isopleth, 1, NA)
+      ### mask to template to get holes
+      outRast <- mask(outRast, template_small)
+      # ### write out raster
+      # terra::writeRaster(x <- outRast,
+      #                    filename = kde_bg_out,
+      #                    overwrite=TRUE,
+      #                    gdal=c('COMPRESS=LZW', 'BIGTIFF=YES', 'TILED=YES'))
+      # plot(template)
+      # plot(outVect, add=TRUE)
+      # plot(pts, add=TRUE)
+    
+      ### get CELL IDs of observations
+      occ_cellIDs <- terra::extract(outRast, vect(occ_sf), cells = TRUE)
       
-      cat(nrow(pts), 'pseudoabsence points generated for binary KDE surface\n')
+      ### RANDOMLY SAMPLE RASTER WITH NO WEIGHTS
+      ### then remove occ locations & dups and sample again. 
+      pts <- data.table::data.table()
+      while(nrow(pts) < n){
+        ### take spatially random sample of entire study area
+        system.time({
+          rnd_sample <- terra::spatSample(
+            outRast,
+            size=n*1.5,
+            method='random',
+            cells=TRUE,
+            xy=TRUE,
+            replace=FALSE,
+            as.raster=FALSE,
+            as.points=FALSE,
+            na.rm=TRUE) |> data.table::data.table()
+          names(rnd_sample)[1] = "cell"
+          names(rnd_sample)[2] = "X"
+          names(rnd_sample)[3] = "Y"
+        }) # 
+        
+        ### drop cells that are occurrence
+        rnd_sample <- rnd_sample[!rnd_sample$cell%in%occ_cellIDs$cell, ] 
+        
+        ### combine sample set with complete set, drop duplicates if any
+        pts <- rbind(pts, rnd_sample)
+        pts <- unique(pts)
+        pts <- pts[complete.cases(pts), ]
+      }
+      ### reduce pts to size of background points requested. random sample is all that's needed here. not sampling by prob. Just thinning to limit size
+      if(nrow(pts) > n){
+        pts_ind <- sample(nrow(pts), size=n, replace=FALSE)
+        pts <- pts[pts_ind,]
+      }
+      ### write out
+      pts$Response <- -9998
+      data.table::fwrite(pts, kde_pts_out)
+      # occ_sf <- sf::st_as_sf(
+      #   pts[, c("X", "Y")],
+      #   coords = c("X", "Y"),
+      #   crs = crs(template),
+      #   remove = FALSE
+      # ) |> terra::vect()
+      # terra::writeVector(occ_sf, bg_pts_out, overwrite = T)
+    } # end tolower(method$surface) == 'binary'
+  } # end 'kde' %in% method
+  
+  if("mcp" %in% method){
+    ### set outnames
+    mcp_pts_out <- file.path(outputDir, paste0(sp, "_mcp_bg_pts.csv"))
+    bg_pts_out  <- file.path(outputDir, paste0(sp, "_mcp_bg_pts.shp"))
+    ### don't waste time generating points if they exist
+    if(file.exists(mcp_pts_out)){
+      stop("MCP background points already exist!\nDelete current points to proceed.")
     }
-  }
+    
+    # get X,Y coords 
+    xy <- fieldDataSheet[,c("X", "Y")]
+    n_vals <- nrow(xy)
+    if (n_vals < 3L){
+      stop("Need at least 3 points for a polygon.")
+    }
+    
+    # center points to calc isopleth
+    cx <- mean(xy[, 1])
+    cy <- mean(xy[, 2])
+    
+    # Squared distances (no sqrt: avoids extra cost)
+    d2 <- (xy[, 1] - cx)^2 + (xy[, 2] - cy)^2
+    rm(cx, cy)
+    
+    # threshold with quantile from isopleth 
+    thr <- stats::quantile(d2, probs = method$isopleth / 100, names = FALSE, type = 7)
+    keep <- d2 <= thr
+    rm(d2, thr)
+    
+    if (sum(keep) < 3L) stop("Fewer than 3 points remain after trimming.")
+    
+    # Convex hull indices on trimmed set
+    id_trim <- which(keep)
+    hull_local <- grDevices::chull(xy[keep, 1], xy[keep, 2])
+    hull_idx <- id_trim[hull_local]
+    
+    # Close polygon ring
+    poly_coords <- rbind(xy[hull_idx, , drop = FALSE], xy[hull_idx[1], , drop = FALSE])
+    
+    # convert to polygon
+    polygons <- poly_coords |>
+      sf::st_as_sf(coords = c("X", "Y"), crs = crs(template)) |> 
+      summarize(geometry = sf::st_combine(geometry)) |> 
+      sf::st_cast("POLYGON")
+    
+    ### set path for bg surface
+    bg_out <- file.path(outputDir, paste0(sp, "_mcp_bg_surface.tif"))
+    
+    ### convert to vect & set crs
+    outVect <- terra::vect(polygons); rm(polygons)
+    crs(outVect) <- terra::crs(template)
+    
+    ### create new template that is cropped to sampling grid
+    template_small <- terra::crop(template, outVect)
+    
+    ### convert to raster
+    outRast <- rasterize(outVect, template_small)
+    
+    ### mask to template to get holes
+    outRast <- mask(outRast, template_small)
+    
+    # ### write out raster
+    # terra::writeRaster(x <- outRast,
+    #                    filename = bg_out,
+    #                    overwrite=TRUE,
+    #                    gdal=c('COMPRESS=LZW', 'BIGTIFF=YES', 'TILED=YES'))
+    
+    # plot(template)
+    # plot(outVect, add=TRUE)
+    # plot(pts, add=TRUE)
+    
+    ### get CELL IDs of observations
+    occ_cellIDs <- terra::extract(outRast, vect(occ_sf), cells = TRUE)
+    
+    ### RANDOMLY SAMPLE RASTER WITH NO WEIGHTS
+    ### then remove occ locations & dups and sample again. 
+    pts <- data.table::data.table()
+    while(nrow(pts) < n){
+      ### take spatially random sample of entire study area
+      system.time({
+        rnd_sample <- terra::spatSample(
+          outRast,
+          size=n*1.5,
+          method='random',
+          cells=TRUE,
+          xy=TRUE,
+          replace=FALSE,
+          as.raster=FALSE,
+          as.points=FALSE,
+          na.rm=TRUE) |> data.table::data.table()
+        names(rnd_sample)[1] = "cell"
+        names(rnd_sample)[2] = "X"
+        names(rnd_sample)[3] = "Y"
+      }) # 
+      
+      ### drop out cells that are occurrence
+      rnd_sample <- rnd_sample[!rnd_sample$cell%in%occ_cellIDs$cell, ] 
+      
+      ### combine sample set with complete set, drop duplicates if any
+      pts <- rbind(pts, rnd_sample)
+      pts <- unique(pts)
+      pts <- pts[complete.cases(pts), ]
+    }
+    ### reduce pts to size of background points requested. random sample is all that's needed here. not sampling by prob. Just thinning to limit size
+    if(nrow(pts) > n){
+      pts_ind <- sample(nrow(pts), size=n, replace=FALSE)
+      pts <- pts[pts_ind,]
+    }
+    ### write out
+    pts$Response <- -9998
+    data.table::fwrite(pts, mcp_pts_out)
+    # occ_sf <- sf::st_as_sf(
+    #   pts[, c("X", "Y")],
+    #   coords = c("X", "Y"),
+    #   crs = crs(template),
+    #   remove = FALSE
+    # ) |> terra::vect()
+    # terra::writeVector(occ_sf, bg_pts_out, overwrite = T)
+  } # end "mcp" %in% method
   
-  if('mcp' %in% method){ 
-    
-    mcp_pts_out <- paste0(outputDir, '/', sp, '_mcp_bg_pts.csv')
-    
-    v <- vect(list.files(path = outputDir, pattern = 'mcp.*shp', full.names = T))
-    pts <- crds(spatSample(v, n, "random"))
-    
-    pts <- as.data.frame(pts)
-    names(pts) <- c("X", "Y")
-    pts$Response <- backgroundValue
-    write.csv(pts, mcp_pts_out, row.names = F)
-    
-    cat(nrow(pts), 'pseudoabsence points generated for MCP surface\n')
-  }
-  
-} # End Function
+} # end backgroundSurfacePointGeneration
+

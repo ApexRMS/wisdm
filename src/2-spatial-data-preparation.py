@@ -175,6 +175,11 @@ def prep_spatial_data():
     # "_tiled" appended to the name, and the datasheet is updated so all
     # downstream scripts use the tiled version.
     with rasterio.open(templatePath) as src:
+        if np.issubdtype(np.dtype(src.dtypes[0]), np.unsignedinteger):
+            raise ValueError(
+                f"Template raster has an unsigned integer dtype ({src.dtypes[0]}), "
+                f"which is incompatible with the nodata value -9999. Convert the "
+                f"template raster to float32 or a signed integer type before continuing.")
         if not src.profile.get('tiled', False):
             base, ext = os.path.splitext(os.path.basename(templatePath))
             tiledTemplatePath = os.path.join(
@@ -318,14 +323,15 @@ def prep_spatial_data():
                                              "template extent before continuing.")
 
                         # Mask and set no data value
-                        maskStack = xr.concat([covariateRaster, templateRaster], dim="band", join="override").chunk(
+                        # Cast to signed dtype before map_blocks so the mask
+                        # function blocks can hold nodataValue (-9999).
+                        covariateRasterSigned = covariateRaster.astype(signed_dtype)
+                        maskStack = xr.concat([covariateRasterSigned, templateRaster], dim="band", join="override").chunk(
                             {'band': -1})
                         maskedCovariateRaster = maskStack.map_blocks(mask, kwargs=dict(
                             input_nodata=covariateRaster.rio.nodata,
                             template_nodata=templateRaster.rio.nodata),
-                            template=covariateRaster)
-                        maskedCovariateRaster = maskedCovariateRaster.astype(
-                            signed_dtype)
+                            template=covariateRasterSigned)
                         maskedCovariateRaster.rio.write_nodata(
                             nodataValue,
                             encoded=True,
@@ -432,17 +438,18 @@ def prep_spatial_data():
                                         "The extent of the restriction raster does not overlap the full extent of the template raster. "
                                         "Ensure the restriction raster overlaps the template extent before continuing.")
                                 # Mask and set no data value
-                                maskStack = xr.concat([restrictionRaster, templateRaster], dim="band", join="override").chunk(
+                                # Cast to signed dtype before map_blocks so the
+                                # mask function blocks can hold nodataValue (-9999).
+                                restrictionRasterSigned = restrictionRaster.astype(signed_dtype)
+                                maskStack = xr.concat([restrictionRasterSigned, templateRaster], dim="band", join="override").chunk(
                                     {'band': -1})
                                 maskedRestrictionRaster = maskStack.map_blocks(
                                     mask,
                                     kwargs=dict(input_nodata=restrictionRaster.rio.nodata,
                                                 template_nodata=templateRaster.rio.nodata),
-                                    template=restrictionRaster)
+                                    template=restrictionRasterSigned)
                                 maskedRestrictionRaster.rio.write_nodata(
                                     nodataValue, encoded=True, inplace=True)
-                                maskedRestrictionRaster = maskedRestrictionRaster.astype(
-                                    signed_dtype)
                                 maskedRestrictionRaster = maskedRestrictionRaster.squeeze()
                                 # Write to disk
                                 maskedRestrictionRaster.rio.to_raster(

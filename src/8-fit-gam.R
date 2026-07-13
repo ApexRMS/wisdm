@@ -147,6 +147,7 @@ if (all(is.na(siteDataWide$Weight))) {
 }
 
 # set pseudo absences to zero
+siteDataWide$Response <- as.integer(siteDataWide$Response)
 if (any(siteDataWide$Response == backgroundValue)) {
   pseudoAbs <- TRUE
 } else {
@@ -196,7 +197,8 @@ out$modType <- modType <- "gam"
 
 ## Model options
 out$modOptions <- GAMSheet
-out$modOptions$thresholdOptimization <- "Sens=Spec" # To Do: link to defined Threshold Optimization Method in UI - currently set to default: sensitivity=specificity
+out$modOptions$thresholdOptimization <- "Sens=Spec"
+updateRunLog("\nThreshold method for evaluation plots and statistics: Sensitivity equals specificity\n")
 
 ## Model family
 out$modelFamily <- "binomial"
