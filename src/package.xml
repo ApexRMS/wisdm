@@ -464,7 +464,7 @@
 	displayName="9 - Apply Model"
 	programArguments="9-apply-model.R"
 	condaEnv="wisdm-r-conda.yml"
-	condaEnvVersion="6">
+	condaEnvVersion="7">
 		<dataSheet name="core_SpatialMultiprocessing" type="Input"/>
 		<dataSheet name="RestrictionRaster" type="Input"/>
 		<dataSheet name="OutputModel" type="Input"/>
