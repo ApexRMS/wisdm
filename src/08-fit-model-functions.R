@@ -2386,7 +2386,11 @@ VariableImportance <- function(
   ymiddle <- seq(from = 0, to = length(out$inputVars), length = nrow(xright))
   offSet <- 0.5
 
-  par(mar = c(6, 17, 6, 0))
+  n <- nrow(xright)
+  maxLabelLen <- max(nchar(rownames(xright)))
+  cex_axis <- min(2.5, max(0.6, min(43 / n, 25 / maxLabelLen)))
+  mar_left <- min(25, max(14, ceiling(maxLabelLen * cex_axis * 0.60) + 2))
+  par(mar = c(6, mar_left, 6, 0))
 
   if (!out$validationOptions$SplitData & !out$validationOptions$CrossValidate) {
     plot(
@@ -2558,12 +2562,6 @@ VariableImportance <- function(
     0
   )
   ylabs <- rownames(xright)
-  ylabs <- paste(
-    substr(ylabs, start = 1, stop = 10),
-    c("\n", "")[1 + (nchar(ylabs) <= 10)],
-    substr(ylabs, start = 11, stop = nchar(ylabs)),
-    sep = ""
-  )
   axis(
     2,
     at = seq(
@@ -2574,11 +2572,11 @@ VariableImportance <- function(
       Offset,
     labels = ylabs,
     las = 2,
-    cex = 2.5,
-    cex.lab = 2.5,
-    cex.axis = 2.5
+    cex = cex_axis,
+    cex.lab = cex_axis,
+    cex.axis = cex_axis
   )
-  title(ylab = "Variables", line = 14, cex.lab = 3, font.lab = 2)
+  title(ylab = "Variables", line = mar_left - 3, cex.lab = 3, font.lab = 2)
 }
 
 ### Confusion Matrix function --------------------------------------------------

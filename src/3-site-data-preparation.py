@@ -17,7 +17,7 @@ import os  # noqa: E402
 import sys  # noqa: E402
 from setup_functions import (  # noqa: E402
     setupCondaEnv, checkGdalVersion, setupGdalProj,
-    nodataValue, backgroundValue, defaultChunkDims, getNumThreads)
+    nodataValue, backgroundValue, defaultChunkDims, getNumThreads, signedDtype)
 
 setupCondaEnv()
 checkGdalVersion()
@@ -347,6 +347,13 @@ for i in range(len(covariateDataSheet.CovariatesID)):
     outputCovariatePath = covariateDataSheet.RasterFilePath[i]
     covariateRaster = rioxarray.open_rasterio(
         outputCovariatePath, chunks=defaultChunkDims)
+
+    if covariateRaster.dtype != signedDtype(covariateRaster.dtype):
+        raise ValueError(
+            f"Covariate '{covariateDataSheet.CovariatesID[i]}' has an unsigned integer "
+            f"dtype ({covariateRaster.dtype}), which is incompatible with the nodata "
+            f"value -9999. Run Transformer 2 (Spatial Data Preparation) first to convert "
+            f"covariate rasters to a signed type before continuing.")
 
     if covariateRaster.rio.width < templateRaster.rio.width or \
             covariateRaster.rio.height < templateRaster.rio.height:
