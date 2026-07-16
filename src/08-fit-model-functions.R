@@ -856,7 +856,9 @@ runMaxent <- function(
   }
 
   if (!is.null(out$seed) && !is.na(out$seed)) {
-    args <- c(args, paste0("randomseed=", out$seed))
+    args <- c(args, paste0("randomseed=false"))
+  } else{
+    args <- c(args, paste0("randomseed=true"))
   }
 
   args <- c(args, "redoifexists", "autorun")
