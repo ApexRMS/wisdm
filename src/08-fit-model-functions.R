@@ -769,7 +769,9 @@ runMaxent <- function(
   testsamplesfile = NULL,
   fullFit = TRUE
 ) {
-  jarPath <- file.path(ssimEnvironment()$PackageDirectory, "maxent.jar")
+  # jarPath <- file.path(ssimEnvironment()$PackageDirectory, "maxent.jar")
+  # jarPath <- file.path(Sys.getenv("ssim_package_directory"), "/maxent.jar")
+  jarPath <- file.path(packageDir, "maxent.jar")
 
   # On Windows, cmd.exe treats commas as argument delimiters, so commas in the
   # SyncroSim library name (embedded in temp paths) cause MaxEnt's argument

@@ -46,6 +46,7 @@ fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
 validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
 retainedCovariatesSheet <- datasheet(myScenario, "wisdm_RetainedCovariates", lookupsAsFactors = F)
 siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
+mulitprocessingSheet <- datasheet(myScenario, "core_Multiprocessing")
 tuningModelSheet <- datasheet(myScenario, "wisdm_TuningModel")
   
 modType <- modelsSheet$ModelType[modelsSheet$ModelName == tuningModelSheet$Model]
@@ -68,7 +69,13 @@ if(modType == "brt"){ library(dismo)
     TreeComplexity = "Tree Complexity",
     MaximumTrees = "Maximum number of trees")
 }
-  
+if(modType == "maxent"){ library(zip)
+  tuningSheet <- datasheet(myScenario, "wisdm_MaxentTuning")
+  modelSheet <- datasheet(myScenario, "wisdm_Maxent")
+  modelArgs <- list(
+    RegularizationMultiplier = "betamultiplier")
+}
+
 # output datasheets
 outputModelSheet <- datasheet(myScenario, "wisdm_OutputModel", optional = T, returnInvisible = T, empty = T, lookupsAsFactors = F)
 outputHyperparameterTuningSheet <- datasheet(myScenario, "wisdm_OutputHyperparameterTuning", optional = T, returnInvisible = T, empty = T, lookupsAsFactors = F)
@@ -97,16 +104,18 @@ if(modType == "brt"){ modelFamily <- "bernoulli"
 tuningSheet$Parameter1 <- names(which(modelArgs == tuningSheet$Parameter1))
 v1 <- as.numeric(strsplit(tuningSheet$Parameter1Values, ",")[[1]])
   
-if(!is.na(tuningSheet$Parameter2)){
-  tuningSheet$Parameter2 <- names(which(modelArgs == tuningSheet$Parameter2)) 
-  v2 <- as.numeric(strsplit(tuningSheet$Parameter2Values, ",")[[1]])
-  combos <- expand.grid(v1, v2)
-  parameterNames <- names(combos) <- c(tuningSheet$Parameter1, tuningSheet$Parameter2)
-} else{
-  combos <- expand.grid(v1)
-  parameterNames <- names(combos) <- tuningSheet$Parameter1
-}
-  
+if(!is.null(tuningSheet$Parameter2)){
+  if(!is.na(tuningSheet$Parameter2)){
+    tuningSheet$Parameter2 <- names(which(modelArgs == tuningSheet$Parameter2)) 
+    v2 <- as.numeric(strsplit(tuningSheet$Parameter2Values, ",")[[1]])
+    combos <- expand.grid(v1, v2)
+    parameterNames <- names(combos) <- c(tuningSheet$Parameter1, tuningSheet$Parameter2)
+    }
+  } else{
+    combos <- expand.grid(v1)
+    parameterNames <- names(combos) <- tuningSheet$Parameter1
+  }
+    
 # update progress bar
 steps <- 5+5*nrow(combos)
 progressBar(type = "begin", totalSteps = steps)
@@ -137,6 +146,55 @@ if(modType == "brt"){
   if(is.na(modelSheet$MaximumTrees)){modelSheet$MaximumTrees <- 10000}
   if(is.na(modelSheet$NumberOfTrees)){modelSheet$NumberOfTrees <- 50}
   if(is.na(modelSheet$TreeComplexity)){modelSheet$TreeComplexity <- 1}
+}
+
+## Model Sheet [Maxent]
+if(modType == "maxent"){
+  modelSheet$FittingMethod <- "Use values provided below"
+  if (is.na(modelSheet$MemoryLimit)) {
+    modelSheet$MemoryLimit <- 512
+  }
+  if (is.na(modelSheet$MultiprocessingThreads)) {
+    if (is.na(mulitprocessingSheet$EnableMultiprocessing) |
+      mulitprocessingSheet$EnableMultiprocessing == FALSE
+    ) {
+      modelSheet$MultiprocessingThreads <- 1
+    } else {
+      modelSheet$MultiprocessingThreads <- mulitprocessingSheet$MaximumJobs
+    }
+  }
+  if (is.na(modelSheet$AutoFeatureSelection)) {
+    if (any(c(
+      !is.na(modelSheet$UseHinge),
+      !is.na(modelSheet$UseLinear),
+      !is.na(modelSheet$UseQuadratic),
+      !is.na(modelSheet$UseProduct),
+      !is.na(modelSheet$UseThreshold)
+    ))) {
+      modelSheet$AutoFeatureSelection <- FALSE
+    } else {
+      modelSheet$AutoFeatureSelection <- TRUE
+    }
+  }
+  if (modelSheet$AutoFeatureSelection) {
+    updateRunLog("\nAuto Feature Selection is enabled; feature types will be selected based on number of presence records.\n")
+    modelSheet$UseHinge <- NA
+    modelSheet$UseLinear <- NA
+    modelSheet$UseQuadratic <- NA
+    modelSheet$UseProduct <- NA
+    modelSheet$UseThreshold <- NA
+  } else {
+    updateRunLog("\nAuto Feature Selection is disabled; feature types will be used as specified in the Maxent Options. If not specified, all feature types will be used.\n")
+    if (is.na(modelSheet$UseHinge)) {modelSheet$UseHinge <- TRUE}
+    if (is.na(modelSheet$UseLinear)) {modelSheet$UseLinear <- TRUE}
+    if (is.na(modelSheet$UseQuadratic)) {modelSheet$UseQuadratic <- TRUE}
+    if (is.na(modelSheet$UseProduct)) {modelSheet$UseProduct <- TRUE}
+    if (is.na(modelSheet$UseThreshold)) {modelSheet$UseThreshold <- TRUE}
+  }
+  if (is.na(modelSheet$RegularizationMultiplier)) {modelSheet$RegularizationMultiplier <- 1}
+  if (is.na(modelSheet$EnableClamping)) {modelSheet$EnableClamping <- TRUE}
+  if (is.na(modelSheet$VisibleInterface)) {modelSheet$VisibleInterface <- FALSE}
+  if (is.na(modelSheet$SaveMaxentFiles)) {modelSheet$SaveMaxentFiles <- FALSE}
 }
 
 ## Validation Sheet
@@ -206,10 +264,17 @@ out$factorInputVars <- factorInputVars
   
 ## training data
 out$data$train <- trainingData
-  
+
 ## testing data
 out$data$test <- testingData
-  
+
+if(modType == "maxent"){
+  out$modOptions <- modelSheet
+  out$swdPath <- swdPath <- file.path(ssimTempDir, "Inputs", "training-swd.csv")
+  out$backgroundPath <- backgroundPath <- file.path(ssimTempDir, "Inputs", "background-swd.csv")
+    out$testDataPath <- testDataPath <- file.path(ssimTempDir, "Inputs", "testing-swd.csv")
+}
+
 ## pseudo absence  
 out$pseudoAbs <- pseudoAbs
   
@@ -222,7 +287,7 @@ out$seed <- validationDataSheet$RandomSeed
 
 ## path to temp ssim storage
 out$tempDir <- ssimTempDir
-  
+
 # Review model data ------------------------------------------------------------
 
 if(nrow(trainingData)/(length(out$inputVars)-1)<10){
@@ -283,8 +348,63 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
   on.exit(capture.output(cat("Model Failed\n\n"),file=file.path(out$tempDir,paste0(modType, "_output.txt")),append=TRUE))  
 
   # fit model
-  finalMod <- fitModel(dat = trainingData, out = out)
-  
+  if(modType!="maxent"){
+    finalMod <- fitModel(
+      dat = trainingData,
+      out = out)
+  }
+  if(modType=="maxent"){
+
+    # create temp maxent folders
+    dir.create(file.path(out$tempDir, "Inputs"))
+    dir.create(file.path(out$tempDir, "Outputs"))
+
+    # write out swd file
+    out$data$train %>%
+      mutate(Species = case_when(Response == 1 ~ "species")) %>%
+      drop_na(Species) %>%
+      select(
+        -SiteID,
+        -Response,
+        -UseInModelEvaluation,
+        -ModelSelectionSplit,
+        -Weight
+      ) %>%
+      relocate(Species, .before = X) %>%
+      write.csv(swdPath, row.names = F)
+    if(out$pseudoAbs) {
+      out$data$train %>%
+        mutate(Species = case_when(Response != 1 ~ "background")) %>%
+        drop_na(Species) %>%
+        select(
+          -SiteID,
+          -Response,
+          -UseInModelEvaluation,
+          -ModelSelectionSplit,
+          -Weight
+        ) %>%
+        relocate(Species, .before = X) %>%
+        write.csv(backgroundPath, row.names = F)
+    }
+  if(!is.null(out$data$test)){
+      out$data$test %>%
+        mutate(Species = case_when(Response == 1 ~ "species")) %>%
+        drop_na(Species) %>%
+        select(
+          -SiteID,
+          -Response,
+          -UseInModelEvaluation,
+          -ModelSelectionSplit,
+          -Weight
+        ) %>%
+        relocate(Species, .before = X) %>%
+        write.csv(testDataPath, row.names = F)
+    }
+
+    finalMod <- fitModel(
+      dat = NULL, # maxent code pulls in data from csv files built/saved above
+      out = out)
+  }  
   if(is.null(finalMod)){
 
     comboImgs$ModelsID[r] <- modelsSheet$ModelName[modelsSheet$ModelType == modType]        
