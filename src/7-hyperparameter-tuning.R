@@ -268,13 +268,6 @@ out$data$train <- trainingData
 ## testing data
 out$data$test <- testingData
 
-if(modType == "maxent"){
-  out$modOptions <- modelSheet
-  out$swdPath <- swdPath <- file.path(ssimTempDir, "Inputs", "training-swd.csv")
-  out$backgroundPath <- backgroundPath <- file.path(ssimTempDir, "Inputs", "background-swd.csv")
-    out$testDataPath <- testDataPath <- file.path(ssimTempDir, "Inputs", "testing-swd.csv")
-}
-
 ## pseudo absence  
 out$pseudoAbs <- pseudoAbs
   
@@ -358,6 +351,9 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
     # create temp maxent folders
     dir.create(file.path(out$tempDir, "Inputs"))
     dir.create(file.path(out$tempDir, "Outputs"))
+    out$swdPath <- swdPath <- file.path(out$tempDir, "Inputs", "training-swd.csv")
+    out$backgroundPath <- backgroundPath <- file.path(out$tempDir, "Inputs", "background-swd.csv")
+    out$testDataPath <- testDataPath <- file.path(out$tempDir, "Inputs", "testing-swd.csv")
 
     # write out swd file
     out$data$train %>%
@@ -398,7 +394,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
           -Weight
         ) %>%
         relocate(Species, .before = X) %>%
-        write.csv(testDataPath, row.names = F)
+      write.csv(testDataPath, row.names = F)
     }
 
     finalMod <- fitModel(
