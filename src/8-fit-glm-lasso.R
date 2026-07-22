@@ -423,13 +423,13 @@ modelOutputsSheet <- safe_rbind(
   )
 )
 
-if ("glm_StandardResidualPlots.png" %in% tempFiles) {
+if (paste0(modType, "_StandardResidualPlots.png") %in% tempFiles) {
   modelOutputsSheet$ResidualsPlot <- file.path(
     ssimTempDir,
     paste0(modType, "_StandardResidualPlots.png")
   )
 }
-if ("glm_AUCPRPlot.png" %in% tempFiles) {
+if (paste0(modType, "_AUCPRPlot.png") %in% tempFiles) {
   modelOutputsSheet$AUCPRPlot <- file.path(
     ssimTempDir,
     paste0(modType, "_AUCPRPlot.png")
