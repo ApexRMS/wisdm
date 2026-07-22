@@ -604,6 +604,7 @@
     <group name="Tuning">
       <item name="rfTuning" />
       <item name="brtTuning" />
+      <item name="MaxentTuning" />
     </group>   
     </group>
   <group name="OutputOptions" displayName="Output Options">

@@ -415,16 +415,16 @@ out$finalVars <- out$inputVars # maxent doesn't drop variables
 out$nVarsFinal <- length(out$finalVars)
 
 # load maxent run results
-runReults <- read.csv(file.path(ssimTempDir, "Outputs", "maxentResults.csv"))
+runResults <- read.csv(file.path(ssimTempDir, "Outputs", "maxentResults.csv"))
 
 modSummary <- data.frame(
   "Variabels" = gsub(
     ".contribution",
     "",
-    names(runReults)[grep("contribution", names(runReults))]
+    names(runResults)[grep("contribution", names(runResults))]
   )
 )
-modSummary$Contribution <- t(runReults[grep("contribution", names(runReults))])
+modSummary$Contribution <- t(runResults[grep("contribution", names(runResults))])
 
 updateRunLog("\nSummary of Model:\n")
 coeftbl <- modSummary
