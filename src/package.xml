@@ -159,7 +159,7 @@
 <!-- Hyperparameter Tuning -->
 
 <dataSheet name="TuningModel" displayName="Model" isSingleRow="True">
-    <column name="Model" dataType="Integer" validationType="List" formula1="1:Boosted Regression Trees|2:Random Forest" />
+    <column name="Model" dataType="Integer" validationType="List" formula1="1:Boosted Regression Trees|2:Random Forest|3:Maxent" />
 </dataSheet>
 
 <dataSheet name="brtTuning" displayName="Boosted Regression Trees [Tuning]" isSingleRow="True">
@@ -178,6 +178,12 @@
     <column name="Parameter2" displayName="Parameter 2" dataType="Integer" validationType="List" 
   formula1="1:Number of variables sampled at split|2:Maximum number of nodes|3:Number of trees|4:Node size"/>
   <column name="Parameter2Values" displayName="Tuning values for parameter 2" dataType="String" />
+</dataSheet>
+
+<dataSheet name="MaxentTuning" displayName="Maxent [Tuning]" isSingleRow="True">
+    <column name="Parameter1" displayName="Parameter 1" dataType="Integer" validationType="List" 
+  formula1="1:betamultiplier"/>
+  <column name="Parameter1Values" displayName="Tuning values for parameter 1" dataType="String" />
 </dataSheet>
 
 <!-- Spatial Output Options-->
@@ -351,11 +357,13 @@
   <dataSheet name="ValidationOptions" type="Both"/>
   <dataSheet name="RetainedCovariates" type="Input"/>
   <dataSheet name="SiteData" type="Input"/>
-   <dataSheet name="TuningModel" type="Input" />
-    <dataSheet name="brtTuning" type="Input" />
-    <dataSheet name="rfTuning" type="Input" />
+  <dataSheet name="TuningModel" type="Input" />
+  <dataSheet name="brtTuning" type="Input" />
+  <dataSheet name="rfTuning" type="Input" />
+  <dataSheet name="MaxentTuning" type="Input" />
   <dataSheet name="RF" type="Both"/>
   <dataSheet name="BRT" type="Both"/>
+  <dataSheet name="Maxent" type="Both"/>
   <dataSheet name="OutputModel" type="Output"/>
   <dataSheet name="OutputHyperparameterTuning" type="Output"/>
 </transformer>
