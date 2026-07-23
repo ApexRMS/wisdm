@@ -260,10 +260,6 @@ if (backgroundDataOptionsSheet$GenerateBackgroundSites) {
   }
   bgData[, SiteID := as.character(SiteID)]
 
-  CovariatesID <- covariateDataSheet$CovariatesID[
-    !covariateDataSheet$CovariatesID %in% "mtpi_10m"
-  ]
-
   ### trim cols to format and melt to long format
   keep_cols <- c("SiteID", covariateDataSheet$CovariatesID)
   bgData <- bgData[, ..keep_cols]

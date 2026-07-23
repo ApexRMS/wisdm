@@ -201,7 +201,7 @@ fitModel <- function(
       # for glm sum of absence weights set equal to sum of presence weights
       absWt <- sum(dat$Response == 1) / sum(dat$Response == 0) # down weighted
       # absWt <- 1e9 # infinitely weighted logistic regression
-      dat$Weight[dat$Response == 0] <- absWt
+      dat$Weight[dat$Response == 0] <- absWt * dat$Weight[dat$Response == 0]
     }
 
     factor.mask <- na.omit(match(out$factorInputVars, sanitizedVarNames))
@@ -222,7 +222,7 @@ fitModel <- function(
         ))
       )
     }
-    ### YES squared terms; NO interactions 
+    ### YES squared terms; YES interactions
     if (
       out$modOptions$ConsiderSquaredTerms & out$modOptions$ConsiderInteractions
     ) {
@@ -277,7 +277,7 @@ fitModel <- function(
         ))
       )
     }
-    ### YES squared terms; YES interactions 
+    ### YES squared terms; NO interactions
     if (
       out$modOptions$ConsiderSquaredTerms & !out$modOptions$ConsiderInteractions
     ) {
@@ -788,7 +788,7 @@ runMaxent <- function(
     # a clear message rather than letting MaxEnt produce a cryptic error.
     badPaths <- Filter(
       function(p) grepl(",", p),
-      Filter(Negate(is.null), list(samplesfile, envlayers, outputdir))
+      Filter(Negate(is.null), list(samplesfile, envlayers, outputdir, testsamplesfile))
     )
     if (length(badPaths) > 0) {
       stop(
@@ -1536,7 +1536,7 @@ makeModelEvalPlots <- function(out = out) {
 
   if (
     out$modType %in%
-      c("glm", "glm-lasso", "mars") &
+      c("glm", "mars") &
       is.null(out$data$test) &
       !(out$modType == "mars" & out$pseudoAbs)
   ) {

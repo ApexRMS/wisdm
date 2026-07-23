@@ -311,7 +311,7 @@ capture.output(
   append = TRUE
 )
 
-if (length(coef(finalMod)) == 1) {
+if (sum(coef(finalMod, s = "lambda.min")[-1] != 0) == 0) {
   stop(
     "Null model was selected. \nEvaluation metrics and plots will not be produced"
   )

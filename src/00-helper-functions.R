@@ -62,7 +62,10 @@ pred.fct <- function(
     y <- glm.predict(mod, x)
   }
   if (modType == "glm-lasso" & !cv_splits) {
-    y <- glm.predict(mod, x)
+    y <- as.vector(stats::predict(
+      object = mod, newdata = x, type = "response", s = mod$lambda.min
+    ))
+    y[is.na(y)] <- NaN
   }
   if (modType == "glm-lasso" & cv_splits) {
     y <- glmlasso.predict(mod, x, out)

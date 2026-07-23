@@ -31,9 +31,7 @@ backgroundSurfacePointGeneration <- function(
   ### using adehabitatHR to get ud
   xy  <- sp::SpatialPoints(dat[, c('X', 'Y')])
   ud  <- adehabitatHR::kernelUD(xy, extent = 0.5, grid = 150)
-  mm  <- ud@coords[order(ud@coords[, 1]), ]
   mm  <- order(ud@coords[, 2])
-  m   <- ud@data$ud[mm]
 
   ### create sf object with obs
   occ_sf <- sf::st_as_sf(
@@ -180,7 +178,7 @@ backgroundSurfacePointGeneration <- function(
       }
       ### write out
       names(pts) <- c("X", "Y")
-      pts$Response <- -9998
+      pts$Response <- backgroundValue
       data.table::fwrite(pts, kde_pts_out)
       ### write out shapefile if needed
       # occ_sf <- sf::st_as_sf(
@@ -250,7 +248,7 @@ backgroundSurfacePointGeneration <- function(
         pts <- pts[pts_ind,]
       }
       ### write out
-      pts$Response <- -9998
+      pts$Response <- backgroundValue
       data.table::fwrite(pts, kde_pts_out)
       # occ_sf <- sf::st_as_sf(
       #   pts[, c("X", "Y")],
@@ -271,8 +269,8 @@ backgroundSurfacePointGeneration <- function(
       stop("MCP background points already exist!\nDelete current points to proceed.")
     }
     
-    # get X,Y coords 
-    xy <- fieldDataSheet[,c("X", "Y")]
+    # get X,Y coords
+    xy <- dat[, c("X", "Y")]
     n_vals <- nrow(xy)
     if (n_vals < 3L){
       stop("Need at least 3 points for a polygon.")
@@ -371,7 +369,7 @@ backgroundSurfacePointGeneration <- function(
       pts <- pts[pts_ind,]
     }
     ### write out
-    pts$Response <- -9998
+    pts$Response <- backgroundValue
     data.table::fwrite(pts, mcp_pts_out)
     # occ_sf <- sf::st_as_sf(
     #   pts[, c("X", "Y")],
