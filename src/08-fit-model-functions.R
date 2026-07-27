@@ -3993,7 +3993,7 @@ capture.stats <- function(
   }
 }
 
-## response curves function -----------------------------------------------------
+## response curves function ----------------------------------------------------
 
 response.curves <- function(out) {
   # Desanitize output variable names

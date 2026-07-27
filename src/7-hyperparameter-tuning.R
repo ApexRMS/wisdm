@@ -334,6 +334,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
                     nrow(retainedCovariatesSheet),")."))}}
   }
   # if(modType == "brt"){}
+  # if(modType == "maxent"){}
   
   # Create output text file
   capture.output(cat(as.character(tuningModelSheet$Model), " Results [", comboImgs$displayName[r], "]"), file=file.path(out$tempDir,paste0(modType, "_output.txt"))) 
@@ -347,7 +348,6 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       out = out)
   }
   if(modType=="maxent"){
-
     # create temp maxent folders
     dir.create(file.path(out$tempDir, "Inputs"))
     dir.create(file.path(out$tempDir, "Outputs"))
@@ -355,7 +355,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
     out$backgroundPath <- backgroundPath <- file.path(out$tempDir, "Inputs", "background-swd.csv")
     out$testDataPath <- testDataPath <- file.path(out$tempDir, "Inputs", "testing-swd.csv")
 
-    # write out swd file
+    # write out swd files
     out$data$train %>%
       mutate(Species = case_when(Response == 1 ~ "species")) %>%
       drop_na(Species) %>%
@@ -396,11 +396,12 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
         relocate(Species, .before = X) %>%
       write.csv(testDataPath, row.names = F)
     }
-
+    # fit model
     finalMod <- fitModel(
       dat = NULL, # maxent code pulls in data from csv files built/saved above
       out = out)
-  }  
+  } # end if maxent
+
   if(is.null(finalMod)){
 
     comboImgs$ModelsID[r] <- modelsSheet$ModelName[modelsSheet$ModelType == modType]        
@@ -419,7 +420,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
 
     comboImgs$TextOutput[r] <- file.path(out$tempDir, paste0(modType, "_output.txt"))
         
-  } else {
+  }  else {
     
     finalMod$trainingData <- trainingData
     out$finalMod <- finalMod
@@ -500,22 +501,60 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       updateRunLog(pander::pandoc.table.return(coeftbl, style = "simple", split.tables = 100))
       progressBar()
     }
+    if(modType == "maxent"){
+      # add relevant model details to out
+      out$finalVars <- out$inputVars # maxent doesn't drop variables
+      out$nVarsFinal <- length(out$finalVars)
+
+      # load maxent run results
+      runResults <- read.csv(file.path(out$tempDir, "Outputs", "maxentResults.csv"))
+
+      modSummary <- data.frame(
+        "Variabels" = gsub(
+          ".contribution",
+          "",
+          names(runResults)[grep("contribution", names(runResults))]
+        )
+      )
+      modSummary$Contribution <- t(runResults[grep("contribution", names(runResults))])
+
+      updateRunLog("\nSummary of Model:\n")
+      coeftbl <- modSummary
+      rownames(coeftbl) <- NULL
+      updateRunLog(pander::pandoc.table.return(
+        coeftbl,
+        style = "simple",
+        split.tables = 100
+      ))
+      capture.output(
+        cat("\n\n"),
+        modSummary,
+        file = file.path(out$tempDir, paste0(modType, "_output.txt")),
+        append = TRUE
+      )
+    }
       
-    # Test model predictions -------------------------------------------------------
+    # Test model predictions ---------------------------------------------------
       
     # For the training set for Random Forest take out of bag predictions rather than the regular predictions
     if(modType == "rf"){
       out$data$train$predicted <- tweak.p(finalMod$votes[,2]) # tweak predictions to remove 1/0 so that calc deviance doesn't produce NA/Inf values 
     } else {
-      out$data$train$predicted <- pred.fct(x=out$data$train, mod=finalMod, modType=modType)
+      out$data$train$predicted <- pred.fct(
+        x=out$data$train,
+        mod=finalMod,
+        modType=modType)
     }
       
     if(validationDataSheet$SplitData){
-      out$data$test$predicted <- pred.fct(x=out$data$test, mod=finalMod, modType=modType)
+      out$data$test$predicted <- pred.fct(
+        x=out$data$test,
+        mod=finalMod,
+        modType=modType)
     }
     progressBar()
       
-    # Evaluate thresholds (for use with binary output) ----------------------------
+    # Evaluate thresholds (for use with binary output) -------------------------
       
     predOcc <- out$data$train[out$data$train$Response >= 1 , "predicted"]
     predAbs <- out$data$train[out$data$train$Response == 0 , "predicted"]
@@ -524,8 +563,11 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       
     finalMod$binThresholds <- thresholds <- evalOut@thresholds
       
-    names(thresholds) <- c("Max kappa", "Max sensitivity and specificity", "No omission", 
-                           "Prevalence", "Sensitivity equals specificity")
+    names(thresholds) <- c(
+      "Max kappa",
+      "Max sensitivity and specificity",
+      "No omission",
+      "Prevalence", "Sensitivity equals specificity")
       
     updateRunLog("\nThresholds:\n")
     tbl <- round(thresholds, 6) 
