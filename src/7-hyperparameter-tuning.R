@@ -52,12 +52,21 @@ modType <- modelsSheet$ModelType[modelsSheet$ModelName == tuningModelSheet$Model
 if(modType == "rf"){ library(randomForest)
   tuningSheet <- datasheet(myScenario, "wisdm_rfTuning")
   modelSheet <- datasheet(myScenario, "wisdm_RF",returnScenarioInfo = F)
-  modelArgs <- list(NumberOfVariablesSampled = "Number of variables sampled at split", MaximumNodes = "Maximum number of nodes", NumberOfTrees = "Number of trees", NodeSize = "Node size")
+  modelArgs <- list(
+    NumberOfVariablesSampled = "Number of variables sampled at split",
+    MaximumNodes = "Maximum number of nodes",
+    NumberOfTrees = "Number of trees",
+    NodeSize = "Node size")
 } 
 if(modType == "brt"){ library(dismo)
   tuningSheet <- datasheet(myScenario, "wisdm_brtTuning")
   modelSheet <- datasheet(myScenario, "wisdm_BRT")
-  modelArgs <- list(LearningRate = "Learning rate", NumberOfTrees = "Number of trees added per stage", BagFraction = "Bag fraction", MaximumTrees = "Maximum number of trees")
+  modelArgs <- list(
+    LearningRate = "Learning rate",
+    NumberOfTrees = "Number of trees added per stage",
+    BagFraction = "Bag fraction",
+    TreeComplexity = "Tree Complexity",
+    MaximumTrees = "Maximum number of trees")
 }
   
 # output datasheets
@@ -127,6 +136,7 @@ if(modType == "brt"){
   if(is.na(modelSheet$BagFraction)){modelSheet$BagFraction <- 0.75}
   if(is.na(modelSheet$MaximumTrees)){modelSheet$MaximumTrees <- 10000}
   if(is.na(modelSheet$NumberOfTrees)){modelSheet$NumberOfTrees <- 50}
+  if(is.na(modelSheet$TreeComplexity)){modelSheet$TreeComplexity <- 1}
 }
 
 ## Validation Sheet
@@ -157,7 +167,8 @@ if(compCases/allCases < 0.9){updateRunLog(paste("\nWarning: ", round((1-compCase
 # set site weights to default of 1 if not already supplied
 if(all(is.na(siteDataWide$Weight))){siteDataWide$Weight <- 1}
   
-# set pseudo absences to zero 
+# set pseudo absences to zero
+siteDataWide$Response <- as.integer(siteDataWide$Response)
 if(any(siteDataWide$Response == backgroundValue)){pseudoAbs <- TRUE} else {pseudoAbs <- FALSE}
 siteDataWide$Response[siteDataWide$Response == backgroundValue] <- 0
   
@@ -203,9 +214,13 @@ out$data$test <- testingData
 out$pseudoAbs <- pseudoAbs
   
 ## Validation options
-out$validationOptions <- validationDataSheet 
-  
-## path to temp ssim storage 
+out$validationOptions <- validationDataSheet
+
+## Random seed
+validationDataSheet <- resolveRandomSeed(myScenario, validationDataSheet)
+out$seed <- validationDataSheet$RandomSeed
+
+## path to temp ssim storage
 out$tempDir <- ssimTempDir
   
 # Review model data ------------------------------------------------------------

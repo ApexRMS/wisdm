@@ -102,12 +102,20 @@ if (validationDataSheet$CrossValidate) {
   }
 }
 
+# Generate random seed if not already set (e.g. transformer 4 did not run)
+if (is.null(validationDataSheet$RandomSeed) || isTRUE(is.na(validationDataSheet$RandomSeed))) {
+  validationDataSheet$RandomSeed <- sample.int(.Machine$integer.max, 1)
+}
+
 saveDatasheet(myScenario, validationDataSheet, "wisdm_ValidationOptions")
+set.seed(validationDataSheet$RandomSeed)
+
 progressBar()
 
 # Split data for testing/training and validation -------------------------------
 
 siteDataWide <- spread(data = siteDataSheet, key = CovariatesID, value = Value)
+fieldDataSheet$SiteID <- as.integer(as.numeric(trimws(as.character(fieldDataSheet$SiteID))))
 inputData <- left_join(fieldDataSheet, siteDataWide) # select(siteDataWide,-PixelID))
 rm(siteDataSheet, fieldDataSheet, siteDataWide)
 gc()
@@ -179,7 +187,8 @@ if (length(bgSiteIds) > 0) {
     updateFieldData$SiteID %in% bgSiteIds
   )] <- backgroundValue
 }
-updateFieldData$SiteID <- format(updateFieldData$SiteID, scientific = F)
+updateFieldData$Response <- as.integer(updateFieldData$Response)
+updateFieldData$SiteID <- as.integer(format(updateFieldData$SiteID, scientific = F))
 
 # save updated field data to scenario
 saveDatasheet(myScenario, updateFieldData, "wisdm_FieldData", append = F)

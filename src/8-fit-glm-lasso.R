@@ -1,28 +1,27 @@
 ## --------------------
-## wisdm - fit rf
+## wisdm - fit glm
 ## ApexRMS, March 2024
 ## --------------------
 
 # built under R version 4.1.3, SyncroSim 3.1.10 & rsyncrosim 2.1.3
-# script pulls in pre-processed field, site and covariate data; fits random
-# forest (rf) model; builds model diagnostic and validation plots
+# script pulls in pre-processed field, site and covariate data; fits glm; builds
+# model diagnostic and validation plots
 
 # source dependencies ----------------------------------------------------------
 
 library(rsyncrosim)
 library(tidyr)
 library(dplyr)
-library(randomForest)
-# library(splines)
+library(glmnet)
 
 packageDir <- Sys.getenv("ssim_package_directory")
 source(file.path(packageDir, "00-helper-functions.R"))
 source(file.path(packageDir, "08-fit-model-functions.R"))
 
-# Set progress bar -------------------------------------------------------------
+# set progress bar -------------------------------------------------------------
 
 steps <- 11
-updateRunLog('8 - Random Forest => Begin')
+updateRunLog('8 - Generalized Linear Model - LASSO => Begin')
 progressBar(type = "begin", totalSteps = steps)
 
 # Connect to library -----------------------------------------------------------
@@ -34,6 +33,7 @@ myScenario <- scenario()
 
 # Path to ssim temporary directory
 ssimTempDir <- ssimEnvironment()$TransferDirectory
+# ssimTempDir <- Sys.getenv("ssim_temp_directory")
 
 # Read in datasheets
 covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
@@ -46,7 +46,7 @@ retainedCovariatesSheet <- datasheet(
   lookupsAsFactors = F
 )
 siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
-RFSheet <- datasheet(myScenario, "wisdm_RF")
+GLMSheet <- datasheet(myScenario, "wisdm_GLMlasso")
 modelOutputsSheet <- datasheet(
   myScenario,
   "wisdm_OutputModel",
@@ -69,63 +69,30 @@ if (nrow(fieldDataSheet) == 0L) {
 }
 if (all(fieldDataSheet$Response == 1) | all(fieldDataSheet$Response == 0)) {
   stop(
-    "Random Forest is a presence-absences (or presence-background) method; please ensure that the Field Data includes both presence and absence (or pseudo-absence) data before continuing."
+    "GLM is a presence-absences method; please ensure that the Field Data includes both presence and absence (or pseudo-absence) data before continuing."
   )
 }
 
 #  Set defaults ----------------------------------------------------------------
 
-## RF Sheet
-if (nrow(RFSheet) < 1) {
-  RFSheet <- safe_rbind(
-    RFSheet,
+## GLM Sheet
+if (nrow(GLMSheet) < 1) {
+  GLMSheet <- safe_rbind(
+    GLMSheet,
     data.frame(
-      EvaluateCovariateImportance = TRUE, # importance
-      CalculateCasewiseImportance = FALSE, # localImp
-      NumberOfVariablesSampled = NA, # mtry
-      MaximumNodes = NA, # maxnodes
-      NumberOfTrees = 1000, # n.trees
-      NodeSize = NA, # nodesize
-      NormalizeVotes = TRUE, # norm.votes
-      CalculateProximity = FALSE, # proximity
-      SampleWithReplacement = FALSE
+      ConsiderSquaredTerms = FALSE,
+      ConsiderInteractions = FALSE
     )
-  ) # samp.replace
+  )
+}
+if (is.na(GLMSheet$ConsiderSquaredTerms)) {
+  GLMSheet$ConsiderSquaredTerms <- FALSE
+}
+if (is.na(GLMSheet$ConsiderInteractions)) {
+  GLMSheet$ConsiderInteractions <- FALSE
 }
 
-if (is.na(RFSheet$EvaluateCovariateImportance)) {
-  RFSheet$EvaluateCovariateImportance <- TRUE
-}
-if (is.na(RFSheet$CalculateCasewiseImportance)) {
-  RFSheet$CalculateCasewiseImportance <- FALSE
-}
-if (is.na(RFSheet$NodeSize)) {
-  RFSheet$NodeSize <- 1
-}
-if (is.na(RFSheet$NumberOfTrees)) {
-  RFSheet$NumberOfTrees <- 1000
-}
-if (is.na(RFSheet$NormalizeVotes)) {
-  RFSheet$NormalizeVotes <- TRUE
-}
-if (is.na(RFSheet$CalculateProximity)) {
-  RFSheet$CalculateProximity <- FALSE
-}
-if (is.na(RFSheet$SampleWithReplacement)) {
-  RFSheet$SampleWithReplacement <- FALSE
-}
-
-saveDatasheet(myScenario, RFSheet, "wisdm_RF")
-
-if (!is.na(RFSheet$NumberOfVariablesSampled)) {
-  if (RFSheet$NumberOfVariablesSampled > nrow(retainedCovariatesSheet)) {
-    stop(paste0(
-      "The number of variables sampled must be between 1 and the total number of variables used in model fitting (in this case ",
-      nrow(retainedCovariatesSheet),
-      "). If left blank, this input will be optimized by the tuneRF funciton."
-    ))
-  }
-}
+saveDatasheet(myScenario, GLMSheet, "wisdm_GLMlasso")
 
 ## Validation Sheet
 if (nrow(validationDataSheet) < 1) {
@@ -225,12 +192,11 @@ progressBar()
 out <- list()
 
 ## Model type
-out$modType <- modType <- "rf"
+out$modType <- modType <- "glm-lasso"
 
 ## Model options
-out$modOptions <- RFSheet
-out$modOptions$thresholdOptimization <- "Sens=Spec"
-updateRunLog("\nThreshold method for evaluation plots and statistics: Sensitivity equals specificity\n")
+out$modOptions <- GLMSheet
+out$modOptions$thresholdOptimization <- "Sens=Spec" # To Do: link to defined Threshold Optimization Method in UI - currently set to default: sensitivity=specificity
 
 ## Model family
 out$modelFamily <- "binomial"
@@ -261,7 +227,7 @@ out$tempDir <- ssimTempDir
 # Create output text file ------------------------------------------------------
 
 capture.output(
-  cat("Random Forest Results"),
+  cat("Generalized Linear Model (lasso) Results"),
   file = file.path(ssimTempDir, paste0(modType, "_output.txt"))
 )
 on.exit(
@@ -284,87 +250,86 @@ if (nrow(trainingData) / (length(out$inputVars) - 1) < 10) {
     sep = ""
   ))
 }
+
 progressBar()
 
 # Fit model --------------------------------------------------------------------
 
 finalMod <- fitModel(dat = trainingData, out = out)
 
-if (is.null(finalMod)) {
-  stop("Unable to fit RF with provided data and settings. Review the run log for details.")
-}
-
-finalMod$trainingData <- trainingData
-
-num_nodes <- sapply(1:finalMod$ntree, function(i) {
-  nrow(getTree(finalMod, k = i))
-})
-out$modOptions$MaximumNodes <- max(num_nodes)
-
-# save output model options
-RFSheet$NumberOfVariablesSampled <- finalMod$mtry
-saveDatasheet(myScenario, RFSheet, "wisdm_RF")
+# save model to temp storage
+# saveRDS(finalMod, file = paste0(ssimTempDir,"\\Data\\", modType, "_model.rds"))
 
 # add relevant model details to out
 out$finalMod <- finalMod
-out$finalVars <- out$inputVars # random forest doesn't drop variables
+out$lambda.min = finalMod$lambda.min
+out$finalVars <- attr(terms(formula(finalMod)), "term.labels")
+# have to remove all the junk with powers and interactions for mess map production to work
+out$finalVars <- unique(unlist(strsplit(
+  gsub("I\\(", "", gsub("\\^2)", "", out$finalVars)),
+  ":"
+)))
 out$nVarsFinal <- length(out$finalVars)
 
+# add relevant model details to text output
 txt0 <- paste(
   "\n\n",
-  "Settings:",
-  # "\n\trandom seed used                       : ",out$input$seed,
-  "\n\tn covariates considered at each split  : ",
-  RFSheet$NumberOfVariablesSampled,
-  if (out$pseudoAbs == TRUE) {
-    "\n\t   (averaged over each used available split)\n"
-  },
-  "\n\tn trees                                : ",
-  RFSheet$NumberOfTrees,
-  if (out$pseudoAbs == TRUE) "\n\t   (for each used available split)\n",
+  "Settings:\n",
+  "\n\t model family:  ",
+  out$modelFamily,
+  # "\n\t simplification method:  ",
+  # GLMSheet$SimplificationMethod,
+  "\n\n\n",
+  "Results:\n\t ",
+  "number covariates in final model:  ",
+  length(attr(terms(formula(finalMod)), "term.labels")),
+  "\n",
   sep = ""
 )
-txt1 <- "\n\nRelative performance of predictors in final model:\n\n"
 
-modelSummary <- finalMod$importance
-modelSummary <- modelSummary[order(modelSummary[, 3], decreasing = T), ]
-
-capture.output(
-  cat(txt0),
-  cat(txt1),
-  print(round(modelSummary, 4)),
-  file = file.path(ssimTempDir, paste0(modType, "_output.txt")),
-  append = TRUE
-)
+modSummary <- summary(finalMod)
 
 updateRunLog("\nSummary of Model:\n")
-coeftbl <- modelSummary
-coeftbl <- round(coeftbl, 6)
+coeftbl <- coef(finalMod, s = "lambda.min")
+coeftbl <- round(coeftbl, 6) |> as.matrix()
 coeftbl <- cbind(rownames(coeftbl), coeftbl)
 rownames(coeftbl) <- NULL
-colnames(coeftbl)[1] <- "Variable"
+colnames(coeftbl) <- c(
+  "Variable",
+  "Estimate"
+)
 updateRunLog(pander::pandoc.table.return(
   coeftbl,
   style = "simple",
   split.tables = 100
 ))
+
+capture.output(
+  cat(txt0),
+  modSummary,
+  file = file.path(ssimTempDir, paste0(modType, "_output.txt")),
+  append = TRUE
+)
+
+if (sum(coef(finalMod, s = "lambda.min")[-1] != 0) == 0) {
+  stop(
+    "Null model was selected. \nEvaluation metrics and plots will not be produced"
+  )
+}
 progressBar()
 
 # Test model predictions -------------------------------------------------------
 
-# For the training set for Random Forest take out of bag predictions rather than the regular predictions
-if (out$modelFamily == "poisson") {
-  out$data$train$predicted <- finalMod$predicted
-} else {
-  out$data$train$predicted <- tweak.p(finalMod$votes[, 2])
-} # tweak predictions to remove 1/0 so that calc deviance doesn't produce NA/Inf values
+out$data$train$predicted <- pred.fct(
+  x = out$data$train,
+  mod = finalMod,
+  modType = modType)
 
 if (validationDataSheet$SplitData) {
   out$data$test$predicted <- pred.fct(
     x = out$data$test,
     mod = finalMod,
-    modType = modType
-  )
+    modType = modType)
 }
 progressBar()
 
@@ -394,10 +359,10 @@ updateRunLog(pander::pandoc.table.return(
 ))
 
 # save model info to temp storage
+finalMod$trainingData <- trainingData
 saveRDS(finalMod, file = file.path(ssimTempDir, paste0(modType, "_model.rds")))
 
-
-## Run Cross Validation (if specified) -----------------------------------------
+# Run Cross Validation (if specified) ------------------------------------------
 
 if (validationDataSheet$CrossValidate) {
   out <- cv.fct(out = out, nfolds = validationDataSheet$NumberOfFolds)
@@ -410,7 +375,6 @@ progressBar()
 
 out <- suppressWarnings(makeModelEvalPlots(out = out))
 progressBar()
-
 ## Response Curves ##
 
 response.curves(out)
@@ -459,13 +423,13 @@ modelOutputsSheet <- safe_rbind(
   )
 )
 
-if ("rf_StandardResidualPlots.png" %in% tempFiles) {
+if (paste0(modType, "_StandardResidualPlots.png") %in% tempFiles) {
   modelOutputsSheet$ResidualsPlot <- file.path(
     ssimTempDir,
     paste0(modType, "_StandardResidualPlots.png")
   )
 }
-if ("rf_AUCPRPlot.png" %in% tempFiles) {
+if (paste0(modType, "_AUCPRPlot.png") %in% tempFiles) {
   modelOutputsSheet$AUCPRPlot <- file.path(
     ssimTempDir,
     paste0(modType, "_AUCPRPlot.png")

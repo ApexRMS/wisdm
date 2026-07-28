@@ -309,6 +309,16 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
     modVars <- attr(mod$terms, "term.labels")
     trainingData <- mod$trainingData
     predictFct <- gam.predict
+  } else if (modType == "glm-lasso") {
+    modVars <- attr(terms(formula(mod)), "term.labels")
+    modVars <- unique(unlist(strsplit(
+      gsub("I\\(", "", gsub("\\^2\\)", "", modVars)),
+      ":"
+    )))
+    trainingData <- mod$trainingData
+    predictFct <- glmlasso.predict2
+    library(glmnet)
+    library(glmnetUtils)
   } else {
     stop("Unsupported model type: ", modType)
   }
@@ -647,6 +657,10 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
         binThreshold <- as.numeric(thresholds[
           outputOptionsSheet$ThresholdOptimization
         ])
+        updateRunLog(paste0(
+          "\nBinary map threshold (", outputOptionsSheet$ThresholdOptimization,
+          "): ", round(binThreshold, 4), "\n"
+        ))
         thr_int <- as.integer(round(binThreshold * 100))
 
         prob_r <- rast(file.path(ssimTempDir, paste0(modType, "_prob_map.tif")))

@@ -43,6 +43,7 @@ covariatesSheet <- datasheet(
 )
 fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
 siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
+validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
 covariateSelectionSheet <- datasheet(
   myScenario,
   "wisdm_CovariateSelectionOptions",
@@ -55,6 +56,11 @@ covariateCorrelationSheet <- datasheet(
   optional = T
 ) %>%
   drop_na()
+
+# Apply random seed if available (VIF subsampling is stochastic on large datasets)
+if (nrow(validationDataSheet) > 0 && !is.na(validationDataSheet$RandomSeed)) {
+  set.seed(validationDataSheet$RandomSeed)
+}
 
 progressBar()
 
