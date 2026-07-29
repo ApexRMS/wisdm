@@ -104,6 +104,7 @@ if pd.isnull(fieldDataSheet.Response).any():
     raise ValueError(
         "Field data is missing values in the 'Response' column. Please provide presence-(pseudo)absence data before continuing."
     )
+
 if (fieldDataSheet.Response > 1).any():
     raise ValueError(
         "Field data contains counts in 'Response' column when occurrence data is expected. Please provide presence-(pseudo)absence data before continuing."
@@ -122,9 +123,9 @@ if len(fieldDataOptions) == 0:
 
 # Load template raster ----------------------------------------------------------------
 templatePath = templateRasterSheet.RasterFilePath.item()
+# assuming template raster is single-band, open with rioxarray for CRS and extent info
 templateRaster = rioxarray.open_rasterio(
-    templatePath, chunks=defaultChunkDims, masked=True
-)
+    templatePath, chunks={"band": 1, "x": 1024, "y": 1024}, masked=True)
 
 # Get information about template
 templateCRS = templateRaster.rio.crs
@@ -294,7 +295,7 @@ for i in range(len(covariateDataSheet.CovariatesID)):
     # Load processed covariate rasters and extract site values
     outputCovariatePath = covariateDataSheet.RasterFilePath[i]
     covariateRaster = rioxarray.open_rasterio(
-        outputCovariatePath, chunks=defaultChunkDims
+        outputCovariatePath, chunks={"band": 1, "x": 1024, "y": 1024}
     )
 
     # Ensure signed dtype (nodata value -9999)
