@@ -33,7 +33,9 @@ import geopandas as gpd  # noqa: E402
 from shapely.geometry import Point, box  # noqa: E402
 import dask  # noqa: E402
 import pyproj  # noqa: E402
+from pyproj import CRS
 from rasterio.enums import Resampling  # noqa: E402
+
 
 pd.options.mode.chained_assignment = None
 
@@ -124,8 +126,7 @@ if len(fieldDataOptions) == 0:
 # Load template raster ----------------------------------------------------------------
 templatePath = templateRasterSheet.RasterFilePath.item()
 # assuming template raster is single-band, open with rioxarray for CRS and extent info
-templateRaster = rioxarray.open_rasterio(
-    templatePath, chunks={"band": 1, "x": 1024, "y": 1024}, masked=True)
+templateRaster = rioxarray.open_rasterio(templatePath, masked=True)
 
 # Get information about template
 templateCRS = templateRaster.rio.crs
@@ -137,7 +138,6 @@ except ValueError:
     )
 
 templateExtent = list(templateRaster.rio.bounds())
-templateTransform = templateRaster.rio.transform()
 
 # update progress bar
 ps.environment.progress_bar()
@@ -152,10 +152,7 @@ nInitial = len(fieldDataSheet.SiteID)
 siteCoords = [Point(x, y) for x, y in zip(fieldDataSheet.X, fieldDataSheet.Y)]
 
 # Define field data crs
-if pd.isnull(fieldDataOptions.EPSG[0]):
-    fieldDataCRS = templateCRS
-else:
-    fieldDataCRS = fieldDataOptions.EPSG[0]
+fieldDataCRS = templateCRS if pd.isna(fieldDataOptions.EPSG[0]) else fieldDataOptions.EPSG[0]
 
 # Convert shapely object to a geodataframe with a crs
 sites = gpd.GeoDataFrame(fieldDataSheet, geometry=siteCoords, crs=fieldDataCRS)
@@ -166,11 +163,23 @@ bgSiteIds = sites.SiteID[sites.Response == backgroundValue].tolist()
 sites.loc[sites.Response == backgroundValue, "Response"] = 0
 
 # Reproject points if site crs differs from template crs
-if sites.crs != templateCRS:
-    sites = sites.to_crs(templateCRS)
+
+
+if CRS(sites.crs) != CRS(templateCRS):
+    sites2 = sites.to_crs(templateCRS)
 
 # Clip sites to template extent using bounding box (no polygons needed)
-sites = gpd.clip(sites, extent_geom)
+sites3 = gpd.clip(sites2, extent_geom)
+sites = sites3
+
+# fig, ax = plt.subplots(figsize=(10, 8))
+# sites3.plot(ax=ax, color="lightblue", edgecolor="black")
+# plt.show()
+
+# sort sites by SiteID
+sites = sites3.sort_values(by="SiteID")
+
+# get final count of sites after clipping to template extent
 nFinal = len(sites.SiteID)
 
 if nFinal < nInitial:
@@ -185,19 +194,15 @@ sites.X = sites.geometry.apply(lambda p: p.x)
 sites.Y = sites.geometry.apply(lambda p: p.y)
 
 # Extract raster ids for each point
-rasterCellIDs = []
-rasterRows = []
-rasterCols = []
-with rasterio.open(templatePath) as src:
-    for point in sites.geometry:
-        row, col = src.index(point.x, point.y)
-        rasterCellIDs.append((row, col))
-        rasterRows.append(row)
-        rasterCols.append(col)
+xs = sites.geometry.x.values
+ys = sites.geometry.y.values
 
-sites["RasterRow"] = rasterRows
-sites["RasterCol"] = rasterCols
-sites["RasterCellID"] = rasterCellIDs
+with rasterio.open(templatePath) as src:
+  rows, cols = src.index(xs, ys)
+sites["RasterRow"] = rows
+sites["RasterCol"] = cols
+sites["RasterCellID"] = list(zip(rows, cols))
+
 
 # NEW: Filter out points that fall in NoData cells using the raster's dataset mask
 with rasterio.open(templatePath) as src:
