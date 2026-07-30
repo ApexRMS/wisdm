@@ -30,15 +30,15 @@ import pandas as pd  # noqa: E402
 import rioxarray  # noqa: E402
 import xarray  # noqa: E402
 import geopandas as gpd  # noqa: E402
-from shapely.geometry import Point, box  # noqa: E402
 import dask  # noqa: E402
+import shapely
+from shapely.geometry.base import BaseGeometry
+from shapely.geometry import Point, box  # noqa: E402
 import pyproj  # noqa: E402
-from pyproj import CRS
 from rasterio.enums import Resampling  # noqa: E402
 
 
 pd.options.mode.chained_assignment = None
-
 ps.environment.update_run_log('3 - Site Data Preparation => Begin')
 
 # Modify the os PROJ path (when running with Conda) ----
@@ -90,6 +90,9 @@ dask.config.set(
 # Set PROJ network connection
 if networkSheet.NetworkEnabled.item() == "No":
     pyproj.network.set_network_enabled(active=False)
+ps.environment.update_run_log(
+    "is PROJ network enabled?", networkSheet.NetworkEnabled.item()
+    )
 
 # Check that a template raster was provided
 if templateRasterSheet.empty or pd.isnull(templateRasterSheet.RasterFilePath.iloc[0]):
@@ -126,58 +129,81 @@ if len(fieldDataOptions) == 0:
 # Load template raster ----------------------------------------------------------------
 templatePath = templateRasterSheet.RasterFilePath.item()
 # assuming template raster is single-band, open with rioxarray for CRS and extent info
-templateRaster = rioxarray.open_rasterio(templatePath, masked=True)
 
 # Get information about template
-templateCRS = templateRaster.rio.crs
-try:
-    templateCRS.to_wkt()
-except ValueError:
-    raise ValueError(
-        "Template has an invalid CRS (authority code). See documentation for a list of accepted authority codes."
-    )
 
-templateExtent = list(templateRaster.rio.bounds())
+with rasterio.open(templatePath) as src:
+    raster_crs = src.crs
+    raster_epsg = raster_crs.to_epsg()
+
+print("template CRS:", raster_crs)
+print("template EPSG:", raster_epsg)
+
+# # Get information about template
+# templateCRS = CRS(templateRaster.rio.crs)
+# try:
+#     templateCRS.to_wkt()
+# except ValueError:
+#     raise ValueError(
+#         "Template has an invalid CRS (authority code). See documentation for a list of accepted authority codes."
+#     )
 
 # update progress bar
 ps.environment.progress_bar()
 
 # NEW: Build a shapely box for the raster extent (minx, miny, maxx, maxy) — replaces templatePolygons
-extent_geom = box(*templateExtent)
+templateRaster = rioxarray.open_rasterio(templatePath, masked=True)
+def raster_extent_box(rio_raster):
+    return box(*rio_raster.rio.bounds())
+templateExtent = raster_extent_box(templateRaster)
 
-# Prepare site data -------------------------------------------------------
+# Prepare site data ------------------------------------------------------------
 nInitial = len(fieldDataSheet.SiteID)
 
 # Create shapely points from the coordinate-tuple list
 siteCoords = [Point(x, y) for x, y in zip(fieldDataSheet.X, fieldDataSheet.Y)]
 
 # Define field data crs
-fieldDataCRS = templateCRS if pd.isna(fieldDataOptions.EPSG[0]) else fieldDataOptions.EPSG[0]
+fieldDataCRS = raster_crs if pd.isna(fieldDataOptions.EPSG[0]) else fieldDataOptions.EPSG[0]
 
 # Convert shapely object to a geodataframe with a crs
 sites = gpd.GeoDataFrame(fieldDataSheet, geometry=siteCoords, crs=fieldDataCRS)
-del fieldDataSheet, siteCoords
+
+# Reproject safely -------------------------------------------------------------
+if sites.crs != raster_crs:
+    sitesPRJ = sites.to_crs(raster_crs)
+    del fieldDataSheet, siteCoords
+
+    # Post-check for infinities (should be none)
+    def has_inf_bounds(geom: BaseGeometry) -> bool:
+        if geom is None or geom.is_empty:
+            return True
+        b = geom.bounds
+        return any(np.isinf(v) or np.isnan(v) for v in b)
+    bad_idx = sitesPRJ.index[sitesPRJ.geometry.apply(has_inf_bounds)]
+
+    # if infinite geo, try again (GDAL connection)
+    if len(bad_idx) > 0:
+       sitesPRJ = sites.to_crs(raster_crs)
+    else:
+        ps.environment.update_run_log(
+          "Reprojection successful: no inf/NaN bounds."
+        )
+    # if infinite geo again, report error
+    bad_idx = sitesPRJ.index[sitesPRJ.geometry.apply(has_inf_bounds)]
+    if len(bad_idx) > 0:
+      raise ValueError(
+            "Reprojection unsuccessful. Please check field (site) location data for: 1) coordinate values within known projection (CRS) range, 2) bad vertices (coordinates with NaN) "
+      )
+    # create copy
+    sites = sitesPRJ.copy()
 
 # Convert background sites to 0 for processing; restore before saving (mirrors other transformers)
 bgSiteIds = sites.SiteID[sites.Response == backgroundValue].tolist()
 sites.loc[sites.Response == backgroundValue, "Response"] = 0
 
-# Reproject points if site crs differs from template crs
-
-
-if CRS(sites.crs) != CRS(templateCRS):
-    sites2 = sites.to_crs(templateCRS)
-
 # Clip sites to template extent using bounding box (no polygons needed)
-sites3 = gpd.clip(sites2, extent_geom)
-sites = sites3
-
-# fig, ax = plt.subplots(figsize=(10, 8))
-# sites3.plot(ax=ax, color="lightblue", edgecolor="black")
-# plt.show()
-
-# sort sites by SiteID
-sites = sites3.sort_values(by="SiteID")
+sites = gpd.clip(sites, templateExtent)
 
 # get final count of sites after clipping to template extent
 nFinal = len(sites.SiteID)
@@ -198,17 +224,20 @@ xs = sites.geometry.x.values
 ys = sites.geometry.y.values
 
 with rasterio.open(templatePath) as src:
-  rows, cols = src.index(xs, ys)
-sites["RasterRow"] = rows
-sites["RasterCol"] = cols
-sites["RasterCellID"] = list(zip(rows, cols))
-
+    rasterRows, rasterCols = src.index(xs, ys)
+    data_mask = src.dataset_mask()  # 0 = NoData, non-zero = valid
+sites["RasterRow"] = rasterRows
+sites["RasterCol"] = rasterCols
+sites["RasterCellID"] = list(zip(rasterRows, rasterCols))
+del rasterRows, rasterCols
 
 # NEW: Filter out points that fall in NoData cells using the raster's dataset mask
-with rasterio.open(templatePath) as src:
-    data_mask = src.dataset_mask()  # 0 = NoData, non-zero = valid
 valid_flags = [(data_mask[row, col] != 0) for (row, col) in sites["RasterCellID"]]
-sites = sites.loc[valid_flags].copy()
+sites = (
+    sites
+    .sort_values("SiteID")
+    .loc[valid_flags]
+)
 
 # Optional run log note for removals due to NoData
 nAfterMask = len(sites.SiteID)
@@ -220,7 +249,6 @@ if removedByMask > 0:
 
 # update progress bar
 ps.environment.progress_bar()
-del rasterRows, rasterCols, rasterCellIDs
 
 # If there are multiple points per cell - Aggregate or Weight sites
 if fieldDataOptions.AggregateAndWeight[0] != "None":
@@ -300,8 +328,7 @@ for i in range(len(covariateDataSheet.CovariatesID)):
     # Load processed covariate rasters and extract site values
     outputCovariatePath = covariateDataSheet.RasterFilePath[i]
     covariateRaster = rioxarray.open_rasterio(
-        outputCovariatePath, chunks={"band": 1, "x": 1024, "y": 1024}
-    )
+        outputCovariatePath)
 
     # Ensure signed dtype (nodata value -9999)
     if covariateRaster.dtype != signedDtype(covariateRaster.dtype):
