@@ -173,7 +173,6 @@ sites = gpd.GeoDataFrame(fieldDataSheet, geometry=siteCoords, crs=fieldDataCRS)
 if sites.crs != raster_crs:
     sitesPRJ = sites.to_crs(raster_crs)
     del fieldDataSheet, siteCoords
-
     # Post-check for infinities (should be none)
     def has_inf_bounds(geom: BaseGeometry) -> bool:
         if geom is None or geom.is_empty:
@@ -181,7 +180,6 @@ if sites.crs != raster_crs:
         b = geom.bounds
         return any(np.isinf(v) or np.isnan(v) for v in b)
     bad_idx = sitesPRJ.index[sitesPRJ.geometry.apply(has_inf_bounds)]
-
     # if infinite geo, try again (GDAL connection)
     if len(bad_idx) > 0:
        sitesPRJ = sites.to_crs(raster_crs)
@@ -226,6 +224,7 @@ ys = sites.geometry.y.values
 with rasterio.open(templatePath) as src:
     rasterRows, rasterCols = src.index(xs, ys)
     data_mask = src.dataset_mask()  # 0 = NoData, non-zero = valid
+
 sites["RasterRow"] = rasterRows
 sites["RasterCol"] = rasterCols
 sites["RasterCellID"] = list(zip(rasterRows, rasterCols))
@@ -262,7 +261,6 @@ if fieldDataOptions.AggregateAndWeight[0] != "None":
             else:
                 seen.add(x)
         dupes = list(set(dupes))  # get unsorted unique list of tuples
-
         # if Aggregate sites is selected
         if fieldDataOptions.AggregateAndWeight[0] == "Aggregate":
             # if presence absence data
@@ -329,7 +327,6 @@ for i in range(len(covariateDataSheet.CovariatesID)):
     outputCovariatePath = covariateDataSheet.RasterFilePath[i]
     covariateRaster = rioxarray.open_rasterio(
         outputCovariatePath)
-
     # Ensure signed dtype (nodata value -9999)
     if covariateRaster.dtype != signedDtype(covariateRaster.dtype):
         raise ValueError(
@@ -338,7 +335,6 @@ for i in range(len(covariateDataSheet.CovariatesID)):
             f"value -9999. Run Transformer 2 (Spatial Data Preparation) first to convert "
             f"covariate rasters to a signed type before continuing."
         )
-
     # Ensure coverage at least as large as template
     if covariateRaster.rio.width < templateRaster.rio.width or \
             covariateRaster.rio.height < templateRaster.rio.height:
@@ -347,18 +343,15 @@ for i in range(len(covariateDataSheet.CovariatesID)):
         msg += f"\nCovariate name: {covariateDataSheet.CovariatesID[i]}."
         msg += f"\nCovariate raster dimensions: {covariateRaster.rio.width} x {covariateRaster.rio.height}. "
         raise ValueError(msg)
-
     # Extract values by row/col indices
     sitesOut.loc[:, covariateDataSheet.CovariatesID[i]] = (
         covariateRaster[0].isel(x=xLoc, y=yLoc).values.tolist()
     )
-
     # Replace no data values with None (to match SyncroSim NA behavior)
     sitesOut.loc[
         sitesOut[covariateDataSheet.CovariatesID[i]] == covariateRaster.rio.nodata,
         covariateDataSheet.CovariatesID[i]
     ] = None
-
     # update progress bar
     ps.environment.progress_bar()
 
@@ -370,10 +363,23 @@ siteData = pd.melt(
     var_name="CovariatesID",
     value_name="Value"
 )
+# drop any duplicates
 siteData.drop_duplicates(inplace=True)
 
+# drop sites where covariate has NA values
+siteData_filtered = siteData.groupby('SiteID').filter(lambda x: x['Value'].notna().all())
+
+nInitial = len(siteData.SiteID)
+nFinal = len(siteData_filtered.SiteID)
+if nFinal < nInitial:
+    ps.environment.update_run_log(
+        nInitial - nFinal, " sites out of ", nInitial,
+        " total sites in the input field data had NoData in 1 or more covariates and were removed. ",
+        nFinal, " sites were retained."
+    )
+
 # Save site data to scenario
-myScenario.save_datasheet(name="wisdm_SiteData", data=siteData)
+myScenario.save_datasheet(name="wisdm_SiteData", data=siteData_filtered)
 
 # update progress bar
 ps.environment.progress_bar(report_type="end")
