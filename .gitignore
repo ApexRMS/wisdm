@@ -9,6 +9,7 @@ scratch/
 dist/
 build/
 tmp/
+.vscode
 
 #### Python files to ignore
 # Byte-compiled / optimized / DLL files
