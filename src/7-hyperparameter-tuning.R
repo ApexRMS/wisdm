@@ -46,6 +46,7 @@ fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
 validationDataSheet <- datasheet(myScenario, "wisdm_ValidationOptions")
 retainedCovariatesSheet <- datasheet(myScenario, "wisdm_RetainedCovariates", lookupsAsFactors = F)
 siteDataSheet <- datasheet(myScenario, "wisdm_SiteData", lookupsAsFactors = F)
+mulitprocessingSheet <- datasheet(myScenario, "core_Multiprocessing")
 tuningModelSheet <- datasheet(myScenario, "wisdm_TuningModel")
   
 modType <- modelsSheet$ModelType[modelsSheet$ModelName == tuningModelSheet$Model]
@@ -68,7 +69,13 @@ if(modType == "brt"){ library(dismo)
     TreeComplexity = "Tree Complexity",
     MaximumTrees = "Maximum number of trees")
 }
-  
+if(modType == "maxent"){ library(zip)
+  tuningSheet <- datasheet(myScenario, "wisdm_MaxentTuning")
+  modelSheet <- datasheet(myScenario, "wisdm_Maxent")
+  modelArgs <- list(
+    RegularizationMultiplier = "betamultiplier")
+}
+
 # output datasheets
 outputModelSheet <- datasheet(myScenario, "wisdm_OutputModel", optional = T, returnInvisible = T, empty = T, lookupsAsFactors = F)
 outputHyperparameterTuningSheet <- datasheet(myScenario, "wisdm_OutputHyperparameterTuning", optional = T, returnInvisible = T, empty = T, lookupsAsFactors = F)
@@ -97,16 +104,18 @@ if(modType == "brt"){ modelFamily <- "bernoulli"
 tuningSheet$Parameter1 <- names(which(modelArgs == tuningSheet$Parameter1))
 v1 <- as.numeric(strsplit(tuningSheet$Parameter1Values, ",")[[1]])
   
-if(!is.na(tuningSheet$Parameter2)){
-  tuningSheet$Parameter2 <- names(which(modelArgs == tuningSheet$Parameter2)) 
-  v2 <- as.numeric(strsplit(tuningSheet$Parameter2Values, ",")[[1]])
-  combos <- expand.grid(v1, v2)
-  parameterNames <- names(combos) <- c(tuningSheet$Parameter1, tuningSheet$Parameter2)
-} else{
-  combos <- expand.grid(v1)
-  parameterNames <- names(combos) <- tuningSheet$Parameter1
-}
-  
+if(!is.null(tuningSheet$Parameter2)){
+  if(!is.na(tuningSheet$Parameter2)){
+    tuningSheet$Parameter2 <- names(which(modelArgs == tuningSheet$Parameter2)) 
+    v2 <- as.numeric(strsplit(tuningSheet$Parameter2Values, ",")[[1]])
+    combos <- expand.grid(v1, v2)
+    parameterNames <- names(combos) <- c(tuningSheet$Parameter1, tuningSheet$Parameter2)
+    }
+  } else{
+    combos <- expand.grid(v1)
+    parameterNames <- names(combos) <- tuningSheet$Parameter1
+  }
+    
 # update progress bar
 steps <- 5+5*nrow(combos)
 progressBar(type = "begin", totalSteps = steps)
@@ -137,6 +146,55 @@ if(modType == "brt"){
   if(is.na(modelSheet$MaximumTrees)){modelSheet$MaximumTrees <- 10000}
   if(is.na(modelSheet$NumberOfTrees)){modelSheet$NumberOfTrees <- 50}
   if(is.na(modelSheet$TreeComplexity)){modelSheet$TreeComplexity <- 1}
+}
+
+## Model Sheet [Maxent]
+if(modType == "maxent"){
+  modelSheet$FittingMethod <- "Use values provided below"
+  if (is.na(modelSheet$MemoryLimit)) {
+    modelSheet$MemoryLimit <- 512
+  }
+  if (is.na(modelSheet$MultiprocessingThreads)) {
+    if (is.na(mulitprocessingSheet$EnableMultiprocessing) |
+      mulitprocessingSheet$EnableMultiprocessing == FALSE
+    ) {
+      modelSheet$MultiprocessingThreads <- 1
+    } else {
+      modelSheet$MultiprocessingThreads <- mulitprocessingSheet$MaximumJobs
+    }
+  }
+  if (is.na(modelSheet$AutoFeatureSelection)) {
+    if (any(c(
+      !is.na(modelSheet$UseHinge),
+      !is.na(modelSheet$UseLinear),
+      !is.na(modelSheet$UseQuadratic),
+      !is.na(modelSheet$UseProduct),
+      !is.na(modelSheet$UseThreshold)
+    ))) {
+      modelSheet$AutoFeatureSelection <- FALSE
+    } else {
+      modelSheet$AutoFeatureSelection <- TRUE
+    }
+  }
+  if (modelSheet$AutoFeatureSelection) {
+    updateRunLog("\nAuto Feature Selection is enabled; feature types will be selected based on number of presence records.\n")
+    modelSheet$UseHinge <- NA
+    modelSheet$UseLinear <- NA
+    modelSheet$UseQuadratic <- NA
+    modelSheet$UseProduct <- NA
+    modelSheet$UseThreshold <- NA
+  } else {
+    updateRunLog("\nAuto Feature Selection is disabled; feature types will be used as specified in the Maxent Options. If not specified, all feature types will be used.\n")
+    if (is.na(modelSheet$UseHinge)) {modelSheet$UseHinge <- TRUE}
+    if (is.na(modelSheet$UseLinear)) {modelSheet$UseLinear <- TRUE}
+    if (is.na(modelSheet$UseQuadratic)) {modelSheet$UseQuadratic <- TRUE}
+    if (is.na(modelSheet$UseProduct)) {modelSheet$UseProduct <- TRUE}
+    if (is.na(modelSheet$UseThreshold)) {modelSheet$UseThreshold <- TRUE}
+  }
+  if (is.na(modelSheet$RegularizationMultiplier)) {modelSheet$RegularizationMultiplier <- 1}
+  if (is.na(modelSheet$EnableClamping)) {modelSheet$EnableClamping <- TRUE}
+  if (is.na(modelSheet$VisibleInterface)) {modelSheet$VisibleInterface <- FALSE}
+  if (is.na(modelSheet$SaveMaxentFiles)) {modelSheet$SaveMaxentFiles <- FALSE}
 }
 
 ## Validation Sheet
@@ -206,10 +264,10 @@ out$factorInputVars <- factorInputVars
   
 ## training data
 out$data$train <- trainingData
-  
+
 ## testing data
 out$data$test <- testingData
-  
+
 ## pseudo absence  
 out$pseudoAbs <- pseudoAbs
   
@@ -222,7 +280,7 @@ out$seed <- validationDataSheet$RandomSeed
 
 ## path to temp ssim storage
 out$tempDir <- ssimTempDir
-  
+
 # Review model data ------------------------------------------------------------
 
 if(nrow(trainingData)/(length(out$inputVars)-1)<10){
@@ -276,6 +334,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
                     nrow(retainedCovariatesSheet),")."))}}
   }
   # if(modType == "brt"){}
+  # if(modType == "maxent"){}
   
   # Create output text file
   capture.output(cat(as.character(tuningModelSheet$Model), " Results [", comboImgs$displayName[r], "]"), file=file.path(out$tempDir,paste0(modType, "_output.txt"))) 
@@ -283,8 +342,66 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
   on.exit(capture.output(cat("Model Failed\n\n"),file=file.path(out$tempDir,paste0(modType, "_output.txt")),append=TRUE))  
 
   # fit model
-  finalMod <- fitModel(dat = trainingData, out = out)
-  
+  if(modType!="maxent"){
+    finalMod <- fitModel(
+      dat = trainingData,
+      out = out)
+  }
+  if(modType=="maxent"){
+    # create temp maxent folders
+    dir.create(file.path(out$tempDir, "Inputs"))
+    dir.create(file.path(out$tempDir, "Outputs"))
+    out$swdPath <- swdPath <- file.path(out$tempDir, "Inputs", "training-swd.csv")
+    out$backgroundPath <- backgroundPath <- file.path(out$tempDir, "Inputs", "background-swd.csv")
+    out$testDataPath <- testDataPath <- file.path(out$tempDir, "Inputs", "testing-swd.csv")
+
+    # write out swd files
+    out$data$train %>%
+      mutate(Species = case_when(Response == 1 ~ "species")) %>%
+      drop_na(Species) %>%
+      select(
+        -SiteID,
+        -Response,
+        -UseInModelEvaluation,
+        -ModelSelectionSplit,
+        -Weight
+      ) %>%
+      relocate(Species, .before = X) %>%
+      write.csv(swdPath, row.names = F)
+    if(out$pseudoAbs) {
+      out$data$train %>%
+        mutate(Species = case_when(Response != 1 ~ "background")) %>%
+        drop_na(Species) %>%
+        select(
+          -SiteID,
+          -Response,
+          -UseInModelEvaluation,
+          -ModelSelectionSplit,
+          -Weight
+        ) %>%
+        relocate(Species, .before = X) %>%
+        write.csv(backgroundPath, row.names = F)
+    }
+  if(!is.null(out$data$test)){
+      out$data$test %>%
+        mutate(Species = case_when(Response == 1 ~ "species")) %>%
+        drop_na(Species) %>%
+        select(
+          -SiteID,
+          -Response,
+          -UseInModelEvaluation,
+          -ModelSelectionSplit,
+          -Weight
+        ) %>%
+        relocate(Species, .before = X) %>%
+      write.csv(testDataPath, row.names = F)
+    }
+    # fit model
+    finalMod <- fitModel(
+      dat = NULL, # maxent code pulls in data from csv files built/saved above
+      out = out)
+  } # end if maxent
+
   if(is.null(finalMod)){
 
     comboImgs$ModelsID[r] <- modelsSheet$ModelName[modelsSheet$ModelType == modType]        
@@ -303,7 +420,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
 
     comboImgs$TextOutput[r] <- file.path(out$tempDir, paste0(modType, "_output.txt"))
         
-  } else {
+  }  else {
     
     finalMod$trainingData <- trainingData
     out$finalMod <- finalMod
@@ -384,22 +501,60 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       updateRunLog(pander::pandoc.table.return(coeftbl, style = "simple", split.tables = 100))
       progressBar()
     }
+    if(modType == "maxent"){
+      # add relevant model details to out
+      out$finalVars <- out$inputVars # maxent doesn't drop variables
+      out$nVarsFinal <- length(out$finalVars)
+
+      # load maxent run results
+      runResults <- read.csv(file.path(out$tempDir, "Outputs", "maxentResults.csv"))
+
+      modSummary <- data.frame(
+        "Variabels" = gsub(
+          ".contribution",
+          "",
+          names(runResults)[grep("contribution", names(runResults))]
+        )
+      )
+      modSummary$Contribution <- t(runResults[grep("contribution", names(runResults))])
+
+      updateRunLog("\nSummary of Model:\n")
+      coeftbl <- modSummary
+      rownames(coeftbl) <- NULL
+      updateRunLog(pander::pandoc.table.return(
+        coeftbl,
+        style = "simple",
+        split.tables = 100
+      ))
+      capture.output(
+        cat("\n\n"),
+        modSummary,
+        file = file.path(out$tempDir, paste0(modType, "_output.txt")),
+        append = TRUE
+      )
+    }
       
-    # Test model predictions -------------------------------------------------------
+    # Test model predictions ---------------------------------------------------
       
     # For the training set for Random Forest take out of bag predictions rather than the regular predictions
     if(modType == "rf"){
       out$data$train$predicted <- tweak.p(finalMod$votes[,2]) # tweak predictions to remove 1/0 so that calc deviance doesn't produce NA/Inf values 
     } else {
-      out$data$train$predicted <- pred.fct(x=out$data$train, mod=finalMod, modType=modType)
+      out$data$train$predicted <- pred.fct(
+        x=out$data$train,
+        mod=finalMod,
+        modType=modType)
     }
       
     if(validationDataSheet$SplitData){
-      out$data$test$predicted <- pred.fct(x=out$data$test, mod=finalMod, modType=modType)
+      out$data$test$predicted <- pred.fct(
+        x=out$data$test,
+        mod=finalMod,
+        modType=modType)
     }
     progressBar()
       
-    # Evaluate thresholds (for use with binary output) ----------------------------
+    # Evaluate thresholds (for use with binary output) -------------------------
       
     predOcc <- out$data$train[out$data$train$Response >= 1 , "predicted"]
     predAbs <- out$data$train[out$data$train$Response == 0 , "predicted"]
@@ -408,8 +563,11 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       
     finalMod$binThresholds <- thresholds <- evalOut@thresholds
       
-    names(thresholds) <- c("Max kappa", "Max sensitivity and specificity", "No omission", 
-                           "Prevalence", "Sensitivity equals specificity")
+    names(thresholds) <- c(
+      "Max kappa",
+      "Max sensitivity and specificity",
+      "No omission",
+      "Prevalence", "Sensitivity equals specificity")
       
     updateRunLog("\nThresholds:\n")
     tbl <- round(thresholds, 6) 
