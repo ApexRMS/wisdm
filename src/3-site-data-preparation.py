@@ -382,13 +382,14 @@ nInitial = siteData['SiteID'].nunique()
 nFinal = siteData_filtered['SiteID'].nunique()
 if nFinal < nInitial:
     ps.environment.update_run_log(
+        "Sites with No Data Values:", freq_table
+    )
+    ps.environment.update_run_log(
         nInitial - nFinal, " sites out of ", nInitial,
         " total sites in the input field data had NoData in 1 or more covariates and were removed. ",
         nFinal, " sites were retained. Please check covariate data for NoData values"
     )
-    ps.environment.update_run_log(
-        "Sites with No Data Values:", freq_table
-    )
+
 
 
 # Save site data to scenario
