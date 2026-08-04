@@ -91,7 +91,7 @@ dask.config.set(
 if networkSheet.NetworkEnabled.item() == "No":
     pyproj.network.set_network_enabled(active=False)
 ps.environment.update_run_log(
-    "is PROJ network enabled?", networkSheet.NetworkEnabled.item()
+    "is pyproj.network enabled?", networkSheet.NetworkEnabled.item()
     )
 
 # Check that a template raster was provided
@@ -374,7 +374,7 @@ def unique_site_nodata_by_cov(df):
     .reset_index(name="sites_with_nodata")
     )
 freq_table = unique_site_nodata_by_cov(siteData)
-
+print(freq_table.to_string(index=False))
 
 # drop sites where covariate has NA values
 siteData_filtered = siteData.groupby('SiteID').filter(lambda x: x['Value'].notna().all())
@@ -382,15 +382,13 @@ nInitial = siteData['SiteID'].nunique()
 nFinal = siteData_filtered['SiteID'].nunique()
 if nFinal < nInitial:
     ps.environment.update_run_log(
-        "Sites with No Data Values:", freq_table
+        "Sites with No Data Values:\r\n", freq_table.to_string(index=False)
     )
     ps.environment.update_run_log(
         nInitial - nFinal, " sites out of ", nInitial,
         " total sites in the input field data had NoData in 1 or more covariates and were removed. ",
-        nFinal, " sites were retained. Please check covariate data for NoData values"
+        nFinal, " sites were retained. Please check covariate data for NoData values."
     )
-
-
 
 # Save site data to scenario
 myScenario.save_datasheet(name="wisdm_SiteData", data=siteData_filtered)
