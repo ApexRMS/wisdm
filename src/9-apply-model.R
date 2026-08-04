@@ -133,7 +133,14 @@ if (is.na(outputOptionsSheet$MakeMessMap)) {
 if (is.na(outputOptionsSheet$MakeModMap)) {
   outputOptionsSheet$MakeModMap <- F
 }
+if (is.null(outputOptionsSheet$MaskRestrictedAsNoData) ||
+    is.na(outputOptionsSheet$MaskRestrictedAsNoData)) {
+  outputOptionsSheet$MaskRestrictedAsNoData <- F
+}
 saveDatasheet(myScenario, outputOptionsSheet, "wisdm_OutputOptions")
+
+maskRestrictedAsNA <- isTRUE(outputOptionsSheet$MaskRestrictedAsNoData)
+restrictedFillVal <- if (maskRestrictedAsNA) NA_real_ else 0
 
 updateRunLog("Finished loading inputs in ", updateBreakpoint())
 
@@ -382,7 +389,8 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
         probPath,
         wopt_int,
         ssimTempDir,
-        paste0(modType, "_prob")
+        paste0(modType, "_prob"),
+        fill_val = restrictedFillVal
       )
     } else {
       # Add restriction band if present so we can apply it inside predict()
@@ -401,6 +409,7 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
         fun = predict_block_int,
         factor_levels = factor_levels,
         restrict_col = restrict_name,
+        restrict_as_na = maskRestrictedAsNA,
         predictFct = predictFct,
         filename = tmp_main,
         overwrite = TRUE,
@@ -481,7 +490,8 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
           residOutPath,
           wopt_flt,
           ssimTempDir,
-          paste0(modType, "_resid")
+          paste0(modType, "_resid"),
+          fill_val = restrictedFillVal
         )
       } else {
         residSmooth <- readRDS(modelOutputsSheet$ResidualSmoothRDS[i])
@@ -567,6 +577,20 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
 
         terra::writeStop(wr) # flush tmp_res
 
+        # Apply restriction mask (zero out restricted areas)
+        if (!is.null(restrictRaster)) {
+          r_tmp <- terra::rast(tmp_res)
+          restrict_aligned <- terra::resample(restrictRaster, r_tmp, method = "near")
+          if (maskRestrictedAsNA) {
+            r_tmp <- terra::mask(r_tmp, restrict_aligned, maskvalues = 0)
+          } else {
+            r_tmp[restrict_aligned == 0] <- 0
+          }
+          terra::writeRaster(r_tmp, tmp_res, overwrite = TRUE)
+          rm(r_tmp, restrict_aligned)
+          gc()
+        }
+
         # Extend to full extent (if needed)
         src_for_final <- tmp_res
         if (!is.null(maskValues)) {
@@ -643,7 +667,8 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
           binPath,
           wopt_int,
           ssimTempDir,
-          paste0(modType, "_bin")
+          paste0(modType, "_bin"),
+          fill_val = restrictedFillVal
         )
       } else {
         thresholds <- mod$binThresholds
@@ -661,6 +686,16 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
           "\nBinary map threshold (", outputOptionsSheet$ThresholdOptimization,
           "): ", round(binThreshold, 4), "\n"
         ))
+        if (binThreshold < 0.1) {
+          updateRunLog(paste0(
+            "\nWarning: The binary threshold (", round(binThreshold, 4), ") is very low, ",
+            "which may cause most of the landscape to be classified as suitable. ",
+            "This commonly occurs when the presence:background ratio is highly imbalanced ",
+            "and the '", outputOptionsSheet$ThresholdOptimization, "' method is sensitive ",
+            "to prevalence. Consider switching to 'Max kappa' or ",
+            "'Sensitivity equals specificity' in Output Options.\n"
+          ))
+        }
         thr_int <- as.integer(round(binThreshold * 100))
 
         prob_r <- rast(file.path(ssimTempDir, paste0(modType, "_prob_map.tif")))
@@ -770,7 +805,8 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
             messPath,
             wopt_int,
             ssimTempDir,
-            paste0(modType, "_mess")
+            paste0(modType, "_mess"),
+            fill_val = restrictedFillVal
           )
         } else {
           tmp_mess <- file.path(ssimTempDir, "mess_stage1.tif")
@@ -796,7 +832,11 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
               r_main,
               method = "near"
             )
-            r_main <- terra::mask(r_main, restrict_aligned, maskvalues = 0)
+            if (maskRestrictedAsNA) {
+              r_main <- terra::mask(r_main, restrict_aligned, maskvalues = 0)
+            } else {
+              r_main[restrict_aligned == 0] <- 0
+            }
             terra::writeRaster(r_main, tmp_mess, overwrite = TRUE)
           }
 
@@ -859,7 +899,8 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
             modPath,
             wopt_int,
             ssimTempDir,
-            paste0(modType, "_mod")
+            paste0(modType, "_mod"),
+            fill_val = restrictedFillVal
           )
         } else {
           tmp_mod <- file.path(ssimTempDir, "mod_stage1.tif")
@@ -890,7 +931,11 @@ for (i in seq_len(nrow(modelOutputsSheet))) {
               r_main,
               method = "near"
             )
-            r_main <- terra::mask(r_main, restrict_aligned, maskvalues = 0)
+            if (maskRestrictedAsNA) {
+              r_main <- terra::mask(r_main, restrict_aligned, maskvalues = 0)
+            } else {
+              r_main[restrict_aligned == 0] <- 0
+            }
             terra::writeRaster(r_main, tmp_mod, overwrite = TRUE)
           }
 

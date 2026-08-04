@@ -710,6 +710,29 @@ calcSiteWeights <- function(response) {
   ifelse(response == 1, 1, prNum / bgNum)
 }
 
+# Calculate Continuous Boyce Index ---------------------------------------------
+# Prevalence-independent metric for presence-background models. Measures
+# whether predicted suitability is positively correlated with actual habitat
+# use. Ranges -1 to +1; values near +1 indicate good performance regardless
+# of the presence:background ratio.
+
+boyceIndex <- function(allPredictions, presPredictions, bins = 20) {
+  breaks   <- seq(0, 1, length.out = bins + 1L)
+  midpts   <- (breaks[-length(breaks)] + breaks[-1L]) / 2
+  allHist  <- tabulate(
+    findInterval(allPredictions,  breaks, rightmost.closed = TRUE), nbins = bins
+  )
+  presHist <- tabulate(
+    findInterval(presPredictions, breaks, rightmost.closed = TRUE), nbins = bins
+  )
+  expFreq <- allHist  / length(allPredictions)
+  obsFreq <- presHist / length(presPredictions)
+  Fratio  <- ifelse(expFreq > 0, obsFreq / expFreq, NA_real_)
+  valid   <- !is.na(Fratio) & allHist > 0L
+  if (sum(valid) < 3L) return(NA_real_)
+  suppressWarnings(cor(midpts[valid], Fratio[valid], method = "spearman"))
+}
+
 # Resolve random seed -----------------------------------------------------------
 # Ensures a random seed is always present in ValidationOptions. If none is
 # found, generates one, logs a warning, saves it to the datasheet, and sets

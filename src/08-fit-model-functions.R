@@ -1592,7 +1592,7 @@ makeModelEvalPlots <- function(out = out) {
 
   if (length(out$inputVars) > 1 & out$modelFamily != "poisson") {
     png(variableImportanceFile, height = 1000, width = 1000, pointsize = 13)
-    VariableImportance(out = out, auc = lapply(Stats, "[", 9))
+    VariableImportance(out = out, auc = lapply(Stats, "[[", "auc.fit"))
     graphics.off()
   }
 
@@ -1898,6 +1898,22 @@ makeModelEvalPlots <- function(out = out) {
           legend.box.background = element_rect(colour = "black"),
           legend.position = c(0.6, 0.15),
           legend.key = element_rect(fill = NA)
+        )
+
+      # add random-classifier baseline at y = prevalence
+      prev_line <- Stats$train$prevalence
+      pl <- pl +
+        geom_hline(
+          yintercept = prev_line,
+          linetype = "dotted",
+          color = "black",
+          linewidth = 0.5
+        ) +
+        annotate(
+          "text",
+          x = 0.02, y = prev_line + 0.03,
+          label = paste0("random baseline (prevalence = ", round(prev_line, 3), ")"),
+          hjust = 0, size = 3
         )
 
       ggsave(
@@ -2245,6 +2261,13 @@ calcStat <- function(
       weights.class0 = auc.data$pres.abs
     )[[3]]
 
+    prevalence  <- n.pres / (n.pres + n.abs)
+    auc.pr.norm <- (auc.pr - prevalence) / (1 - prevalence)
+    boyce <- boyceIndex(
+      allPredictions  = auc.data$pred,
+      presPredictions = auc.data$pred[auc.data$pres.abs == 1]
+    )
+
     cmx <- cmx(auc.data, threshold = thresh)
     PCC <- pcc(cmx, st.dev = F) * 100
     SENS <- sensitivity(cmx, st.dev = F)
@@ -2255,6 +2278,7 @@ calcStat <- function(
     return(list(
       n.pres = n.pres,
       n.abs = n.abs,
+      prevalence = prevalence,
       null.dev = null.dev,
       dev.fit = dev.fit,
       dev.exp = dev.exp,
@@ -2263,6 +2287,8 @@ calcStat <- function(
       auc.data = auc.data,
       auc.fit = auc.fit,
       auc.pr = auc.pr,
+      auc.pr.norm = auc.pr.norm,
+      boyce = boyce,
       Cmx = cmx,
       Pcc = PCC,
       Sens = SENS,
@@ -3712,6 +3738,27 @@ capture.stats <- function(
   if (family %in% c("binomial", "bernoulli")) {
     capture.output(
       cat(
+        "\n\n  Prevalence and Background Information",
+        "\n\t Presence sites               : ", Stats.lst[[1]]$n.pres,
+        "\n\t Background sites             : ", Stats.lst[[1]]$n.abs,
+        "\n\t Prevalence (pres / total)    : ",
+        round(Stats.lst[[1]]$prevalence, 4),
+        "\n\t Presence:Background ratio    :  1 :",
+        round(Stats.lst[[1]]$n.abs / Stats.lst[[1]]$n.pres, 1),
+        if (Stats.lst[[1]]$n.abs / Stats.lst[[1]]$n.pres > 5) {
+          paste0(
+            "\n\t  Note: AUC-PR is sensitive to prevalence at this ratio.",
+            "\n\t  Use AUC-PR (normalised) to compare models trained with",
+            "\n\t  different background pool sizes."
+          )
+        }
+      ),
+      file = file.path(out$tempDir, paste0(out$modType, "_output.txt")),
+      append = TRUE
+    )
+
+    capture.output(
+      cat(
         "\n\n  Threshold Methods based on",
         switch(
           opt.methods,
@@ -3879,6 +3926,42 @@ capture.stats <- function(
               sd(unlist(lapply(Stats.lst, function(lst) {
                 lst$Tss
               }))),
+              digits = 5
+            ),
+            ")",
+            sep = ""
+          )
+        },
+
+        "\n\t AUC-PR (normalised)          : ",
+        mean(unlist(lapply(Stats.lst, function(lst) {
+          lst$auc.pr.norm
+        }))),
+        if (label == "Cross validation") {
+          paste(
+            " (sd ",
+            signif(
+              sd(unlist(lapply(Stats.lst, function(lst) {
+                lst$auc.pr.norm
+              }))),
+              digits = 5
+            ),
+            ")",
+            sep = ""
+          )
+        },
+
+        "\n\t Boyce Index                  : ",
+        mean(unlist(lapply(Stats.lst, function(lst) {
+          lst$boyce
+        })), na.rm = TRUE),
+        if (label == "Cross validation") {
+          paste(
+            " (sd ",
+            signif(
+              sd(unlist(lapply(Stats.lst, function(lst) {
+                lst$boyce
+              })), na.rm = TRUE),
               digits = 5
             ),
             ")",

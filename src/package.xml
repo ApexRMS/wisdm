@@ -189,6 +189,7 @@
   <column name="MakeResidualsMap" displayName="Make residuals map" dataType="Boolean"/>
   <column name="MakeMessMap" displayName="Make multivariate environmental similarity surface (MESS) map" dataType="Boolean"/>
   <column name="MakeModMap" displayName="Make most dissimilar variable (MoD) map" dataType="Boolean"/>
+  <column name="MaskRestrictedAsNoData" displayName="Mask restricted areas as NoData" dataType="Boolean" isOptional="True"/>
 </dataSheet>
 
 <dataSheet  name="EnsembleOptions" displayName="Ensemble Options" isSingleRow="True">
