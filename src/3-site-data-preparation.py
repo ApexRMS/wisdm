@@ -349,9 +349,8 @@ for i in range(len(covariateDataSheet.CovariatesID)):
     )
     # Replace no data values with None (to match SyncroSim NA behavior)
     sitesOut.loc[
-        sitesOut[covariateDataSheet.CovariatesID[i]] == covariateRaster.rio.nodata,
-        covariateDataSheet.CovariatesID[i]
-    ] = None
+        sitesOut[covariateDataSheet.CovariatesID[i]] == covariateRaster.rio.nodata, covariateDataSheet.CovariatesID[i]
+        ] = None
     # update progress bar
     ps.environment.progress_bar()
 
@@ -366,9 +365,19 @@ siteData = pd.melt(
 # drop any duplicates
 siteData.drop_duplicates(inplace=True)
 
+# get freq of NoData values by covariate and report in log
+def unique_site_nodata_by_cov(df):
+    return (
+    df[df["Value"].isna()]
+    .groupby("CovariatesID")["SiteID"]
+    .nunique()
+    .reset_index(name="sites_with_nodata")
+    )
+freq_table = unique_site_nodata_by_cov(siteData)
+
+
 # drop sites where covariate has NA values
 siteData_filtered = siteData.groupby('SiteID').filter(lambda x: x['Value'].notna().all())
-
 nInitial = siteData['SiteID'].nunique()
 nFinal = siteData_filtered['SiteID'].nunique()
 if nFinal < nInitial:
@@ -377,6 +386,10 @@ if nFinal < nInitial:
         " total sites in the input field data had NoData in 1 or more covariates and were removed. ",
         nFinal, " sites were retained. Please check covariate data for NoData values"
     )
+    ps.environment.update_run_log(
+        "Sites with No Data Values:", freq_table
+    )
+
 
 # Save site data to scenario
 myScenario.save_datasheet(name="wisdm_SiteData", data=siteData_filtered)
