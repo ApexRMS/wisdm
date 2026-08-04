@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<update comment="HyperTuning Maxent Updates">
+  <action code="Exec" condition="TableNotExists" criteria="wisdm_MaxentTuning">
+    <item>CREATE TABLE wisdm_MaxentTuning(MaxentTuningID INTEGER, ScenarioID INTEGER, Parameter1 TEXT, Parameter1Values TEXT, Parameter2 TEXT, Parameter2Values TEXT, PRIMARY KEY (MaxentTuningID))</item>
+  </action>
+</update>
