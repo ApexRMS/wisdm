@@ -3739,8 +3739,10 @@ capture.stats <- function(
     capture.output(
       cat(
         "\n\n  Prevalence and Background Information",
-        "\n\t Presence sites               : ", Stats.lst[[1]]$n.pres,
-        "\n\t Background sites             : ", Stats.lst[[1]]$n.abs,
+        "\n\t Presence sites               : ",
+        sum(sapply(Stats.lst, function(lst) lst$n.pres)),
+        "\n\t Background sites             : ",
+        sum(sapply(Stats.lst, function(lst) lst$n.abs)),
         "\n\t Prevalence (pres / total)    : ",
         round(Stats.lst[[1]]$prevalence, 4),
         "\n\t Presence:Background ratio    :  1 :",
@@ -3952,9 +3954,10 @@ capture.stats <- function(
         },
 
         "\n\t Boyce Index                  : ",
-        mean(unlist(lapply(Stats.lst, function(lst) {
-          lst$boyce
-        })), na.rm = TRUE),
+        {
+          boyce_vals <- unlist(lapply(Stats.lst, function(lst) lst$boyce))
+          if (all(is.na(boyce_vals))) NA_real_ else mean(boyce_vals, na.rm = TRUE)
+        },
         if (label == "Cross validation") {
           paste(
             " (sd ",
