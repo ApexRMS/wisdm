@@ -343,6 +343,7 @@ predict_block_int <- function(
   factor_levels, # named list of factor levels (NULL for auto)
   predictFct, # prediction function (model, x, ...)
   restrict_col = NULL, # optional column name in data for restriction (binary 0/1 or probability 0-100/0-1)
+  restrict_as_na = FALSE, # if TRUE, binary-restricted pixels become NA; if FALSE they become 0
   ...
 ) {
   # 1) Force base data.frame with atomic vectors (no S4/list columns)
@@ -393,7 +394,7 @@ predict_block_int <- function(
       if (max_val > 1) {
         # Probability 0-100 scale: weight predictions
         p <- p * (restr / 100)
-        p[restr == 0] <- NA_real_
+        p[restr == 0] <- 0
       } else {
         # max_val <= 1: could be binary (0/1) or probability (0-1)
         # Check if any values fall strictly between 0 and 1
@@ -402,10 +403,10 @@ predict_block_int <- function(
         if (has_intermediate) {
           # Probability 0-1 scale: weight predictions
           p <- p * restr
-          p[restr == 0] <- NA_real_
+          p[restr == 0] <- 0
         } else {
-          # Binary 0/1: exclude where 0
-          p[restr == 0] <- NA_real_
+          # Binary 0/1: zero out or mask as NA depending on option
+          p[restr == 0] <- if (restrict_as_na) NA_real_ else 0
         }
       }
     }
@@ -519,7 +520,7 @@ percent_rank_distance <- function(x_mat, sorted_cols, n) {
 }
 
 # Write restricted tile function -----------------------------------------------
-# Writes an NA-filled raster to outPath, extended to fullExt if in SMP mode.
+# Writes a constant-filled raster to outPath, extended to fullExt if in SMP mode.
 # Used when a tile falls entirely outside the restriction zone.
 
 writeRestrictedTile <- function(
@@ -528,10 +529,11 @@ writeRestrictedTile <- function(
   outPath,
   wopt,
   ssimDir,
-  prefix
+  prefix,
+  fill_val = 0
 ) {
   rEmpty <- terra::rast(template)
-  terra::values(rEmpty) <- NA
+  terra::values(rEmpty) <- fill_val
   if (!is.null(fullExt)) {
     tmpExt <- file.path(ssimDir, paste0(prefix, "_restricted.tif"))
     terra::extend(
