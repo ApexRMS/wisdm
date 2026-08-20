@@ -40,6 +40,7 @@ myScenario <- scenario() # datasheet(myScenario)
 ssimTempDir <- ssimEnvironment()$TransferDirectory
   
 # Read in datasheets
+multiprocessingSheet = datasheet(myScenario, "core_Multiprocessing")
 covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
 modelsSheet <- datasheet(myProject, "wisdm_Models")
 fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
@@ -58,7 +59,7 @@ if(modType == "rf"){ library(randomForest)
     NumberOfTrees = "Number of trees",
     NodeSize = "Node size")
 } 
-if(modType == "brt"){ library(dismo)
+if(modType == "brt"){ # library(dismo)
   tuningSheet <- datasheet(myScenario, "wisdm_brtTuning")
   modelSheet <- datasheet(myScenario, "wisdm_BRT")
   modelArgs <- list(
@@ -141,11 +142,15 @@ if(modType == "brt"){
 
 ## Validation Sheet
 if(nrow(validationDataSheet)<1){
-  validationDataSheet <- safe_rbind(validationDataSheet, data.frame(SplitData = FALSE,
-                                                          CrossValidate = FALSE))
+  validationDataSheet <- safe_rbind(validationDataSheet,
+        data.frame(
+          SplitData = FALSE,
+          CrossValidate = FALSE))
 }
-if(is.na(validationDataSheet$CrossValidate)){validationDataSheet$CrossValidate <- FALSE}
-if(is.na(validationDataSheet$SplitData)){validationDataSheet$SplitData <- FALSE}
+if(is.na(validationDataSheet$CrossValidate)){
+  validationDataSheet$CrossValidate <- FALSE}
+if(is.na(validationDataSheet$SplitData)){
+  validationDataSheet$SplitData <- FALSE}
 progressBar()
 
 # Prep data for model fitting --------------------------------------------------
@@ -193,13 +198,20 @@ if(!is.null(testingData)){testingData$ModelSelectionSplit <- FALSE}
 
 # create object to store intermediate model selection/evaluation inputs
 out <- list()
-  
+
+## ncores for multiprocessing
+out$ncores <- multiprocessingSheet$MaximumJobs
+
 ## Model type
 out$modType <- modType # <- modelsSheet$ModelType[modelsSheet$ModelName == tuningModelSheet$Model]
   
 ## Model family 
 out$modelFamily <- modelFamily
-  
+
+## Model options
+out$modOptions <- modelSheet
+out$modOptions$nTrees <- modelSheet$NumberOfTrees # set number of trees from defaults or imported model
+
 ## Candidate variables 
 out$inputVars <- retainedCovariatesSheet$CovariatesID
 out$factorInputVars <- factorInputVars
@@ -360,13 +372,13 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       } else { NA }
       
       txt0 <- paste("\n\n","Settings:\n",
-                # "\n\trandom seed used             : ",out$input$seed,
-                "\n\ttree complexity              : ",finalMod$interaction.depth,
-                "\n\tlearning rate                : ",finalMod$shrinkage,
-                "\n\tn(trees)                     : ",nTrees,
-                "\n\tn folds                      : ",cvFolds,
-                "\n\tn covariates in final model  : ",paste(out$finalVars, collapse = ", "),
-                sep="")
+              # "\n\trandom seed used             : ",out$input$seed,
+              "\n\ttree complexity              : ",finalMod$interaction.depth,
+              "\n\tlearning rate                : ",finalMod$shrinkage,
+              "\n\tn(trees)                     : ",nTrees,
+              "\n\tn folds                      : ",cvFolds,
+              "\n\tn covariates in final model  : ",paste(out$finalVars, collapse = ", "),
+              sep="")
   
       
       txt1 <- "\nRelative influence of predictors in final model:\n\n"
@@ -385,21 +397,27 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       progressBar()
     }
       
-    # Test model predictions -------------------------------------------------------
+    # Test model predictions ---------------------------------------------------
       
     # For the training set for Random Forest take out of bag predictions rather than the regular predictions
     if(modType == "rf"){
       out$data$train$predicted <- tweak.p(finalMod$votes[,2]) # tweak predictions to remove 1/0 so that calc deviance doesn't produce NA/Inf values 
     } else {
-      out$data$train$predicted <- pred.fct(x=out$data$train, mod=finalMod, modType=modType)
+        out$data$train$predicted <- pred.fct(
+          x=out$data$train,
+          mod=finalMod,
+          modType=modType)
     }
-      
+
     if(validationDataSheet$SplitData){
-      out$data$test$predicted <- pred.fct(x=out$data$test, mod=finalMod, modType=modType)
+        out$data$test$predicted <- pred.fct(
+          x=out$data$test,
+          mod=finalMod,
+          modType=modType)
     }
     progressBar()
       
-    # Evaluate thresholds (for use with binary output) ----------------------------
+    # Evaluate thresholds (for use with binary output) -------------------------
       
     predOcc <- out$data$train[out$data$train$Response >= 1 , "predicted"]
     predAbs <- out$data$train[out$data$train$Response == 0 , "predicted"]
@@ -408,8 +426,11 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       
     finalMod$binThresholds <- thresholds <- evalOut@thresholds
       
-    names(thresholds) <- c("Max kappa", "Max sensitivity and specificity", "No omission", 
-                           "Prevalence", "Sensitivity equals specificity")
+    names(thresholds) <- c(
+      "Max kappa",
+      "Max sensitivity and specificity",
+      "No omission", 
+      "Prevalence", "Sensitivity equals specificity")
       
     updateRunLog("\nThresholds:\n")
     tbl <- round(thresholds, 6) 
@@ -418,14 +439,16 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
     # save model info to temp storage
     saveRDS(finalMod, file = file.path(out$tempDir, paste0(modType, "_model.rds")))
       
-    ## Run Cross Validation (if specified) -----------------------------------------
+    ## Run Cross Validation (if specified) -------------------------------------
       
     cvFailed <- FALSE
     if(validationDataSheet$CrossValidate){
       
       tryCatch({
-        out <- cv.fct(out = out,
-                      nfolds = validationDataSheet$NumberOfFolds)
+        out <- cv.fct(
+          out = out,
+          nfolds = validationDataSheet$NumberOfFolds
+          )
       }, error = function(err) {
         message("Cross-validation failed: ", err$message)
         cvFailed <<- TRUE

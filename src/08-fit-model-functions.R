@@ -515,6 +515,7 @@ fitModel <- function(
             n.minobsinnode = 10, # minimum number of training observations per tree node; gbm default is 10
             weights = wt,
             keep.data = TRUE,
+            n.cores=out$ncores,
             verbose = FALSE
           ) # avoid printing to console
         }
@@ -1018,7 +1019,7 @@ est.lr <- function(dat, out) {
       gbm.fit <- try(
         # cross-validation used for model tuning - gbm.step not used here as we need to loop through learning rates
         gbm::gbm(
-          formula = Response ~ .,
+          formula = as.formula(paste("Response", "~ .")),
           data = dplyr::select(
             dat,
             -all_of(nonCovariateCols[nonCovariateCols != "Response"])
@@ -1031,6 +1032,7 @@ est.lr <- function(dat, out) {
           n.minobsinnode = 10, # minimum number of training observations per tree node; gbm default is 10
           cv.folds = nFolds,
           weights = wt,
+          n.cores=out$ncores,
           keep.data = TRUE,
           verbose = FALSE
         ),
@@ -1041,7 +1043,6 @@ est.lr <- function(dat, out) {
         # Find optimal trees by CV
         best.trees <- which.min(gbm.fit$cv.error)
         cv.dev <- gbm.fit$cv.error[best.trees]
-
         trees.fit <- best.trees
         row_i <- cbind(
           lrs = lrs[i],
