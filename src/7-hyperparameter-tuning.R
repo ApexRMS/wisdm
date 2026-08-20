@@ -88,7 +88,7 @@ if(is.na(tuningSheet$Parameter1) | is.na(tuningSheet$Parameter1Values)){
   stop("No tuning parameters defined. Please select at least one parameter and provide tuning values before continuing.")
 }
  
-#  Set defaults ----------------------------------------------------------------  
+#  Set defaults ----------------------------------------------------------------
   
 # if response column contains only 1's and 0's response = presAbs
 if(modType == "brt"){ modelFamily <- "bernoulli"
@@ -275,6 +275,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
   # save out update model options
   out <- outBase
   out$modOptions <- modelSheet
+  out$modOptions$nTrees <- modelSheet$NumberOfTrees # set number of trees from defaults or imported model
   out$modOptions$thresholdOptimization <- "Sens=Spec"
   
   # create temp folder
@@ -294,7 +295,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
   capture.output(cat("\n\n============================================================\n\n"), file=file.path(out$tempDir,paste0(modType, "_output.txt")),append=TRUE)
   on.exit(capture.output(cat("Model Failed\n\n"),file=file.path(out$tempDir,paste0(modType, "_output.txt")),append=TRUE))  
 
-  # fit model
+  # fit model using FULLFIT with dismo gbm.step
   finalMod <- fitModel(dat = trainingData, out = out)
   
   if(is.null(finalMod)){
@@ -449,6 +450,8 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
           out = out,
           nfolds = validationDataSheet$NumberOfFolds
           )
+        # drop out$modOptions$nTrees
+        out$modOptions$nTrees = NULL
       }, error = function(err) {
         message("Cross-validation failed: ", err$message)
         cvFailed <<- TRUE
