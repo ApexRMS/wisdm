@@ -282,7 +282,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
   # save out update model options
   out <- outBase
   out$modOptions <- modelSheet
-  out$modOptions$nTrees <- modelSheet$NumberOfTrees # set number of trees from defaults or imported model
+  out$modOptions$nTrees <- modelSheet$NumberOfTrees # set number of trees from defaults or imported model. only used for BRT
   out$modOptions$thresholdOptimization <- "Sens=Spec"
   
   # create temp folder
