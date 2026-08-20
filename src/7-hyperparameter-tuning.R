@@ -121,13 +121,20 @@ if(nrow(modelSheet)<1){
   
 ## Model Sheet [RF] 
 if(modType == "rf"){
-  if(is.na(modelSheet$EvaluateCovariateImportance)){modelSheet$EvaluateCovariateImportance <- TRUE}
-  if(is.na(modelSheet$CalculateCasewiseImportance)){modelSheet$CalculateCasewiseImportance <- FALSE}
-  if(is.na(modelSheet$NodeSize)){modelSheet$NodeSize <- 1}
-  if(is.na(modelSheet$NumberOfTrees)){modelSheet$NumberOfTrees <- 1000}
-  if(is.na(modelSheet$NormalizeVotes)){modelSheet$NormalizeVotes <- TRUE}
-  if(is.na(modelSheet$CalculateProximity)){modelSheet$CalculateProximity <- FALSE}
-  if(is.na(modelSheet$SampleWithReplacement)){modelSheet$SampleWithReplacement <- FALSE}
+  if(is.na(modelSheet$EvaluateCovariateImportance)){
+    modelSheet$EvaluateCovariateImportance <- TRUE}
+  if(is.na(modelSheet$CalculateCasewiseImportance)){
+    modelSheet$CalculateCasewiseImportance <- FALSE}
+  if(is.na(modelSheet$NodeSize)){
+    modelSheet$NodeSize <- 1}
+  if(is.na(modelSheet$NumberOfTrees)){
+    modelSheet$NumberOfTrees <- 1000}
+  if(is.na(modelSheet$NormalizeVotes)){
+    modelSheet$NormalizeVotes <- TRUE}
+  if(is.na(modelSheet$CalculateProximity)){
+    modelSheet$CalculateProximity <- FALSE}
+  if(is.na(modelSheet$SampleWithReplacement)){
+    modelSheet$SampleWithReplacement <- FALSE}
 }
   
 ## Model Sheet [BRT]
@@ -459,7 +466,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
     } 
     progressBar()
       
-    # Generate Model Outputs -------------------------------------------------------
+    # Generate Model Outputs ---------------------------------------------------
       
     if (cvFailed) {
 
@@ -513,7 +520,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
   } # end else: model not NULL
 } # end tuning loop
   
-# Generate comparison figures -------------------------------------------------- 
+# Generate comparison figures --------------------------------------------------
   
   
 buildTuningMatrices(modType = modType,
@@ -555,10 +562,14 @@ if (all(comboImgs$fitFailed)) {
 }
 
 # save tuning matrix outputs
-outputHyperparameterTuningSheet <- safe_rbind(outputHyperparameterTuningSheet, 
-                                    data.frame(ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
-                                           ResponseCurves = file.path(ssimTempDir, "ResponseCurvesMatrix.png"),
-                                           ResidualSmoothPlot = file.path(ssimTempDir, "ResidualSmoothPlotMatrix.png")))
+outputHyperparameterTuningSheet <- safe_rbind(
+  outputHyperparameterTuningSheet, 
+  data.frame(
+    ModelsID = modelsSheet$ModelName[modelsSheet$ModelType == modType],
+    ResponseCurves = file.path(ssimTempDir, "ResponseCurvesMatrix.png"),
+    ResidualSmoothPlot = file.path(ssimTempDir, "ResidualSmoothPlotMatrix.png")
+    )
+  )
   
 outputHyperparameterTuningSheet$ConfusionMatrix <- file.path(ssimTempDir, "ConfusionMatrixMatrix.png")
 outputHyperparameterTuningSheet$VariableImportancePlot <- file.path(ssimTempDir, "VariableImportancePlotMatrix.png")
