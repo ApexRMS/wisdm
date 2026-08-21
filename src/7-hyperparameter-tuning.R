@@ -217,7 +217,6 @@ out$modelFamily <- modelFamily
 
 ## Model options
 out$modOptions <- modelSheet
-out$modOptions$nTrees <- modelSheet$NumberOfTrees # set number of trees from defaults or imported model
 
 ## Candidate variables 
 out$inputVars <- retainedCovariatesSheet$CovariatesID
@@ -282,7 +281,6 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
   # save out update model options
   out <- outBase
   out$modOptions <- modelSheet
-  out$modOptions$nTrees <- modelSheet$NumberOfTrees # set number of trees from defaults or imported model. only used for BRT
   out$modOptions$thresholdOptimization <- "Sens=Spec"
   
   # create temp folder
@@ -295,7 +293,8 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
         stop(paste0("The number of variables sampled must be between 1 and the total number of variables used in model fitting (in this case ",
                     nrow(retainedCovariatesSheet),")."))}}
   }
-  # if(modType == "brt"){}
+  # if(modType == "brt"){
+  # }
   
   # Create output text file
   capture.output(cat(as.character(tuningModelSheet$Model), " Results [", comboImgs$displayName[r], "]"), file=file.path(out$tempDir,paste0(modType, "_output.txt"))) 
@@ -308,16 +307,25 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
   if(is.null(finalMod)){
 
     comboImgs$ModelsID[r] <- modelsSheet$ModelName[modelsSheet$ModelType == modType]        
-    comboImgs[r, c("ResponseCurves", "ResidualsPlot", "ResidualSmoothPlot", "CalibrationPlot",
-                    "ROCAUCPlot", "AUCPRPlot", "ConfusionMatrix", "VariableImportancePlot")] <- file.path(ssimTempDir, "UnableToFitModel.png")
+    comboImgs[r, c(
+      "ResponseCurves",
+      "ResidualsPlot",
+      "ResidualSmoothPlot",
+      "CalibrationPlot",
+      "ROCAUCPlot",
+      "AUCPRPlot",
+      "ConfusionMatrix",
+      "VariableImportancePlot"
+        )] <- file.path(ssimTempDir, "UnableToFitModel.png")
 
     comboImgs$fitFailed[r] <- TRUE
     outAll[[comboImgs$displayName[r]]] <- out
 
     if(modType == "brt"){
-      txt0 <- paste("\n\n","Model failed to fit. The data set is too small or the subsampling rate is too large.\n",
-                    "Try reducing the number of predictors or adjusting the tuning parameters.\n",
-                    sep="")
+      txt0 <- paste(
+        "\n\n","Model failed to fit. The data set is too small or the subsampling rate is too large.\n",
+        "Try reducing the number of predictors or adjusting the tuning parameters.\n",
+          sep="")
       capture.output(cat(txt0),file=file.path(out$tempDir, paste0(modType, "_output.txt")),append=TRUE)
     } 
 
@@ -358,10 +366,10 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       rownames(coeftbl) <- NULL
       colnames(coeftbl)[1] <- "Variable"  
       updateRunLog(pander::pandoc.table.return(coeftbl, style = "simple", split.tables = 100))
-      progressBar()
+      # progressBar()
     }
     if(modType == "brt"){
-      
+
       out$finalVars <- finalMod$contributions$var # brt doesn't drop variables
       out$nVarsFinal <- length(out$finalVars)
       
@@ -371,7 +379,8 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       } else if (!is.null(finalMod$n.trees)) { # gbm stores the maximum number fitted
         finalMod$n.trees
       } else { NA }
-      
+      out$modOptions$nTrees <- nTrees # set number of trees for cv.fct, which gets nTrees from the out object
+
       # number of folds
       cvFolds <- if (!is.null(finalMod$gbm.call$cv.folds)) { # gbm.step
         finalMod$gbm.call$cv.folds
@@ -384,10 +393,9 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
               "\n\ttree complexity              : ",finalMod$interaction.depth,
               "\n\tlearning rate                : ",finalMod$shrinkage,
               "\n\tn(trees)                     : ",nTrees,
-              "\n\tn folds                      : ",cvFolds,
+              "\n\tn folds (used in final model fit) : ",cvFolds,
               "\n\tn covariates in final model  : ",paste(out$finalVars, collapse = ", "),
               sep="")
-  
       
       txt1 <- "\nRelative influence of predictors in final model:\n\n"
       
@@ -402,7 +410,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       coeftbl[,2] <- round(coeftbl[,2], 4) 
       colnames(coeftbl) <- c("Variable", "Relative Influence")  
       updateRunLog(pander::pandoc.table.return(coeftbl, style = "simple", split.tables = 100))
-      progressBar()
+      # progressBar()
     }
       
     # Test model predictions ---------------------------------------------------
@@ -423,7 +431,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
           mod=finalMod,
           modType=modType)
     }
-    progressBar()
+    # progressBar()
       
     # Evaluate thresholds (for use with binary output) -------------------------
       
@@ -438,7 +446,8 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       "Max kappa",
       "Max sensitivity and specificity",
       "No omission", 
-      "Prevalence", "Sensitivity equals specificity")
+      "Prevalence",
+      "Sensitivity equals specificity")
       
     updateRunLog("\nThresholds:\n")
     tbl <- round(thresholds, 6) 
@@ -457,22 +466,27 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
           out = out,
           nfolds = validationDataSheet$NumberOfFolds
           )
-        # drop out$modOptions$nTrees
-        out$modOptions$nTrees = NULL
       }, error = function(err) {
         message("Cross-validation failed: ", err$message)
         cvFailed <<- TRUE
       })      
     } 
-    progressBar()
+    # progressBar()
       
     # Generate Model Outputs ---------------------------------------------------
       
     if (cvFailed) {
 
-      comboImgs[r, c("ResponseCurves", "ResidualsPlot", "ResidualSmoothPlot",
-                      "CalibrationPlot","ROCAUCPlot", "AUCPRPlot", "ConfusionMatrix", 
-                      "VariableImportancePlot")] <- file.path(ssimTempDir, "UnableToFitModel.png")
+      comboImgs[r, c(
+        "ResponseCurves",
+        "ResidualsPlot",
+        "ResidualSmoothPlot",
+        "CalibrationPlot",
+        "ROCAUCPlot",
+        "AUCPRPlot",
+        "ConfusionMatrix",
+        "VariableImportancePlot"
+          )] <- file.path(ssimTempDir, "UnableToFitModel.png")
       comboImgs$fitFailed[r] <- TRUE
 
       txt <- paste("\n\n","Cross-validation failed. Model outputs not available.\n",
@@ -486,12 +500,12 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       ## AUC/ROC - Residual Plots - Variable Importance -  Calibration - Confusion Matrix ##
             
       out <- suppressWarnings(makeModelEvalPlots(out=out))
-      progressBar()
+      # progressBar()
             
       ## Response Curves ##
             
       response.curves(out)
-      progressBar()
+      # progressBar()
             
       # save out tuning results
             
@@ -552,6 +566,8 @@ if (all(comboImgs$fitFailed)) {
   updateRunLog("No successful model fits to save. Please adjust tuning parameters and try again.")
 
 } else {
+  ## DROP drop modelSheet$nTrees so that saveDatasheet works
+  outAll$modOptions$nTrees = NULL
   # update model datasheet
   modelSheet <- outAll[[selectedComboOutputs$displayName]]$modOptions %>% dplyr::select(-thresholdOptimization)
   if(modType == "rf"){ saveDatasheet(myScenario, modelSheet, "wisdm_RF")}
