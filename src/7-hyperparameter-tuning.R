@@ -410,7 +410,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       coeftbl[,2] <- round(coeftbl[,2], 4) 
       colnames(coeftbl) <- c("Variable", "Relative Influence")  
       updateRunLog(pander::pandoc.table.return(coeftbl, style = "simple", split.tables = 100))
-      # progressBar()
+      progressBar()
     }
       
     # Test model predictions ---------------------------------------------------
@@ -431,7 +431,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
           mod=finalMod,
           modType=modType)
     }
-    # progressBar()
+    progressBar()
       
     # Evaluate thresholds (for use with binary output) -------------------------
       
@@ -471,7 +471,7 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
         cvFailed <<- TRUE
       })      
     } 
-    # progressBar()
+    progressBar()
       
     # Generate Model Outputs ---------------------------------------------------
       
@@ -500,12 +500,12 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
       ## AUC/ROC - Residual Plots - Variable Importance -  Calibration - Confusion Matrix ##
             
       out <- suppressWarnings(makeModelEvalPlots(out=out))
-      # progressBar()
+      progressBar()
             
       ## Response Curves ##
             
       response.curves(out)
-      # progressBar()
+      progressBar()
             
       # save out tuning results
             
@@ -530,6 +530,8 @@ for (r in 1:nrow(combos)){ # loop fits a model for each parameter combo
         comboImgs$AUCPRPlot[r] <- file.path(out$tempDir, paste0(modType, "_AUCPRPlot.png")) 
       } 
     } # end if/else cvFailed    
+      ## drop out$modOptions$nTrees here to make saving easy
+      out$modOptions$nTrees = NULL
       outAll[[comboImgs$displayName[r]]] <- out
   } # end else: model not NULL
 } # end tuning loop
@@ -566,8 +568,7 @@ if (all(comboImgs$fitFailed)) {
   updateRunLog("No successful model fits to save. Please adjust tuning parameters and try again.")
 
 } else {
-  ## DROP drop modelSheet$nTrees so that saveDatasheet works
-  outAll$modOptions$nTrees = NULL
+
   # update model datasheet
   modelSheet <- outAll[[selectedComboOutputs$displayName]]$modOptions %>% dplyr::select(-thresholdOptimization)
   if(modType == "rf"){ saveDatasheet(myScenario, modelSheet, "wisdm_RF")}
