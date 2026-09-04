@@ -12,6 +12,8 @@
 # IMPORTANT: setup_functions must be imported before any non-stdlib packages.
 # It removes user site-packages on import and setupCondaEnv() configures
 # conda DLL paths. Linters must not reorder these imports.  # noqa: E402
+from shapely.geometry.base import BaseGeometry
+import shapely
 import os  # noqa: E402
 import sys  # noqa: E402
 from setup_functions import (  # noqa: E402
@@ -31,8 +33,6 @@ import rioxarray  # noqa: E402
 import xarray  # noqa: E402
 import geopandas as gpd  # noqa: E402
 import dask  # noqa: E402
-import shapely
-from shapely.geometry.base import BaseGeometry
 from shapely.geometry import Point, box  # noqa: E402
 import pyproj  # noqa: E402
 from rasterio.enums import Resampling  # noqa: E402
@@ -92,7 +92,7 @@ if networkSheet.NetworkEnabled.item() == "No":
     pyproj.network.set_network_enabled(active=False)
 ps.environment.update_run_log(
     "is pyproj.network enabled?", networkSheet.NetworkEnabled.item()
-    )
+)
 
 # Check that a template raster was provided
 if templateRasterSheet.empty or pd.isnull(templateRasterSheet.RasterFilePath.iloc[0]):
@@ -153,8 +153,12 @@ ps.environment.progress_bar()
 
 # NEW: Build a shapely box for the raster extent (minx, miny, maxx, maxy) — replaces templatePolygons
 templateRaster = rioxarray.open_rasterio(templatePath, masked=True)
+
+
 def raster_extent_box(rio_raster):
     return box(*rio_raster.rio.bounds())
+
+
 templateExtent = raster_extent_box(templateRaster)
 
 # Prepare site data ------------------------------------------------------------
@@ -164,7 +168,8 @@ nInitial = len(fieldDataSheet.SiteID)
 siteCoords = [Point(x, y) for x, y in zip(fieldDataSheet.X, fieldDataSheet.Y)]
 
 # Define field data crs
-fieldDataCRS = raster_crs if pd.isna(fieldDataOptions.EPSG[0]) else fieldDataOptions.EPSG[0]
+fieldDataCRS = raster_crs if pd.isna(
+    fieldDataOptions.EPSG[0]) else fieldDataOptions.EPSG[0]
 
 # Convert shapely object to a geodataframe with a crs
 sites = gpd.GeoDataFrame(fieldDataSheet, geometry=siteCoords, crs=fieldDataCRS)
@@ -174,6 +179,7 @@ if sites.crs != raster_crs:
     sitesPRJ = sites.to_crs(raster_crs)
     del fieldDataSheet, siteCoords
     # Post-check for infinities (should be none)
+
     def has_inf_bounds(geom: BaseGeometry) -> bool:
         if geom is None or geom.is_empty:
             return True
@@ -182,17 +188,17 @@ if sites.crs != raster_crs:
     bad_idx = sitesPRJ.index[sitesPRJ.geometry.apply(has_inf_bounds)]
     # if infinite geo, try again (GDAL connection)
     if len(bad_idx) > 0:
-       sitesPRJ = sites.to_crs(raster_crs)
+        sitesPRJ = sites.to_crs(raster_crs)
     else:
         ps.environment.update_run_log(
-          "Reprojection successful: no inf/NaN bounds."
+            "Reprojection successful: no inf/NaN bounds."
         )
     # if infinite geo again, report error
     bad_idx = sitesPRJ.index[sitesPRJ.geometry.apply(has_inf_bounds)]
     if len(bad_idx) > 0:
-      raise ValueError(
+        raise ValueError(
             "Reprojection unsuccessful. Please check field (site) location data for: 1) coordinate values within known projection (CRS) range, 2) bad vertices (coordinates with NaN) "
-      )
+        )
     # create copy
     sites = sitesPRJ.copy()
 
@@ -224,6 +230,10 @@ ys = sites.geometry.y.values
 with rasterio.open(templatePath) as src:
     rasterRows, rasterCols = src.index(xs, ys)
     data_mask = src.dataset_mask()  # 0 = NoData, non-zero = valid
+    rasterHeight, rasterWidth = src.height, src.width
+
+rasterRows = np.clip(np.asarray(rasterRows), 0, rasterHeight - 1)
+rasterCols = np.clip(np.asarray(rasterCols), 0, rasterWidth - 1)
 
 sites["RasterRow"] = rasterRows
 sites["RasterCol"] = rasterCols
@@ -231,12 +241,11 @@ sites["RasterCellID"] = list(zip(rasterRows, rasterCols))
 del rasterRows, rasterCols
 
 # NEW: Filter out points that fall in NoData cells using the raster's dataset mask
-valid_flags = [(data_mask[row, col] != 0) for (row, col) in sites["RasterCellID"]]
-sites = (
-    sites
-    .sort_values("SiteID")
-    .loc[valid_flags]
+valid_flags = pd.Series(
+    [(data_mask[row, col] != 0) for (row, col) in sites["RasterCellID"]],
+    index=sites.index
 )
+sites = sites.loc[valid_flags].sort_values("SiteID")
 
 # Optional run log note for removals due to NoData
 nAfterMask = len(sites.SiteID)
@@ -301,11 +310,13 @@ if fieldDataOptions.AggregateAndWeight[0] != "None":
         )
 
 # Restore background sites to backgroundValue (only surviving sites remain as 0)
-sites.loc[(sites.SiteID.isin(bgSiteIds)) & (sites.Response == 0), "Response"] = backgroundValue
+sites.loc[(sites.SiteID.isin(bgSiteIds)) & (
+    sites.Response == 0), "Response"] = backgroundValue
 
 # Save updated field data to scenario
 outputFieldDataSheet = sites.iloc[:, 0:7]
-outputFieldDataSheet.SiteID = outputFieldDataSheet.SiteID.astype(int)  # ensure SiteID is type integer
+outputFieldDataSheet.SiteID = outputFieldDataSheet.SiteID.astype(
+    int)  # ensure SiteID is type integer
 myScenario.save_datasheet(name="wisdm_FieldData", data=outputFieldDataSheet)
 
 # update progress bar
@@ -348,9 +359,15 @@ for i in range(len(covariateDataSheet.CovariatesID)):
         covariateRaster[0].isel(x=xLoc, y=yLoc).values.tolist()
     )
     # Replace no data values with None (to match SyncroSim NA behavior)
-    sitesOut.loc[
-        sitesOut[covariateDataSheet.CovariatesID[i]] == covariateRaster.rio.nodata, covariateDataSheet.CovariatesID[i]
-        ] = None
+    covName = covariateDataSheet.CovariatesID[i]
+    covNodata = covariateRaster.rio.nodata
+    if covNodata is not None:
+        if isinstance(covNodata, float) and np.isnan(covNodata):
+            naMask = sitesOut[covName].isna()
+        else:
+            naMask = sitesOut[covName] == covNodata
+        sitesOut.loc[naMask, covName] = None
+
     # update progress bar
     ps.environment.progress_bar()
 
@@ -366,18 +383,23 @@ siteData = pd.melt(
 siteData.drop_duplicates(inplace=True)
 
 # get freq of NoData values by covariate and report in log
+
+
 def unique_site_nodata_by_cov(df):
     return (
-    df[df["Value"].isna()]
-    .groupby("CovariatesID")["SiteID"]
-    .nunique()
-    .reset_index(name="sites_with_nodata")
+        df[df["Value"].isna()]
+        .groupby("CovariatesID")["SiteID"]
+        .nunique()
+        .reset_index(name="sites_with_nodata")
     )
+
+
 freq_table = unique_site_nodata_by_cov(siteData)
 print(freq_table.to_string(index=False))
 
 # drop sites where covariate has NA values
-siteData_filtered = siteData.groupby('SiteID').filter(lambda x: x['Value'].notna().all())
+siteData_filtered = siteData.groupby('SiteID').filter(
+    lambda x: x['Value'].notna().all())
 nInitial = siteData['SiteID'].nunique()
 nFinal = siteData_filtered['SiteID'].nunique()
 if nFinal < nInitial:
