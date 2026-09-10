@@ -35,6 +35,7 @@ myScenario <- scenario()
 ssimTempDir <- ssimEnvironment()$TransferDirectory
 
 # Read in datasheets
+multiprocessingSheet <- datasheet(myScenario, "core_Multiprocessing")
 covariatesSheet <- datasheet(myProject, "wisdm_Covariates", optional = T)
 modelsSheet <- datasheet(myProject, "wisdm_Models")
 fieldDataSheet <- datasheet(myScenario, "wisdm_FieldData", optional = T)
@@ -221,6 +222,13 @@ progressBar()
 # create object to store intermediate model selection/evaluation inputs
 out <- list()
 
+## ncores for multiprocessing
+out$ncores <- ifelse(
+  isTRUE(multiprocessingSheet$EnableMultiprocessing),
+  multiprocessingSheet$MaximumJobs,
+  1
+)
+
 ## Model type
 out$modType <- modType <- "brt"
 
@@ -228,7 +236,9 @@ out$modType <- modType <- "brt"
 out$modOptions <- BRTSheet
 # out$modOptions$stepSize <- out$modOptions$NumberOfTrees
 out$modOptions$thresholdOptimization <- "Sens=Spec"
-updateRunLog("\nThreshold method for evaluation plots and statistics: Sensitivity equals specificity\n")
+updateRunLog(
+  "\nThreshold method for evaluation plots and statistics: Sensitivity equals specificity\n"
+)
 
 ## Model family
 out$modelFamily <- "bernoulli" # "binomial"
@@ -303,6 +313,7 @@ if (fitFromDefaults) {
 
 saveDatasheet(myScenario, BRTSheet, "wisdm_BRT")
 
+# fullfit and using dismo::gbm.step()
 finalMod <- fitModel(dat = trainingData, out = out)
 
 if (is.null(finalMod)) {
