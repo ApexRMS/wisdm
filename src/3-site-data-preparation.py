@@ -232,8 +232,16 @@ with rasterio.open(templatePath) as src:
     data_mask = src.dataset_mask()  # 0 = NoData, non-zero = valid
     rasterHeight, rasterWidth = src.height, src.width
 
-rasterRows = np.clip(np.asarray(rasterRows), 0, rasterHeight - 1)
-rasterCols = np.clip(np.asarray(rasterCols), 0, rasterWidth - 1)
+rasterRows = np.asarray(rasterRows)
+rasterCols = np.asarray(rasterCols)
+in_bounds = pd.Series(
+    (rasterRows >= 0) & (rasterRows < rasterHeight) &
+    (rasterCols >= 0) & (rasterCols < rasterWidth),
+    index=sites.index,
+)
+sites = sites.loc[in_bounds].copy()
+rasterRows = rasterRows[in_bounds.to_numpy()]
+rasterCols = rasterCols[in_bounds.to_numpy()]
 
 sites["RasterRow"] = rasterRows
 sites["RasterCol"] = rasterCols
