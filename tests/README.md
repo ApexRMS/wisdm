@@ -22,6 +22,9 @@ tests/
 The `tests/` folder sits outside `src/`, so it is not bundled into the
 SyncroSim package.
 
+New to testthat or pytest? See [r/FRAMEWORK.md](r/FRAMEWORK.md) and
+[python/FRAMEWORK.md](python/FRAMEWORK.md) for a short introduction to each.
+
 ## Installing the test packages
 
 R tests need `testthat`. Python tests need `pytest`, `numpy` and `pandas`.
