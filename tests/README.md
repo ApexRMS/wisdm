@@ -22,17 +22,50 @@ tests/
 The `tests/` folder sits outside `src/`, so it is not bundled into the
 SyncroSim package.
 
+## Installing the test packages
+
+R tests need `testthat`. Python tests need `pytest`, `numpy` and `pandas`.
+
+### With conda (recommended)
+
+Install the test packages into the same conda environments wisdm uses, so the
+tests run on the same R and Python versions as the package. The environment
+names come from `src/wisdm-r-conda.yml` and `src/wisdm-py-conda.yml`; run
+`conda env list` to check the names on your machine.
+
+```
+conda install -n wisdm-r-conda -c conda-forge --freeze-installed r-testthat
+conda install -n wisdm-py-conda -c conda-forge --freeze-installed pytest
+```
+
+`numpy` and `pandas` are already in the Python environment.
+
+`--freeze-installed` stops conda from upgrading the packages wisdm has pinned.
+If conda reports a conflict, use a separate test environment instead:
+
+```
+conda create -n wisdm-test -c conda-forge r-base=4.1.3 r-testthat python=3.12 pytest numpy pandas
+```
+
+Then activate the environment before running the tests, e.g.
+`conda activate wisdm-r-conda`.
+
+### Without conda
+
+- R: `install.packages("testthat")`
+- Python: `pip install pytest numpy pandas`
+
 ## Running the tests
 
 Run these from the repository root folder.
 
-**R** (needs the `testthat` package: `install.packages("testthat")`)
+**R**
 
 ```
 Rscript tests/r/run-tests.R
 ```
 
-**Python** (needs `pytest`, `numpy` and `pandas`: `pip install pytest numpy pandas`)
+**Python**
 
 ```
 pytest tests/python
@@ -50,8 +83,6 @@ Focus on functions that take inputs and return outputs without reading or
 writing SyncroSim datasheets, rasters or files. If a function inside a
 transformer script needs testing, move it into a helper functions file first
 (e.g. `src/08-fit-model-functions.R`), then test it there.
-
-You don't need to add tests for old code you aren't changing.
 
 ## How to add a test
 
