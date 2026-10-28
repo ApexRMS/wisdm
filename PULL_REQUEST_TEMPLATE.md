@@ -19,7 +19,8 @@ unsure about. -->
 See [tests/README.md](https://github.com/ApexRMS/wisdm/blob/main/tests/README.md)
 for when and how to add tests.
 
-- [ ] I added or updated a unit test for each function I added or changed.
+- [ ] I added or updated a unit test for each function I added or changed,
+      or I explained why not under "How did you check that it works?".
 - [ ] If this fixes a bug, I added a test that would have caught it.
 - [ ] My tests check answers I worked out myself, not just whatever the code
       currently returns.

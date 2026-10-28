@@ -12,10 +12,12 @@ tests/
 │   ├── run-tests.R                 # runs every R test
 │   ├── setup-source-helpers.R      # loads src/ functions before tests run
 │   ├── test-00-helper-functions.R  # tests for src/00-helper-functions.R
+│   ├── test-environment-smoke.R    # checks the R conda environment
 │   └── fixtures/                   # small sample data used by tests
 └── python/
     ├── conftest.py                 # lets tests import modules from src/
     ├── test_setup_functions.py     # tests for src/setup_functions.py
+    ├── test_environment_smoke.py   # checks the Python conda environment
     └── fixtures/
 ```
 
@@ -74,6 +76,17 @@ Rscript tests/r/run-tests.R
 pytest tests/python
 ```
 
+### Environment smoke tests
+
+The `test-environment-smoke.R` and `test_environment_smoke.py` files check
+that the conda environment matches `src/wisdm-r-conda.yml` and
+`src/wisdm-py-conda.yml`: every pinned package loads at the pinned version,
+and reading rasters and reprojecting points work. They are the quickest way
+to catch problems after changing a package version in either file.
+
+They only run inside the `wisdm-r-conda` and `wisdm-py-conda` environments,
+and show as "skipped" anywhere else.
+
 ## When to add a test
 
 We only test what we touch. Add a test when you:
@@ -81,6 +94,8 @@ We only test what we touch. Add a test when you:
 - write a new function
 - change what an existing function does
 - fix a bug (write a test that would have caught it)
+- get a report of bad output from data prep (turn the user's case into a
+  tiny fixture and a test)
 
 Focus on functions that take inputs and return outputs without reading or
 writing SyncroSim datasheets, rasters or files. If a function inside a

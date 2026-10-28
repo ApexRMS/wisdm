@@ -30,6 +30,18 @@ test_that("calc.deviance stops when obs and preds differ in length", {
   )
 })
 
+# tweak.p ----------------------------------------------------------------------
+
+test_that("tweak.p replaces 0 and 1 with the nearest in-between values", {
+  expect_equal(tweak.p(c(0, 0.2, 0.8, 1)), c(0.2, 0.2, 0.8, 0.8))
+})
+
+test_that("tweak.p leaves values strictly between 0 and 1 unchanged", {
+  probabilities <- c(0.1, 0.5, 0.9)
+
+  expect_equal(tweak.p(probabilities), probabilities)
+})
+
 # calcSiteWeights --------------------------------------------------------------
 
 test_that("calcSiteWeights down-weights background to balance presences", {
@@ -40,6 +52,46 @@ test_that("calcSiteWeights down-weights background to balance presences", {
   # 2 presences / 4 background sites = 0.5 for each background site
   expect_equal(weights, c(1, 1, 0.5, 0.5, 0.5, 0.5))
   expect_equal(sum(weights[response == 0]), sum(response == 1))
+})
+
+test_that("calcSiteWeights gives every site weight 1 when all are presences", {
+  expect_equal(calcSiteWeights(c(1, 1, 1)), c(1, 1, 1))
+})
+
+test_that("calcSiteWeights returns NA for sites with a missing response", {
+  response <- c(1, 0, 0, NA)
+
+  # NA is left out of the counts: 1 presence / 2 background sites = 0.5
+  expect_equal(calcSiteWeights(response), c(1, 0.5, 0.5, NA))
+})
+
+# boyceIndex -------------------------------------------------------------------
+
+# With bins = 5, the bins are 0-0.2, 0.2-0.4, 0.4-0.6, 0.6-0.8 and 0.8-1.
+# One prediction in each bin means every bin is equally available.
+evenPredictions <- c(0.1, 0.3, 0.5, 0.7, 0.9)
+
+test_that("boyceIndex is 1 when presences increase with predicted value", {
+  # 0, 1, 2, 3 and 4 presences in the five bins
+  presPredictions <- c(0.3, 0.5, 0.5, 0.7, 0.7, 0.7, 0.9, 0.9, 0.9, 0.9)
+
+  expect_equal(boyceIndex(evenPredictions, presPredictions, bins = 5), 1)
+})
+
+test_that("boyceIndex is -1 when presences decrease with predicted value", {
+  # 4, 3, 2, 1 and 0 presences in the five bins
+  presPredictions <- c(0.1, 0.1, 0.1, 0.1, 0.3, 0.3, 0.3, 0.5, 0.5, 0.7)
+
+  expect_equal(boyceIndex(evenPredictions, presPredictions, bins = 5), -1)
+})
+
+test_that("boyceIndex is NA when predictions fall in fewer than 3 bins", {
+  allPredictions <- c(0.1, 0.1, 0.9, 0.9)
+
+  expect_identical(
+    boyceIndex(allPredictions, presPredictions = 0.9, bins = 5),
+    NA_real_
+  )
 })
 
 # safe_rbind -------------------------------------------------------------------
