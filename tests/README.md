@@ -34,14 +34,25 @@ R tests need `testthat`. Python tests need `pytest`, `numpy` and `pandas`.
 ### With conda (recommended)
 
 Install the test packages into the same conda environments wisdm uses, so the
-tests run on the same R and Python versions as the package. The environment
-names come from `src/wisdm-r-conda.yml` and `src/wisdm-py-conda.yml`; run
-`conda env list` to check the names on your machine.
+tests run on the same R and Python versions as the package.
+
+If you have run wisdm in SyncroSim, SyncroSim has already created these
+environments in its own conda folder, in a subfolder named
+`wisdm-<condaEnvVersion>` (the `condaEnvVersion` value is in
+`src/package.xml`). They have no name, only a path, so use `-p` instead of
+`-n`. Run `conda env list` and look for the paths ending in `wisdm-r-conda`
+and `wisdm-py-conda`. In PowerShell, with the default SyncroSim conda folder:
 
 ```
-conda install -n wisdm-r-conda -c conda-forge --freeze-installed r-testthat
-conda install -n wisdm-py-conda -c conda-forge --freeze-installed pytest
+conda install -p "$env:LOCALAPPDATA\SyncroSim\Conda\envs\wisdm-7\wisdm-r-conda" -c conda-forge --freeze-installed r-testthat
+conda install -p "$env:LOCALAPPDATA\SyncroSim\Conda\envs\wisdm-7\wisdm-py-conda" -c conda-forge --freeze-installed pytest
 ```
+
+Change `wisdm-7` if `condaEnvVersion` has changed. If you moved the SyncroSim
+conda folder (SyncroSim > Tools > Options), use the paths that
+`conda env list` shows. If you built the environments yourself from
+`src/wisdm-r-conda.yml` and `src/wisdm-py-conda.yml`, use their names instead:
+`-n wisdm-r-conda` and `-n wisdm-py-conda`.
 
 `numpy` and `pandas` are already in the Python environment.
 
@@ -52,8 +63,13 @@ If conda reports a conflict, use a separate test environment instead:
 conda create -n wisdm-test -c conda-forge r-base=4.1.3 r-testthat python=3.12 pytest numpy pandas
 ```
 
-Then activate the environment before running the tests, e.g.
-`conda activate wisdm-r-conda`.
+Then activate the environment before running the tests, using the same path
+or name you installed into, e.g.
+`conda activate "$env:LOCALAPPDATA\SyncroSim\Conda\envs\wisdm-7\wisdm-r-conda"`.
+
+In Git Bash, activating by path makes the prompt show a garbled path, because
+bash reads the backslashes as prompt codes. The environment still works. To
+show just the environment name, run `conda config --set env_prompt '({name}) '`.
 
 ### Without conda
 
