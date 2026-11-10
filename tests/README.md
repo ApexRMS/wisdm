@@ -1,0 +1,166 @@
+# wisdm tests
+
+Unit tests check that small pieces of wisdm code (single functions) still give
+the right answer after someone changes the code. They run in seconds and don't
+need SyncroSim.
+
+## What's here
+
+```
+tests/
+├── r/
+│   ├── run-tests.R                 # runs every R test
+│   ├── setup-source-helpers.R      # loads src/ functions before tests run
+│   ├── test-00-helper-functions.R  # tests for src/00-helper-functions.R
+│   ├── test-environment-smoke.R    # checks the R conda environment
+│   └── fixtures/                   # small sample data used by tests
+└── python/
+    ├── conftest.py                 # lets tests import modules from src/
+    ├── test_setup_functions.py     # tests for src/setup_functions.py
+    ├── test_environment_smoke.py   # checks the Python conda environment
+    └── fixtures/
+```
+
+The `tests/` folder sits outside `src/`, so it is not bundled into the
+SyncroSim package.
+
+New to testthat or pytest? See [r/FRAMEWORK.md](r/FRAMEWORK.md) and
+[python/FRAMEWORK.md](python/FRAMEWORK.md) for a short introduction to each.
+
+## Installing the test packages
+
+R tests need `testthat`. Python tests need `pytest`, `numpy` and `pandas`.
+
+### With conda (recommended)
+
+Install the test packages into the same conda environments wisdm uses, so the
+tests run on the same R and Python versions as the package.
+
+If you have run wisdm in SyncroSim, SyncroSim has already created these
+environments in its own conda folder, in a subfolder named
+`wisdm-<condaEnvVersion>` (the `condaEnvVersion` value is in
+`src/package.xml`). They have no name, only a path, so use `-p` instead of
+`-n`. Run `conda env list` and look for the paths ending in `wisdm-r-conda`
+and `wisdm-py-conda`. In PowerShell, with the default SyncroSim conda folder:
+
+```
+conda install -p "$env:LOCALAPPDATA\SyncroSim\Conda\envs\wisdm-7\wisdm-r-conda" -c conda-forge --freeze-installed r-testthat
+conda install -p "$env:LOCALAPPDATA\SyncroSim\Conda\envs\wisdm-7\wisdm-py-conda" -c conda-forge --freeze-installed pytest
+```
+
+Change `wisdm-7` if `condaEnvVersion` has changed. If you moved the SyncroSim
+conda folder (SyncroSim > Tools > Options), use the paths that
+`conda env list` shows. If you built the environments yourself from
+`src/wisdm-r-conda.yml` and `src/wisdm-py-conda.yml`, use their names instead:
+`-n wisdm-r-conda` and `-n wisdm-py-conda`.
+
+`numpy` and `pandas` are already in the Python environment.
+
+`--freeze-installed` stops conda from upgrading the packages wisdm has pinned.
+If conda reports a conflict, use a separate test environment instead:
+
+```
+conda create -n wisdm-test -c conda-forge r-base=4.1.3 r-testthat python=3.12 pytest numpy pandas
+```
+
+Then activate the environment before running the tests, using the same path
+or name you installed into, e.g.
+`conda activate "$env:LOCALAPPDATA\SyncroSim\Conda\envs\wisdm-7\wisdm-r-conda"`.
+
+In Git Bash, activating by path makes the prompt show a garbled path, because
+bash reads the backslashes as prompt codes. The environment still works. To
+show just the environment name, run `conda config --set env_prompt '({name}) '`.
+
+### Without conda
+
+- R: `install.packages("testthat")`
+- Python: `pip install pytest numpy pandas`
+
+## Running the tests
+
+Run these from the repository root folder.
+
+**R**
+
+```
+Rscript tests/r/run-tests.R
+```
+
+**Python**
+
+```
+pytest tests/python
+```
+
+### Environment smoke tests
+
+The `test-environment-smoke.R` and `test_environment_smoke.py` files check
+that the conda environment matches `src/wisdm-r-conda.yml` and
+`src/wisdm-py-conda.yml`: every pinned package loads at the pinned version,
+and reading rasters and reprojecting points work. They are the quickest way
+to catch problems after changing a package version in either file.
+
+They only run inside the `wisdm-r-conda` and `wisdm-py-conda` environments,
+and show as "skipped" anywhere else.
+
+## When to add a test
+
+We only test what we touch. Add a test when you:
+
+- write a new function
+- change what an existing function does
+- fix a bug (write a test that would have caught it)
+- get a report of bad output from data prep (turn the user's case into a
+  tiny fixture and a test)
+
+Focus on functions that take inputs and return outputs without reading or
+writing SyncroSim datasheets, rasters or files. If a function inside a
+transformer script needs testing, move it into a helper functions file first
+(e.g. `src/08-fit-model-functions.R`), then test it there.
+
+## How to add a test
+
+1. **Find the test file** for the source file you changed. Test files are named
+   after the source file:
+   - `src/00-helper-functions.R` → `tests/r/test-00-helper-functions.R`
+   - `src/setup_functions.py` → `tests/python/test_setup_functions.py`
+
+   If it doesn't exist yet, create it. R test files must start with `test-`.
+   Python test files must start with `test_`. For a new R source file, also
+   add a `source()` line for it in `tests/r/setup-source-helpers.R`.
+
+2. **Write the test.** Give it a name that says what should happen, call the
+   function with a small input, and check the result.
+
+   R:
+
+   ```r
+   test_that("tweak.p replaces 0 and 1 with the nearest in-between values", {
+     expect_equal(tweak.p(c(0, 0.2, 0.8, 1)), c(0.2, 0.2, 0.8, 0.8))
+   })
+   ```
+
+   Python:
+
+   ```python
+   def test_get_num_threads_is_one_when_multiprocessing_is_off():
+       sheet = pd.DataFrame({"EnableMultiprocessing": ["No"],
+                             "MaximumJobs": [4]})
+       assert sf.getNumThreads(sheet) == 1
+   ```
+
+3. **Work out the expected answer yourself** (by hand or from a trusted
+   source), not by copying whatever the function currently returns. Add a
+   short comment showing how you got it.
+
+4. **Test the edge cases** that matter: empty input, missing values (`NA` or
+   `None`), and inputs that should raise an error.
+
+5. **Run the tests** and make sure they pass before opening a pull request.
+
+## Fixtures
+
+If a test needs more than a few values, put a small CSV in `fixtures/` and
+read it in the test. In R, use `test_path("fixtures", "my-file.csv")` to find
+it. Keep fixtures tiny (a few rows). Never commit real project data or large
+rasters.
